@@ -107,19 +107,31 @@ pnpm typecheck   # tsc --noEmit en todos los workspaces
 pnpm test        # Vitest en todos los workspaces (--if-present)
 pnpm exec supabase start   # Supabase local (requiere Docker Desktop)
 pnpm exec supabase db reset # Re-aplica migraciones + seeds desde cero
+pnpm --filter @nom35/pruebas-rls test:rls # Suite de aislamiento (requiere BD local arriba)
 ```
+
+### Convenciones de base de datos
+
+- No hay default privileges: **toda tabla nueva necesita GRANT explícito** por rol
+  (mínimo privilegio) además de sus políticas RLS. `responses` no tiene GRANT de SELECT
+  para `authenticated` a propósito.
+- FKs compuestas `(company_id, id)` en las cadenas de tenant (anti-cruce de empresa).
+- El claim `company_id` del JWT lo pone el hook `app.custom_access_token` desde la
+  membresía real; las políticas SIEMPRE re-verifican membresía (claim solo no basta).
+- La suite de `packages/pruebas-rls` corre en CI con Supabase en Docker; localmente
+  requiere Docker Desktop.
 
 ## 5. Estado de milestones
 
-| Milestone | Descripción                                                      | Estado                                                                                                                                                                                                                                            |
-| --------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0        | Init repo, monorepo, CLAUDE.md, CI, Supabase local               | ✅ Cerrado (pendiente: verificar `supabase start` con Docker Desktop instalado)                                                                                                                                                                   |
-| M1        | Motor de cálculo + suite de validación (antes de cualquier UI)   | 🟡 Cerrado para desarrollo: casos 1–11 verdes, cobertura 100% líneas / 97% ramas. PENDIENTE: captura manual de los 2 casos mixtos en Evalúa035 (tablas listas en `reference-cases/README.md`) y validación de lanzamiento con casos del consultor |
-| M2        | Base de datos, multi-tenancy y auth (RLS + tests de aislamiento) | ⬜ Pendiente                                                                                                                                                                                                                                      |
-| M3        | Flujo del empleado (primera UI) + captura inmutable              | ⬜ Pendiente                                                                                                                                                                                                                                      |
-| M4        | Panel administrativo                                             | ⬜ Pendiente                                                                                                                                                                                                                                      |
-| M5        | Informe 7.9 y expediente de inspección                           | ⬜ Pendiente                                                                                                                                                                                                                                      |
-| M6        | Endurecimiento y demo                                            | ⬜ Pendiente                                                                                                                                                                                                                                      |
+| Milestone | Descripción                                                      | Estado                                                                                                                                                                                                                                                                                                 |
+| --------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| M0        | Init repo, monorepo, CLAUDE.md, CI, Supabase local               | ✅ Cerrado (pendiente: verificar `supabase start` con Docker Desktop instalado)                                                                                                                                                                                                                        |
+| M1        | Motor de cálculo + suite de validación (antes de cualquier UI)   | 🟡 Cerrado para desarrollo: casos 1–11 verdes, cobertura 100% líneas / 97% ramas. PENDIENTE: captura manual de los 2 casos mixtos en Evalúa035 (tablas listas en `reference-cases/README.md`) y validación de lanzamiento con casos del consultor                                                      |
+| M2        | Base de datos, multi-tenancy y auth (RLS + tests de aislamiento) | ✅ Cerrado: 4 migraciones reproducibles, RLS + grants mínimos en 18 tablas de tenant, triggers de inmutabilidad y nom_category, hook company_id, suite de aislamiento (36 tests) verde como gate de CI. PENDIENTE_CONFIRMAR: conteo de preguntas GR-I por sección (6/2/7/5) al cargar textos oficiales |
+| M3        | Flujo del empleado (primera UI) + captura inmutable              | ⬜ Pendiente                                                                                                                                                                                                                                                                                           |
+| M4        | Panel administrativo                                             | ⬜ Pendiente                                                                                                                                                                                                                                                                                           |
+| M5        | Informe 7.9 y expediente de inspección                           | ⬜ Pendiente                                                                                                                                                                                                                                                                                           |
+| M6        | Endurecimiento y demo                                            | ⬜ Pendiente                                                                                                                                                                                                                                                                                           |
 
 ### Dependencias externas abiertas
 
