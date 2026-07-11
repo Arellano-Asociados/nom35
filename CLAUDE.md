@@ -111,15 +111,15 @@ pnpm exec supabase db reset # Re-aplica migraciones + seeds desde cero
 
 ## 5. Estado de milestones
 
-| Milestone | Descripción                                                      | Estado                                                                          |
-| --------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| M0        | Init repo, monorepo, CLAUDE.md, CI, Supabase local               | ✅ Cerrado (pendiente: verificar `supabase start` con Docker Desktop instalado) |
+| Milestone | Descripción                                                      | Estado                                                                                                                                                                                                                                            |
+| --------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0        | Init repo, monorepo, CLAUDE.md, CI, Supabase local               | ✅ Cerrado (pendiente: verificar `supabase start` con Docker Desktop instalado)                                                                                                                                                                   |
 | M1        | Motor de cálculo + suite de validación (antes de cualquier UI)   | 🟡 Cerrado para desarrollo: casos 1–11 verdes, cobertura 100% líneas / 97% ramas. PENDIENTE: captura manual de los 2 casos mixtos en Evalúa035 (tablas listas en `reference-cases/README.md`) y validación de lanzamiento con casos del consultor |
-| M2        | Base de datos, multi-tenancy y auth (RLS + tests de aislamiento) | ⬜ Pendiente                                                                    |
-| M3        | Flujo del empleado (primera UI) + captura inmutable              | ⬜ Pendiente                                                                    |
-| M4        | Panel administrativo                                             | ⬜ Pendiente                                                                    |
-| M5        | Informe 7.9 y expediente de inspección                           | ⬜ Pendiente                                                                    |
-| M6        | Endurecimiento y demo                                            | ⬜ Pendiente                                                                    |
+| M2        | Base de datos, multi-tenancy y auth (RLS + tests de aislamiento) | ⬜ Pendiente                                                                                                                                                                                                                                      |
+| M3        | Flujo del empleado (primera UI) + captura inmutable              | ⬜ Pendiente                                                                                                                                                                                                                                      |
+| M4        | Panel administrativo                                             | ⬜ Pendiente                                                                                                                                                                                                                                      |
+| M5        | Informe 7.9 y expediente de inspección                           | ⬜ Pendiente                                                                                                                                                                                                                                      |
+| M6        | Endurecimiento y demo                                            | ⬜ Pendiente                                                                                                                                                                                                                                      |
 
 ### Dependencias externas abiertas
 
