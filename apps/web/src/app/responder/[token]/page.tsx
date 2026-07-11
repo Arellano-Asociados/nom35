@@ -5,10 +5,10 @@ import {
   obtenerPreguntas,
   respuestasVigentes,
 } from '@/lib/flujo';
-import { Consentimiento } from './componentes/consentimiento';
-import { Cuestionario, type SeccionUI } from './componentes/cuestionario';
-import { Filtros } from './componentes/filtros';
-import { Resultado } from './componentes/resultado';
+import { Consentimiento } from '@/components/responder/consentimiento';
+import { Cuestionario, type SeccionUI } from '@/components/responder/cuestionario';
+import { Filtros } from '@/components/responder/filtros';
+import { Resultado } from '@/components/responder/resultado';
 
 export const dynamic = 'force-dynamic';
 

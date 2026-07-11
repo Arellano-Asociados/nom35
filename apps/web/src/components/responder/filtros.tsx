@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { accionGuardarFiltros } from '../acciones';
+import { accionGuardarFiltros } from '@/acciones/responder';
 
 function PreguntaSiNo({
   nombre,
@@ -22,7 +22,7 @@ function PreguntaSiNo({
       <legend className="text-sm font-medium text-slate-900">{texto}</legend>
       <div className="flex gap-3">
         {[
-          { etiqueta: 'Sí', v: true },
+          { etiqueta: 'SÃ­', v: true },
           { etiqueta: 'No', v: false },
         ].map(({ etiqueta, v }) => (
           <label
@@ -64,13 +64,13 @@ export function Filtros({ token }: { token: string }) {
       <CardContent className="flex flex-col gap-6">
         <PreguntaSiNo
           nombre="atiende"
-          texto="En tu trabajo, ¿atiendes clientes o usuarios?"
+          texto="En tu trabajo, Â¿atiendes clientes o usuarios?"
           valor={atiende}
           onCambio={setAtiende}
         />
         <PreguntaSiNo
           nombre="supervisa"
-          texto="En tu trabajo, ¿eres jefe de otros trabajadores (supervisas personal)?"
+          texto="En tu trabajo, Â¿eres jefe de otros trabajadores (supervisas personal)?"
           valor={supervisa}
           onCambio={setSupervisa}
         />
@@ -85,14 +85,14 @@ export function Filtros({ token }: { token: string }) {
             startTransition(async () => {
               const r = await accionGuardarFiltros(token, atiende === true, supervisa === true);
               if (!r.ok) {
-                setError(r.error ?? 'Ocurrió un error');
+                setError(r.error ?? 'OcurriÃ³ un error');
                 return;
               }
               router.refresh();
             })
           }
         >
-          {enviando ? 'Guardando…' : 'Comenzar cuestionario'}
+          {enviando ? 'Guardandoâ€¦' : 'Comenzar cuestionario'}
         </Button>
       </CardContent>
     </Card>

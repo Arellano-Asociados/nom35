@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { accionEnviarCuestionario, accionGuardarRespuesta } from '../acciones';
+import { accionEnviarCuestionario, accionGuardarRespuesta } from '@/acciones/responder';
 
 export interface PreguntaUI {
   clave: string;
@@ -28,7 +28,7 @@ const OPCIONES_LIKERT = [
 ];
 
 const OPCIONES_SI_NO = [
-  { valor: 'si', etiqueta: 'Sí' },
+  { valor: 'si', etiqueta: 'SÃ­' },
   { valor: 'no', etiqueta: 'No' },
 ];
 
@@ -53,7 +53,7 @@ export function Cuestionario({
   const esGR1 = guia === 'GR-I';
   const opciones = esGR1 ? OPCIONES_SI_NO : OPCIONES_LIKERT;
 
-  // GR-I: si la Sección I está completa y TODAS son "No", el cuestionario termina ahí.
+  // GR-I: si la SecciÃ³n I estÃ¡ completa y TODAS son "No", el cuestionario termina ahÃ­.
   const seccionI = secciones[0];
   const seccionICompleta =
     esGR1 && (seccionI?.preguntas.every((p) => respuestas[p.clave] !== undefined) ?? false);
@@ -78,8 +78,8 @@ export function Cuestionario({
   const responder = (pregunta: PreguntaUI, valor: string) => {
     setRespuestas((previas) => ({ ...previas, [pregunta.clave]: valor }));
     setError(null);
-    // Guardado incremental: cada respuesta persiste al momento (reconexión no pierde nada).
-    // El botón Enviar se bloquea mientras haya guardados en vuelo.
+    // Guardado incremental: cada respuesta persiste al momento (reconexiÃ³n no pierde nada).
+    // El botÃ³n Enviar se bloquea mientras haya guardados en vuelo.
     setGuardando((n) => n + 1);
     void accionGuardarRespuesta(token, pregunta.seccion, pregunta.numero, valor)
       .then((r) => {
@@ -94,7 +94,7 @@ export function Cuestionario({
     <div className="flex flex-col gap-4">
       <div aria-live="polite" className="flex items-center justify-between text-sm text-slate-600">
         <span>
-          Sección {indiceSeguro + 1} de {seccionesVisibles.length}
+          SecciÃ³n {indiceSeguro + 1} de {seccionesVisibles.length}
         </span>
         <span data-testid="progreso">
           {contestadas} / {totalPreguntas} respondidas
@@ -186,7 +186,7 @@ export function Cuestionario({
               })
             }
           >
-            {enviando ? 'Enviando…' : 'Enviar cuestionario'}
+            {enviando ? 'Enviandoâ€¦' : 'Enviar cuestionario'}
           </Button>
         )}
       </div>
