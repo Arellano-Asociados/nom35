@@ -1,0 +1,30 @@
+{
+  "name": "nom35",
+  "private": true,
+  "description": "Plataforma SaaS de cumplimiento NOM-035-STPS-2018 (multi-tenant)",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "supabase"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.0",
+    "eslint": "^9.30.0",
+    "eslint-config-prettier": "^10.1.0",
+    "prettier": "^3.6.0",
+    "supabase": "^2.109.1",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.38.0"
+  }
+}
