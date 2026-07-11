@@ -40,11 +40,27 @@ que atienden múltiples clientes.
 ### Estructura del monorepo (pnpm workspaces)
 
 ```
-apps/web/               # Next.js 15 (se scaffoldea en Milestone 3; hasta entonces, stub)
+apps/web/               # Next.js 15 (App Router). E2E Playwright en apps/web/e2e
 packages/motor-nom035/  # Motor de cálculo puro (funciones puras, sin I/O, sin framework)
+packages/pruebas-rls/   # Suite de aislamiento multi-tenant (gate de CI)
 supabase/               # Migraciones SQL, políticas RLS, seeds (Supabase CLI)
-.github/workflows/      # CI: lint + typecheck + tests como gates
+.github/workflows/      # CI: lint + typecheck + tests + RLS + E2E como gates
 ```
+
+### Convenciones de la app web (Milestone 3)
+
+- El enlace del empleado es la CAPACIDAD: hash SHA-256 en BD; cada acción de servidor
+  revalida token, vigencia y estado. Todo acceso a datos del flujo del empleado es del
+  lado servidor con service_role; las respuestas crudas jamás viajan a un navegador.
+- Corregir una respuesta antes de enviar = fila nueva en `responses` (append-only intacto);
+  la vigente es la más reciente (`ultimaRespuestaPorItem`).
+- Componentes cliente NUNCA dentro de carpetas con corchetes (`[token]`): next start no los
+  resuelve (bug del React Client Manifest). Viven en `src/components/`, acciones en
+  `src/acciones/`.
+- OJO en Windows: no reescribir archivos fuente con Get-Content/Set-Content de PowerShell 5.1
+  (lee UTF-8 sin BOM como ANSI y corrompe acentos).
+- Correos: jamás incluir datos sensibles; notificaciones genéricas + evento en audit_log
+  (actor sistema = uuid cero).
 
 ## 3. REGLAS DE NEGOCIO INVIOLABLES
 
@@ -128,7 +144,7 @@ pnpm --filter @nom35/pruebas-rls test:rls # Suite de aislamiento (requiere BD lo
 | M0        | Init repo, monorepo, CLAUDE.md, CI, Supabase local               | ✅ Cerrado (pendiente: verificar `supabase start` con Docker Desktop instalado)                                                                                                                                                                                                                        |
 | M1        | Motor de cálculo + suite de validación (antes de cualquier UI)   | 🟡 Cerrado para desarrollo: casos 1–11 verdes, cobertura 100% líneas / 97% ramas. PENDIENTE: captura manual de los 2 casos mixtos en Evalúa035 (tablas listas en `reference-cases/README.md`) y validación de lanzamiento con casos del consultor                                                      |
 | M2        | Base de datos, multi-tenancy y auth (RLS + tests de aislamiento) | ✅ Cerrado: 4 migraciones reproducibles, RLS + grants mínimos en 18 tablas de tenant, triggers de inmutabilidad y nom_category, hook company_id, suite de aislamiento (36 tests) verde como gate de CI. PENDIENTE_CONFIRMAR: conteo de preguntas GR-I por sección (6/2/7/5) al cargar textos oficiales |
-| M3        | Flujo del empleado (primera UI) + captura inmutable              | ⬜ Pendiente                                                                                                                                                                                                                                                                                           |
+| M3        | Flujo del empleado (primera UI) + captura inmutable              | ✅ Cerrado: enlace tokenizado → consentimiento (versión/timestamp/IP) → filtros → cuestionario por secciones con guardado incremental → cálculo síncrono → resultado propio. E2E Playwright verde en las tres guías (condicionales, reconexión, expiración, notificación RD auditada)                  |
 | M4        | Panel administrativo                                             | ⬜ Pendiente                                                                                                                                                                                                                                                                                           |
 | M5        | Informe 7.9 y expediente de inspección                           | ⬜ Pendiente                                                                                                                                                                                                                                                                                           |
 | M6        | Endurecimiento y demo                                            | ⬜ Pendiente                                                                                                                                                                                                                                                                                           |
