@@ -1,6 +1,36 @@
 {
   "name": "@nom35/web",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "App Next.js 15 — stub; se scaffoldea en el Milestone 3 (ninguna línea de frontend antes de cerrar el Milestone 1)"
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@nom35/motor-nom035": "workspace:*",
+    "@supabase/supabase-js": "^2.50.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "resend": "^4.5.0",
+    "tailwind-merge": "^3.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.53.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^26.1.1",
+    "@types/pg": "^8.15.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "pg": "^8.16.0",
+    "tailwindcss": "^4",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
 }
