@@ -221,6 +221,45 @@ export async function enviarCuestionario(ctx: Contexto): Promise<{ error?: strin
   return {};
 }
 
+export interface PoliticaPendienteInfo {
+  id: string;
+  titulo: string;
+  version: string;
+  url: string | null;
+}
+
+/** Política de prevención vigente que el empleado aún no acusa (evidencia de difusión). */
+export async function politicaPendienteDe(ctx: Contexto): Promise<PoliticaPendienteInfo | null> {
+  const supabase = clienteAdmin();
+  const { data: politica } = await supabase
+    .from('policies')
+    .select('id, title, version, storage_path')
+    .eq('company_id', ctx.companyId)
+    .order('published_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!politica) return null;
+
+  const { data: acuse } = await supabase
+    .from('policy_acknowledgments')
+    .select('id')
+    .eq('policy_id', politica.id)
+    .eq('employee_id', ctx.employeeId)
+    .maybeSingle();
+  if (acuse) return null;
+
+  const { data: firmado } = await supabase.storage
+    .from('politicas')
+    .createSignedUrl(politica.storage_path, 3600);
+
+  return {
+    id: politica.id,
+    titulo: politica.title,
+    version: politica.version,
+    url: firmado?.signedUrl ?? null,
+  };
+}
+
 /**
  * Notifica a los Responsables Designados que hay una canalización GR-I pendiente.
  * El correo NO incluye datos del trabajador ni del resultado (regla inviolable 9);
