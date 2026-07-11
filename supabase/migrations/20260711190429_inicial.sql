@@ -1,0 +1,3 @@
+-- Migración inicial (vacía a propósito).
+-- El esquema real (tablas globales, tablas de tenant, RLS, triggers de inmutabilidad)
+-- se construye en el Milestone 2 con migraciones versionadas y reproducibles desde cero.
