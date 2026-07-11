@@ -30,3 +30,27 @@ jobs:
 
       - name: Tests
         run: pnpm test
+
+  aislamiento:
+    name: Aislamiento multi-tenant (RLS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Levantar Postgres de Supabase con migraciones
+        run: |
+          pnpm exec supabase db start
+          pnpm exec supabase migration up
+
+      - name: Suite de aislamiento (gate innegociable)
+        run: pnpm --filter @nom35/pruebas-rls test:rls
