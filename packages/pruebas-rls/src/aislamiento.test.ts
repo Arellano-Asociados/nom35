@@ -350,9 +350,10 @@ describe('anónimos y catálogos', () => {
       { sub: '00000000-0000-4000-8000-000000000000' },
       async (q) => {
         expect(await contar(q, 'select count(*) n from questionnaires')).toBe(3);
-        expect(await contar(q, 'select count(*) n from companies')).toBe(0);
-        expect(await contar(q, 'select count(*) n from work_centers')).toBe(0);
-        expect(await contar(q, 'select count(*) n from responses')).toBe(0);
+        // Las tablas de tenant ni siquiera tienen GRANT para anon: bloqueo duro
+        await esperarRechazo(q, 'select count(*) n from companies');
+        await esperarRechazo(q, 'select count(*) n from work_centers');
+        await esperarRechazo(q, 'select count(*) n from responses');
       },
       'anon',
     );
