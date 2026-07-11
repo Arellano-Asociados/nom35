@@ -1,0 +1,164 @@
+{
+  "entrada": {
+    "respuestas": {
+      "1": "siempre",
+      "2": "algunas_veces",
+      "3": "nunca",
+      "4": "casi_siempre",
+      "5": "casi_nunca",
+      "6": "siempre",
+      "7": "algunas_veces",
+      "8": "nunca",
+      "9": "casi_siempre",
+      "10": "casi_nunca",
+      "11": "siempre",
+      "12": "algunas_veces",
+      "13": "nunca",
+      "14": "casi_siempre",
+      "15": "casi_nunca",
+      "16": "siempre",
+      "17": "algunas_veces",
+      "18": "nunca",
+      "19": "casi_siempre",
+      "20": "casi_nunca",
+      "21": "siempre",
+      "22": "algunas_veces",
+      "23": "nunca",
+      "24": "casi_siempre",
+      "25": "casi_nunca",
+      "26": "siempre",
+      "27": "algunas_veces",
+      "28": "nunca",
+      "29": "casi_siempre",
+      "30": "casi_nunca",
+      "31": "siempre",
+      "32": "algunas_veces",
+      "33": "nunca",
+      "34": "casi_siempre",
+      "35": "casi_nunca",
+      "36": "siempre",
+      "37": "algunas_veces",
+      "38": "nunca",
+      "39": "casi_siempre",
+      "40": "casi_nunca",
+      "41": "siempre",
+      "42": "algunas_veces",
+      "43": "nunca",
+      "44": "casi_siempre",
+      "45": "casi_nunca",
+      "46": "siempre",
+      "47": "algunas_veces",
+      "48": "nunca",
+      "49": "casi_siempre",
+      "50": "casi_nunca",
+      "51": "siempre",
+      "52": "algunas_veces",
+      "53": "nunca",
+      "54": "casi_siempre",
+      "55": "casi_nunca",
+      "56": "siempre",
+      "57": "algunas_veces",
+      "58": "nunca",
+      "59": "casi_siempre",
+      "60": "casi_nunca",
+      "61": "siempre",
+      "62": "algunas_veces",
+      "63": "nunca",
+      "64": "casi_siempre",
+      "65": "casi_nunca",
+      "66": "siempre",
+      "67": "algunas_veces",
+      "68": "nunca",
+      "69": "casi_siempre",
+      "70": "casi_nunca",
+      "71": "siempre",
+      "72": "algunas_veces"
+    },
+    "atiendeClientes": true,
+    "supervisaPersonal": true
+  },
+  "resultadoMotor": {
+    "guia": "GR-III",
+    "cfinal": 144,
+    "nivelFinal": "muy_alto",
+    "categorias": [
+      {
+        "nombre": "Ambiente de trabajo",
+        "puntaje": 4,
+        "nivel": "nulo"
+      },
+      {
+        "nombre": "Factores propios de la actividad",
+        "puntaje": 54,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Organización del tiempo de trabajo",
+        "puntaje": 12,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Liderazgo y relaciones en el trabajo",
+        "puntaje": 52,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Entorno organizacional",
+        "puntaje": 22,
+        "nivel": "alto"
+      }
+    ],
+    "dominios": [
+      {
+        "nombre": "Condiciones en el ambiente de trabajo",
+        "puntaje": 4,
+        "nivel": "nulo"
+      },
+      {
+        "nombre": "Carga de trabajo",
+        "puntaje": 31,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Falta de control sobre el trabajo",
+        "puntaje": 23,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Jornada de trabajo",
+        "puntaje": 2,
+        "nivel": "medio"
+      },
+      {
+        "nombre": "Interferencia en la relación trabajo-familia",
+        "puntaje": 10,
+        "nivel": "muy_alto"
+      },
+      {
+        "nombre": "Liderazgo",
+        "puntaje": 17,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Relaciones en el trabajo",
+        "puntaje": 20,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Violencia",
+        "puntaje": 15,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Reconocimiento del desempeño",
+        "puntaje": 12,
+        "nivel": "medio"
+      },
+      {
+        "nombre": "Insuficiente sentido de pertenencia e inestabilidad",
+        "puntaje": 10,
+        "nivel": "muy_alto"
+      }
+    ]
+  }
+}

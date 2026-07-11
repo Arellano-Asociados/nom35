@@ -1,0 +1,120 @@
+{
+  "entrada": {
+    "respuestas": {
+      "1": "casi_nunca",
+      "2": "siempre",
+      "3": "algunas_veces",
+      "4": "nunca",
+      "5": "casi_siempre",
+      "6": "casi_nunca",
+      "7": "siempre",
+      "8": "algunas_veces",
+      "9": "nunca",
+      "10": "casi_siempre",
+      "11": "casi_nunca",
+      "12": "siempre",
+      "13": "algunas_veces",
+      "14": "nunca",
+      "15": "casi_siempre",
+      "16": "casi_nunca",
+      "17": "siempre",
+      "18": "algunas_veces",
+      "19": "nunca",
+      "20": "casi_siempre",
+      "21": "casi_nunca",
+      "22": "siempre",
+      "23": "algunas_veces",
+      "24": "nunca",
+      "25": "casi_siempre",
+      "26": "casi_nunca",
+      "27": "siempre",
+      "28": "algunas_veces",
+      "29": "nunca",
+      "30": "casi_siempre",
+      "31": "casi_nunca",
+      "32": "siempre",
+      "33": "algunas_veces",
+      "34": "nunca",
+      "35": "casi_siempre",
+      "36": "casi_nunca",
+      "37": "siempre",
+      "38": "algunas_veces",
+      "39": "nunca",
+      "40": "casi_siempre",
+      "41": "casi_nunca",
+      "42": "siempre",
+      "43": "algunas_veces"
+    },
+    "atiendeClientes": true,
+    "supervisaPersonal": false
+  },
+  "resultadoMotor": {
+    "guia": "GR-II",
+    "cfinal": 87,
+    "nivelFinal": "alto",
+    "categorias": [
+      {
+        "nombre": "Ambiente de trabajo",
+        "puntaje": 7,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Factores propios de la actividad",
+        "puntaje": 34,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Organización del tiempo de trabajo",
+        "puntaje": 8,
+        "nivel": "medio"
+      },
+      {
+        "nombre": "Liderazgo y relaciones en el trabajo",
+        "puntaje": 32,
+        "nivel": "alto"
+      }
+    ],
+    "dominios": [
+      {
+        "nombre": "Condiciones en el ambiente de trabajo",
+        "puntaje": 7,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Carga de trabajo",
+        "puntaje": 27,
+        "nivel": "muy_alto"
+      },
+      {
+        "nombre": "Falta de control sobre el trabajo",
+        "puntaje": 13,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Jornada de trabajo",
+        "puntaje": 3,
+        "nivel": "medio"
+      },
+      {
+        "nombre": "Interferencia en la relación trabajo-familia",
+        "puntaje": 5,
+        "nivel": "alto"
+      },
+      {
+        "nombre": "Liderazgo",
+        "puntaje": 13,
+        "nivel": "muy_alto"
+      },
+      {
+        "nombre": "Relaciones en el trabajo",
+        "puntaje": 4,
+        "nivel": "nulo"
+      },
+      {
+        "nombre": "Violencia",
+        "puntaje": 15,
+        "nivel": "alto"
+      }
+    ]
+  }
+}
