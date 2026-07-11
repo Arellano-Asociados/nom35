@@ -1,0 +1,25 @@
+# Dependencias
+node_modules/
+
+# Entorno — NUNCA commitear secretos
+.env
+.env.*
+!.env.example
+
+# Builds
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
