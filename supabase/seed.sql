@@ -1,0 +1,3 @@
+-- Seed de datos de DEMO (se llena en el Milestone 6).
+-- Los datos normativos NO van aquí: son datos de referencia obligatorios y viven en la
+-- migración 20260711200004_seeds_normativos.sql (idempotente).
