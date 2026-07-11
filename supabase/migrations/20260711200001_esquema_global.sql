@@ -126,3 +126,11 @@ create policy propia_fila on platform_users for select
 
 create policy lectura_autenticados on system_config for select
   using (auth.role() = 'authenticated');
+
+-- Grants (capa gruesa; RLS es la capa fina). El backend usa service_role, que además
+-- tiene BYPASSRLS. Mínimo privilegio: los catálogos solo se leen.
+grant select on questionnaires, questions, scoring_rules, item_structure, risk_level_ranges
+  to anon, authenticated;
+grant select on platform_users, system_config to authenticated;
+grant all on questionnaires, questions, scoring_rules, item_structure, risk_level_ranges,
+  platform_users, system_config to service_role;

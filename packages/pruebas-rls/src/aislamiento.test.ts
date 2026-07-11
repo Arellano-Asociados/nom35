@@ -82,6 +82,41 @@ async function contar(q: Consulta, sql: string, params?: unknown[]): Promise<num
   return Number(r.rows[0].n);
 }
 
+/** Ejecuta una operación que puede ser bloqueada por privilegios o RLS, aislada en un
+ * savepoint para no abortar la transacción. Devuelve filas afectadas y código de error. */
+async function intento(
+  q: Consulta,
+  sql: string,
+  params?: unknown[],
+): Promise<{ filas: number; rows: Record<string, unknown>[]; codigo?: string }> {
+  await q('savepoint intento');
+  try {
+    const r = await q(sql, params);
+    await q('release savepoint intento');
+    return { filas: r.rowCount ?? 0, rows: r.rows };
+  } catch (e) {
+    await q('rollback to savepoint intento');
+    return { filas: 0, rows: [], codigo: (e as { code?: string }).code ?? 'sin_codigo' };
+  }
+}
+
+/** La operación DEBE quedar bloqueada: o afecta 0 filas o falla con 42501
+ * (violación de RLS / privilegio denegado). */
+async function esperarBloqueo(q: Consulta, sql: string, params?: unknown[], etiqueta?: string) {
+  const r = await intento(q, sql, params);
+  if (r.codigo !== undefined) {
+    expect(r.codigo, etiqueta ?? sql).toBe('42501');
+  } else {
+    expect(r.filas, etiqueta ?? sql).toBe(0);
+  }
+}
+
+/** La operación DEBE fallar con 42501 (no basta con 0 filas: es un INSERT). */
+async function esperarRechazo(q: Consulta, sql: string, params?: unknown[], etiqueta?: string) {
+  const r = await intento(q, sql, params);
+  expect(r.codigo, etiqueta ?? sql).toBe('42501');
+}
+
 beforeAll(async () => {
   pool = new pg.Pool({ connectionString: DB_URL, max: 2 });
   const fixtures = readFileSync(fileURLToPath(new URL('./fixtures.sql', import.meta.url)), 'utf-8');
@@ -135,36 +170,48 @@ describe('aislamiento entre tenants (usuario del tenant A vs. filas del tenant B
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
       expect(await contar(q, 'select count(*) n from companies where id = $1', [TENANT_B])).toBe(0);
       for (const tabla of tablasTenant) {
-        const n = await contar(q, `select count(*) n from ${tabla} where company_id = $1`, [
+        // Bloqueado = 0 filas visibles o privilegio de SELECT denegado (p. ej. responses)
+        const r = await intento(q, `select count(*) n from ${tabla} where company_id = $1`, [
           TENANT_B,
         ]);
-        expect(n, tabla).toBe(0);
+        if (r.codigo !== undefined) {
+          expect(r.codigo, tabla).toBe('42501');
+        } else {
+          expect(Number(r.rows[0]?.n), tabla).toBe(0);
+        }
       }
     });
   });
 
-  it('admin_org de A no puede ACTUALIZAR ni BORRAR filas de B (0 filas afectadas)', async () => {
+  it('admin_org de A no puede ACTUALIZAR ni BORRAR filas de B', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
-      const upd = await q('update companies set legal_name = legal_name where id = $1', [TENANT_B]);
-      expect(upd.rowCount).toBe(0);
+      await esperarBloqueo(q, 'update companies set legal_name = legal_name where id = $1', [
+        TENANT_B,
+      ]);
       for (const tabla of tablasTenant) {
-        const u = await q(`update ${tabla} set company_id = company_id where company_id = $1`, [
-          TENANT_B,
-        ]);
-        expect(u.rowCount, `update ${tabla}`).toBe(0);
-        const d = await q(`delete from ${tabla} where company_id = $1`, [TENANT_B]);
-        expect(d.rowCount, `delete ${tabla}`).toBe(0);
+        await esperarBloqueo(
+          q,
+          `update ${tabla} set company_id = company_id where company_id = $1`,
+          [TENANT_B],
+          `update ${tabla}`,
+        );
+        await esperarBloqueo(
+          q,
+          `delete from ${tabla} where company_id = $1`,
+          [TENANT_B],
+          `delete ${tabla}`,
+        );
       }
     });
   });
 
   it('admin_org de A no puede INSERTAR filas con company_id de B', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
-      await expect(
-        q(`insert into work_centers (company_id, name, headcount) values ($1, 'X', 10)`, [
-          TENANT_B,
-        ]),
-      ).rejects.toThrow(/row-level security/);
+      await esperarRechazo(
+        q,
+        `insert into work_centers (company_id, name, headcount) values ($1, 'X', 10)`,
+        [TENANT_B],
+      );
     });
   });
 
@@ -221,7 +268,8 @@ describe('respuestas crudas: NADIE del lado patronal las lee (regla inviolable 4
     ['empleado A1 (ni siquiera las propias)', EMPLEADO_A1],
   ])('%s no puede hacer SELECT sobre responses', async (_nombre, uid) => {
     await como({ sub: uid, company_id: TENANT_A }, async (q) => {
-      expect(await contar(q, 'select count(*) n from responses')).toBe(0);
+      // Sin GRANT de SELECT ni política: el bloqueo debe ser un privilegio denegado duro
+      await esperarRechazo(q, 'select count(*) n from responses');
     });
   });
 
@@ -233,13 +281,12 @@ describe('respuestas crudas: NADIE del lado patronal las lee (regla inviolable 4
         [TENANT_A, QA_A1],
       );
       expect(propia.rowCount).toBe(1);
-      await expect(
-        q(
-          `insert into responses (company_id, assignment_id, item_number, answer)
-           values ($1, $2, 2, 'nunca')`,
-          [TENANT_A, QA_A2],
-        ),
-      ).rejects.toThrow(/row-level security/);
+      await esperarRechazo(
+        q,
+        `insert into responses (company_id, assignment_id, item_number, answer)
+         values ($1, $2, 2, 'nunca')`,
+        [TENANT_A, QA_A2],
+      );
     });
   });
 });
@@ -321,20 +368,18 @@ describe('auditoría', () => {
         [TENANT_A, DR_A, RR_A],
       );
       expect(propio.rowCount).toBe(1);
-      await expect(
-        q(
-          `insert into audit_log (company_id, actor_user_id, event_type)
-           values ($1, $2, 'suplantacion')`,
-          [TENANT_A, ADMIN_A],
-        ),
-      ).rejects.toThrow(/row-level security/);
-      await expect(
-        q(
-          `insert into audit_log (company_id, actor_user_id, event_type)
-           values ($1, $2, 'cruce-tenant')`,
-          [TENANT_B, DR_A],
-        ),
-      ).rejects.toThrow(/row-level security/);
+      await esperarRechazo(
+        q,
+        `insert into audit_log (company_id, actor_user_id, event_type)
+         values ($1, $2, 'suplantacion')`,
+        [TENANT_A, ADMIN_A],
+      );
+      await esperarRechazo(
+        q,
+        `insert into audit_log (company_id, actor_user_id, event_type)
+         values ($1, $2, 'cruce-tenant')`,
+        [TENANT_B, DR_A],
+      );
     });
   });
 });

@@ -275,3 +275,36 @@ create policy audit_log_insert on audit_log for insert
   );
 create policy audit_log_select on audit_log for select
   using (app.gestiona_tenant(company_id));
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Grants por tabla (capa gruesa, mínimo privilegio; RLS es la capa fina).
+-- CONVENCIÓN: toda tabla nueva necesita su GRANT explícito — no hay default privileges.
+-- Nótese que responses NO tiene GRANT de SELECT para authenticated: la prohibición de
+-- leer respuestas crudas queda reforzada también en la capa de privilegios.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+grant select, update on companies to authenticated;
+grant select, insert, update, delete on work_centers to authenticated;
+grant select, insert, update, delete on employees to authenticated;
+grant select, insert, update, delete on role_assignments to authenticated;
+grant select, insert, delete on consultant_assignments to authenticated;
+grant select, insert, update on compliance_cycles to authenticated;
+grant select, insert, update, delete on questionnaire_assignments to authenticated;
+grant select, insert on consents to authenticated;
+grant insert on responses to authenticated; -- SIN select: nadie lee respuestas crudas
+grant select on risk_results to authenticated;
+grant select, update on gr1_results to authenticated;
+grant select, insert, update, delete on action_items to authenticated;
+grant select, insert, update on policies to authenticated;
+grant select, insert on policy_acknowledgments to authenticated;
+grant select, insert, update on training_contents to authenticated;
+grant select, insert on training_records to authenticated;
+grant select, insert on compliance_reports to authenticated;
+grant select, insert on audit_log to authenticated;
+grant select on work_centers_alerta_ciclo to authenticated;
+
+grant all on companies, work_centers, employees, role_assignments, consultant_assignments,
+  compliance_cycles, questionnaire_assignments, consents, responses, risk_results, gr1_results,
+  action_items, policies, policy_acknowledgments, training_contents, training_records,
+  compliance_reports, audit_log to service_role;
+grant select on work_centers_alerta_ciclo to service_role;
