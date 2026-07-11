@@ -2,6 +2,10 @@ node_modules/
 dist/
 .next/
 coverage/
+test-results/
+playwright-report/
 pnpm-lock.yaml
 supabase/.temp/
 supabase/migrations/*.sql
+apps/web/next-env.d.ts
+apps/web/e2e/.datos-e2e.json

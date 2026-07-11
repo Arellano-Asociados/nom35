@@ -54,3 +54,41 @@ jobs:
 
       - name: Suite de aislamiento (gate innegociable)
         run: pnpm --filter @nom35/pruebas-rls test:rls
+
+  e2e:
+    name: E2E flujo del empleado
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Levantar Supabase local (aplica migraciones)
+        run: pnpm exec supabase start
+
+      - name: Exportar credenciales locales de Supabase
+        run: |
+          pnpm exec supabase status -o env > sb.env
+          set -a; source sb.env; set +a
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "SUPABASE_DB_URL=$DB_URL"
+          } >> "$GITHUB_ENV"
+
+      - name: Build de la app
+        run: pnpm --filter @nom35/web build
+
+      - name: Instalar navegador de Playwright
+        run: pnpm --filter @nom35/web exec playwright install --with-deps chromium
+
+      - name: E2E (Playwright)
+        run: pnpm --filter @nom35/web test:e2e
