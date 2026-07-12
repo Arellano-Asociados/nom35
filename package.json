@@ -10,7 +10,8 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "pnpm -r --if-present run typecheck",
-    "test": "pnpm -r --if-present run test"
+    "test": "pnpm -r --if-present run test",
+    "demo:seed": "pnpm --filter @nom35/motor-nom035 run build && node scripts/demo-seed.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.30.0",
+    "@supabase/supabase-js": "^2.50.0",
     "eslint": "^9.30.0",
     "eslint-config-prettier": "^10.1.0",
     "prettier": "^3.6.0",

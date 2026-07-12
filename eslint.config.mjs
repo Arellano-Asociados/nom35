@@ -25,4 +25,17 @@ export default tseslint.config(
       'no-console': 'error',
     },
   },
+  {
+    // Scripts de Node puro (fuera de apps/web y de los paquetes TypeScript): no hay tipos que
+    // documenten los globals del runtime, así que se declaran explícitamente para el propio
+    // ESLint (a diferencia de los .ts, aquí "no-undef" sí aplica).
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+      },
+    },
+  },
 );
