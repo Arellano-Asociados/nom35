@@ -178,11 +178,14 @@ scripts/demo-seed.mjs`, así que el build corre automáticamente en cada invocac
 
 ## Limitaciones conocidas
 
-- **Correo no configurado en local**: sin `RESEND_API_KEY`, `proveedorCorreo()`
-  (`apps/web/src/lib/correo.ts`) usa un proveedor nulo que no envía nada (silencioso a
-  propósito). El botón "Enviar recordatorios a pendientes" y la notificación de canalización
-  al RD funcionan (generan el token nuevo / el evento de auditoría) pero ningún correo real
-  sale; no hay nada que mostrar en una bandeja de entrada durante la demo.
+- **Correo en local: bandeja Mailpit**. Con `MAILPIT_URL=http://127.0.0.1:54324` en
+  `apps/web/.env.local` (el Supabase local ya trae Mailpit corriendo), TODO el correo
+  saliente —distribución de enlaces, recordatorios, notificación de canalización al RD— se
+  captura en la bandeja web `http://127.0.0.1:54324` sin enviar nada de verdad: ideal para
+  la demo ("miren, así le llega el enlace al empleado"). Sin esa variable (y sin
+  `RESEND_API_KEY`), `proveedorCorreo()` usa un proveedor nulo que no envía nada,
+  silencioso a propósito; las acciones funcionan igual (token nuevo, auditoría), solo no
+  hay correo que mostrar.
 - **Primera corrida real: verificada (2026-07-12)**. El seed corrió completo contra Supabase
   local en Windows sin errores: 28 resultados con la distribución de niveles diseñada
   (8/4/7/6/3), archivos reales en Storage, cuentas de auth funcionando y el claim
