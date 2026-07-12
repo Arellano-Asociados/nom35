@@ -1,13 +1,14 @@
 @import 'tailwindcss';
 
-body {
-  background: var(--color-slate-100);
-  color: var(--color-slate-900);
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+@theme inline {
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Foco de teclado visible en toda la app (WCAG 2.4.7). Los componentes interactivos
+   no necesitan estilos de foco propios: este anillo azul aplica de forma consistente. */
+:focus-visible {
+  outline: 2px solid var(--color-blue-600);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
 }

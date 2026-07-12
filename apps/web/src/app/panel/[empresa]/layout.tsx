@@ -1,15 +1,9 @@
-import Link from 'next/link';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 
-const PESTANAS = [
-  ['centros', 'Centros'],
-  ['empleados', 'Empleados'],
-  ['ciclos', 'Ciclos'],
-  ['politica', 'Política'],
-  ['capacitacion', 'Capacitación'],
-  ['equipo', 'Equipo'],
-] as const;
-
+// La navegación entre secciones de la empresa (Centros/Empleados/Ciclos/Política/
+// Capacitación/Equipo) vive en el sidebar (src/components/panel/sidebar.tsx), que
+// detecta la empresa activa a partir de la URL. Este layout solo aporta el
+// encabezado con el nombre de la empresa para las páginas anidadas.
 export default async function LayoutEmpresa({
   children,
   params,
@@ -22,22 +16,12 @@ export default async function LayoutEmpresa({
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900" data-testid="nombre-empresa">
-          {acceso.membresia.razonSocial}
-        </h1>
-        <nav aria-label="Secciones de la empresa" className="mt-2 flex flex-wrap gap-1">
-          {PESTANAS.map(([ruta, etiqueta]) => (
-            <Link
-              key={ruta}
-              href={`/panel/${empresa}/${ruta}`}
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200"
-            >
-              {etiqueta}
-            </Link>
-          ))}
-        </nav>
-      </div>
+      <h1
+        className="text-2xl font-semibold tracking-tight text-slate-900"
+        data-testid="nombre-empresa"
+      >
+        {acceso.membresia.razonSocial}
+      </h1>
       {children}
     </div>
   );
