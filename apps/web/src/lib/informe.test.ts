@@ -2,6 +2,7 @@ import { MOTOR_NOM035_VERSION } from '@nom35/motor-nom035';
 import { describe, expect, it } from 'vitest';
 import {
   armarDatosInforme79,
+  resultadosVigentesPorAsignacion,
   type EntradaAccion,
   type EntradaAsignacion,
   type EntradaCentro,
@@ -355,5 +356,51 @@ describe('armarDatosInforme79', () => {
     expect(informe.empresa).toEqual({ razonSocial: 'Sin RFC S.A.', rfc: '' });
     expect(informe.acciones).toEqual(acciones);
     expect(informe.ciclo).toEqual(CICLO_BASE);
+  });
+});
+
+describe('resultadosVigentesPorAsignacion (exportada, genérica)', () => {
+  // El dashboard administrativo consume filas de risk_results con una forma propia
+  // (nivel_final/categorias/dominios/employees, sin engineVersion ni nivelFinal): la
+  // función debe filtrar por vigencia sin exigir los campos que el informe 7.9 sí usa.
+  it('filtra por vigencia sobre una forma mínima ajena a EntradaResultado', () => {
+    interface FilaDashboard {
+      id: string;
+      assignmentId: string;
+      supersedesId: string | null;
+      createdAt: string;
+      nivel_final: string;
+    }
+
+    const filas: FilaDashboard[] = [
+      {
+        id: 'r1-viejo',
+        assignmentId: 'asig-0',
+        supersedesId: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        nivel_final: 'muy_alto',
+      },
+      {
+        id: 'r1-nuevo',
+        assignmentId: 'asig-0',
+        supersedesId: 'r1-viejo',
+        createdAt: '2026-02-01T00:00:00.000Z',
+        nivel_final: 'nulo',
+      },
+      {
+        id: 'r2',
+        assignmentId: 'asig-1',
+        supersedesId: null,
+        createdAt: '2026-01-05T00:00:00.000Z',
+        nivel_final: 'bajo',
+      },
+    ];
+
+    const vigentes = resultadosVigentesPorAsignacion(filas);
+
+    expect(vigentes).toHaveLength(2);
+    expect(vigentes.map((r) => r.id).sort()).toEqual(['r1-nuevo', 'r2']);
+    // La fila devuelta conserva su forma original (nivel_final incluido, no aplanado).
+    expect(vigentes.find((r) => r.id === 'r1-nuevo')?.nivel_final).toBe('nulo');
   });
 });

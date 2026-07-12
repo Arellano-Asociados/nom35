@@ -3,6 +3,7 @@ import { TablaDistribucion } from '@/components/panel/tabla-distribucion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { distribucionNiveles, distribucionPorNombre } from '@/lib/agregados';
 import { autorizarEmpresa } from '@/lib/autorizacion';
+import { resultadosVigentesPorAsignacion } from '@/lib/informe';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
@@ -28,19 +29,34 @@ export default async function PaginaDashboard({
   const supabase = clienteAdmin();
   const { data: resultados } = await supabase
     .from('risk_results')
-    .select('nivel_final, categorias, dominios, employees (area)')
+    .select(
+      'id, assignment_id, supersedes_id, created_at, nivel_final, categorias, dominios, employees (area)',
+    )
     .eq('company_id', empresa)
     .eq('cycle_id', ciclo);
 
+  // Mismo criterio que el informe 7.9 (regla inviolable 1): con cualquier recálculo,
+  // el dashboard y el informe deben coincidir en la distribución del mismo ciclo.
+  const vigentes = resultadosVigentesPorAsignacion(
+    (resultados ?? []).map((r) => ({
+      id: r.id,
+      assignmentId: r.assignment_id,
+      supersedesId: r.supersedes_id,
+      createdAt: r.created_at,
+      nivel_final: r.nivel_final,
+      categorias: r.categorias,
+      dominios: r.dominios,
+      employees: r.employees,
+    })),
+  );
+
   const areas = [
     ...new Set(
-      (resultados ?? []).map(
-        (r) => (r.employees as unknown as { area: string | null }).area ?? 'Sin área',
-      ),
+      vigentes.map((r) => (r.employees as unknown as { area: string | null }).area ?? 'Sin área'),
     ),
   ].sort();
 
-  const filtrados = (resultados ?? []).filter(
+  const filtrados = vigentes.filter(
     (r) =>
       !area || ((r.employees as unknown as { area: string | null }).area ?? 'Sin área') === area,
   );
