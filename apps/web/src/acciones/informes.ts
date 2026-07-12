@@ -2,10 +2,12 @@
 
 import { createHash } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
 import { registrarAuditoria } from '@/lib/auditoria';
 import {
   armarDatosInforme79,
+  type DatosInforme79,
   type EntradaAccion,
   type EntradaAsignacion,
   type EntradaCentro,
@@ -15,6 +17,13 @@ import {
 } from '@/lib/informe';
 import { clienteAdmin } from '@/lib/supabase-admin';
 import { generarPdfInforme79 } from '@/informes/generar-pdf';
+import {
+  armarExpediente,
+  type EntradaAcusePolitica,
+  type EntradaCapacitacion,
+  type EntradaParticipacionCentro,
+  type EntradaPoliticaArchivo,
+} from '@/informes/expediente';
 
 // Acciones de servidor del informe normativo 7.9. Igual que en panel.ts: TODA acción
 // verifica la membresía real del usuario en la empresa (autorizarEmpresa) antes de tocar
@@ -28,15 +37,20 @@ export type ResultadoGenerarInforme =
   { ok: true; reporteId: string } | { ok: false; error: string };
 export type ResultadoUrlDescarga = { ok: true; url: string } | { ok: false; error: string };
 
-export async function accionGenerarInforme79(
+type ResultadoArmadoDatos = { ok: true; datos: DatosInforme79 } | { ok: false; error: string };
+
+/**
+ * Lee de BD todo lo necesario para `armarDatosInforme79` y lo arma. Compartido por
+ * `accionGenerarInforme79` y `accionGenerarExpediente` (el expediente incluye el mismo
+ * informe 7.9 más evidencia de proceso) para no duplicar las ~10 consultas de tenant.
+ * companyId Y cycleId se validan juntos en cada consulta (regla inviolable 6): un
+ * cycleId de otra empresa nunca produce fila (FK compuesta company_id+id).
+ */
+async function armarDatosInforme79DesdeBd(
+  supabase: SupabaseClient,
   companyId: string,
   cycleId: string,
-): Promise<ResultadoGenerarInforme> {
-  const acceso = await autorizarEmpresa(companyId);
-  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
-
-  const supabase = clienteAdmin();
-
+): Promise<ResultadoArmadoDatos> {
   const { data: empresa } = await supabase
     .from('companies')
     .select('legal_name, rfc')
@@ -44,8 +58,6 @@ export async function accionGenerarInforme79(
     .maybeSingle();
   if (!empresa) return { ok: false, error: 'Empresa no encontrada' };
 
-  // El ciclo se busca SIEMPRE filtrado por companyId: un cycleId de otra empresa no
-  // produce fila (FK compuesta company_id+id en la cadena de tenant).
   const { data: ciclo } = await supabase
     .from('compliance_cycles')
     .select(
@@ -143,6 +155,22 @@ export async function accionGenerarInforme79(
     generadoEl: new Date().toISOString(),
   });
 
+  return { ok: true, datos };
+}
+
+export async function accionGenerarInforme79(
+  companyId: string,
+  cycleId: string,
+): Promise<ResultadoGenerarInforme> {
+  const acceso = await autorizarEmpresa(companyId);
+  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
+
+  const supabase = clienteAdmin();
+
+  const armado = await armarDatosInforme79DesdeBd(supabase, companyId, cycleId);
+  if (!armado.ok) return { ok: false, error: armado.error };
+  const { datos } = armado;
+
   let pdf: Buffer;
   try {
     pdf = await generarPdfInforme79(datos);
@@ -215,4 +243,127 @@ export async function accionUrlDescargaInforme(
   );
 
   return { ok: true, url: firmado.signedUrl };
+}
+
+/**
+ * Política de prevención actualmente publicada de la empresa (la más reciente por
+ * `published_at`) y sus bytes desde el bucket privado `politicas`. `null` si la empresa
+ * aún no ha publicado ninguna (el expediente se genera igual; el manifiesto lo marca
+ * "ausente" — no truena, ver `armarExpediente`).
+ */
+async function politicaPublicadaDesdeBd(
+  supabase: SupabaseClient,
+  companyId: string,
+): Promise<EntradaPoliticaArchivo | null> {
+  const { data: politica } = await supabase
+    .from('policies')
+    .select('storage_path')
+    .eq('company_id', companyId)
+    .order('published_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!politica) return null;
+
+  const { data: descarga, error } = await supabase.storage
+    .from('politicas')
+    .download(politica.storage_path);
+  if (error || !descarga) return null;
+
+  const bytes = Buffer.from(await descarga.arrayBuffer());
+  return { nombreArchivo: politica.storage_path, bytes };
+}
+
+export async function accionGenerarExpediente(
+  companyId: string,
+  cycleId: string,
+): Promise<ResultadoGenerarInforme> {
+  const acceso = await autorizarEmpresa(companyId);
+  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
+
+  const supabase = clienteAdmin();
+
+  const armado = await armarDatosInforme79DesdeBd(supabase, companyId, cycleId);
+  if (!armado.ok) return { ok: false, error: armado.error };
+  const { datos } = armado;
+
+  let pdf: Buffer;
+  try {
+    pdf = await generarPdfInforme79(datos);
+  } catch {
+    return { ok: false, error: 'No se pudo generar el PDF del informe' };
+  }
+
+  const politica = await politicaPublicadaDesdeBd(supabase, companyId);
+
+  // Evidencia de PROCESO, no de resultado (reglas inviolables 3 y 4): nombre + fecha
+  // únicamente, nada de risk_results/gr1_results/responses se toca aquí.
+  const { data: acusesFilas } = await supabase
+    .from('policy_acknowledgments')
+    .select('acknowledged_at, employees (full_name)')
+    .eq('company_id', companyId);
+  const acusesPolitica: EntradaAcusePolitica[] = (acusesFilas ?? []).map((a) => ({
+    nombreEmpleado: (a.employees as unknown as { full_name: string } | null)?.full_name ?? '',
+    fechaAcuse: a.acknowledged_at,
+  }));
+
+  const { data: capacitacionFilas } = await supabase
+    .from('training_records')
+    .select('completed_at, employees (full_name), training_contents (title)')
+    .eq('company_id', companyId);
+  const capacitacion: EntradaCapacitacion[] = (capacitacionFilas ?? []).map((t) => ({
+    nombreEmpleado: (t.employees as unknown as { full_name: string } | null)?.full_name ?? '',
+    nombreCapacitacion: (t.training_contents as unknown as { title: string } | null)?.title ?? '',
+    fechaCompletado: t.completed_at,
+    estatus: 'completado',
+  }));
+
+  // Un ciclo tiene un único centro de trabajo (ver armarDatosInforme79DesdeBd): la
+  // participación ya agregada en `datos.participacion` aplica a ese centro.
+  const participacion: EntradaParticipacionCentro[] = datos.centros.map((c) => ({
+    nombreCentro: c.nombre,
+    asignados: datos.participacion.asignados,
+    completados: datos.participacion.completados,
+  }));
+
+  const { zip, manifiesto } = await armarExpediente({
+    datos,
+    pdfInforme: pdf,
+    politica,
+    acusesPolitica,
+    participacion,
+    capacitacion,
+    generadoEl: new Date().toISOString(),
+  });
+  const sha256 = createHash('sha256').update(zip).digest('hex');
+
+  const rutaArchivo = `informes/${companyId}/${cycleId}/expediente-${Date.now()}.zip`;
+  const { error: errorSubida } = await supabase.storage
+    .from('informes')
+    .upload(rutaArchivo, zip, { contentType: 'application/zip' });
+  if (errorSubida) return { ok: false, error: 'No se pudo subir el expediente' };
+
+  const { data: reporte, error: errorInsert } = await supabase
+    .from('compliance_reports')
+    .insert({
+      company_id: companyId,
+      cycle_id: cycleId,
+      report_type: 'expediente_zip',
+      storage_path: rutaArchivo,
+      sha256,
+    })
+    .select('id')
+    .single();
+  if (errorInsert || !reporte) return { ok: false, error: 'No se pudo registrar el expediente' };
+
+  await registrarAuditoria(
+    companyId,
+    acceso.userId,
+    'expediente_generado',
+    'compliance_reports',
+    reporte.id,
+    { cycleId, sha256, politicaPublicada: manifiesto.politicaPublicada },
+  );
+
+  revalidatePath(`/panel/${companyId}/ciclos/${cycleId}/informes`);
+  return { ok: true, reporteId: reporte.id };
 }
