@@ -25,9 +25,13 @@ const CLASE_BASE_BADGE =
   'inline-flex w-fit items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium';
 
 /** Badge de nivel de riesgo (Nulo/Bajo/Medio/Alto/Muy alto): texto + color. */
-export function BadgeNivel({ nivel }: { nivel: string }) {
+export function BadgeNivel({ nivel, className }: { nivel: string; className?: string }) {
   const clase = CLASE_NIVEL[nivel] ?? 'bg-slate-100 text-slate-700 border-slate-200';
-  return <span className={`${CLASE_BASE_BADGE} ${clase}`}>{ETIQUETA_NIVEL[nivel] ?? nivel}</span>;
+  return (
+    <span className={`${CLASE_BASE_BADGE} ${clase} ${className ?? ''}`}>
+      {ETIQUETA_NIVEL[nivel] ?? nivel}
+    </span>
+  );
 }
 
 /**

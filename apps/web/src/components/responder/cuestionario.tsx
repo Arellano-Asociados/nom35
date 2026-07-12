@@ -90,51 +90,58 @@ export function Cuestionario({
 
   if (!seccionActual) return null;
 
+  const esUltima = indiceSeguro === seccionesVisibles.length - 1;
+
   return (
     <div className="flex flex-col gap-4">
-      <div aria-live="polite" className="flex items-center justify-between text-sm text-slate-600">
-        <span>
-          Sección {indiceSeguro + 1} de {seccionesVisibles.length}
-        </span>
-        <span data-testid="progreso" data-guardando={guardando}>
-          {contestadas} / {totalPreguntas} respondidas
-        </span>
-      </div>
-      <div
-        role="progressbar"
-        aria-valuenow={contestadas}
-        aria-valuemin={0}
-        aria-valuemax={totalPreguntas}
-        className="h-2 overflow-hidden rounded-full bg-slate-200"
-      >
+      <div className="pointer-events-none sticky top-0 z-10 -mx-4 flex flex-col gap-2 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur sm:-mx-0 sm:rounded-t-xl">
         <div
-          className="h-full bg-blue-700 transition-all"
-          style={{ width: totalPreguntas ? `${(contestadas / totalPreguntas) * 100}%` : '0%' }}
-        />
+          aria-live="polite"
+          className="flex items-center justify-between text-sm text-slate-600"
+        >
+          <span className="font-medium text-slate-800">
+            Sección {indiceSeguro + 1} de {seccionesVisibles.length}
+          </span>
+          <span data-testid="progreso" data-guardando={guardando} className="tabular-nums">
+            {contestadas} / {totalPreguntas} respondidas
+          </span>
+        </div>
+        <div
+          role="progressbar"
+          aria-valuenow={contestadas}
+          aria-valuemin={0}
+          aria-valuemax={totalPreguntas}
+          className="h-2 overflow-hidden rounded-full bg-slate-200"
+        >
+          <div
+            className="h-full rounded-full bg-blue-700 transition-all duration-300"
+            style={{ width: totalPreguntas ? `${(contestadas / totalPreguntas) * 100}%` : '0%' }}
+          />
+        </div>
       </div>
 
-      <Card>
+      <Card key={seccionActual.id} className="animate-seccion">
         <CardHeader>
           <CardTitle>{seccionActual.titulo}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-6">
+        <CardContent className="flex flex-col gap-7">
           {seccionActual.preguntas.map((pregunta) => (
             <fieldset key={pregunta.clave} data-testid={`pregunta-${pregunta.clave}`}>
-              <legend className="mb-2 text-sm font-medium leading-relaxed text-slate-900">
+              <legend className="mb-3 text-base font-medium leading-relaxed text-slate-900">
                 {pregunta.numero}. {pregunta.texto}
               </legend>
-              <div className={esGR1 ? 'flex gap-2' : 'grid grid-cols-1 gap-2 sm:grid-cols-5'}>
+              <div className={esGR1 ? 'flex gap-3' : 'grid grid-cols-1 gap-2 sm:grid-cols-5'}>
                 {opciones.map((opcion) => {
                   const marcada = respuestas[pregunta.clave] === opcion.valor;
                   return (
                     <label
                       key={opcion.valor}
-                      className={`cursor-pointer rounded-md border px-3 py-2.5 text-center text-sm ${
-                        esGR1 ? 'flex-1' : ''
+                      className={`flex min-h-11 cursor-pointer items-center justify-center rounded-lg border-2 text-center transition-colors duration-150 ${
+                        esGR1 ? 'flex-1 px-4 py-4 text-base font-medium' : 'px-3 py-2.5 text-sm'
                       } ${
                         marcada
-                          ? 'border-blue-700 bg-blue-50 font-medium text-blue-900'
-                          : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                          ? 'border-blue-700 bg-blue-50 font-semibold text-blue-900 shadow-sm'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >
                       <input
@@ -161,7 +168,7 @@ export function Cuestionario({
         </p>
       )}
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
         <Button
           variant="outline"
           disabled={indiceSeguro === 0}
@@ -169,10 +176,13 @@ export function Cuestionario({
         >
           Anterior
         </Button>
-        {indiceSeguro < seccionesVisibles.length - 1 ? (
-          <Button onClick={() => setIndice(indiceSeguro + 1)}>Siguiente</Button>
+        {!esUltima ? (
+          <Button className="flex-1" onClick={() => setIndice(indiceSeguro + 1)}>
+            Siguiente
+          </Button>
         ) : (
           <Button
+            className="flex-1"
             disabled={!completo || enviando || guardando > 0}
             data-testid="enviar"
             onClick={() =>

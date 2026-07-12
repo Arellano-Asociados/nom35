@@ -12,3 +12,20 @@
   outline-offset: 2px;
   border-radius: 0.25rem;
 }
+
+/* Transición suave al cambiar de sección en el cuestionario del empleado (M7). Puramente
+   decorativa: no afecta el contenido ni el momento en que el DOM queda listo para el E2E. */
+@keyframes seccion-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-seccion {
+  animation: seccion-entrada 0.2s ease-out;
+}

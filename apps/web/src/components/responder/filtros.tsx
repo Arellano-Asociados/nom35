@@ -18,8 +18,8 @@ function PreguntaSiNo({
   onCambio: (v: boolean) => void;
 }) {
   return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="text-sm font-medium text-slate-900">{texto}</legend>
+    <fieldset className="flex flex-col gap-3">
+      <legend className="text-base font-medium text-slate-900">{texto}</legend>
       <div className="flex gap-3">
         {[
           { etiqueta: 'Sí', v: true },
@@ -27,10 +27,10 @@ function PreguntaSiNo({
         ].map(({ etiqueta, v }) => (
           <label
             key={etiqueta}
-            className={`flex-1 cursor-pointer rounded-md border px-4 py-3 text-center text-sm font-medium ${
+            className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg border-2 px-4 py-4 text-center text-base font-medium transition-colors duration-150 ${
               valor === v
-                ? 'border-blue-700 bg-blue-50 text-blue-900'
-                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                ? 'border-blue-700 bg-blue-50 text-blue-900 shadow-sm'
+                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
             }`}
           >
             <input
@@ -57,11 +57,14 @@ export function Filtros({ token }: { token: string }) {
   const [enviando, startTransition] = useTransition();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Antes de comenzar</CardTitle>
+    <Card className="shadow-md">
+      <CardHeader className="gap-2">
+        <CardTitle className="text-xl">Antes de comenzar</CardTitle>
+        <p className="text-sm text-slate-500">
+          Dos preguntas rápidas para adaptar el cuestionario a tu puesto.
+        </p>
       </CardHeader>
-      <CardContent className="flex flex-col gap-6">
+      <CardContent className="flex flex-col gap-7">
         <PreguntaSiNo
           nombre="atiende"
           texto="En tu trabajo, ¿atiendes clientes o usuarios?"
@@ -80,6 +83,8 @@ export function Filtros({ token }: { token: string }) {
           </p>
         )}
         <Button
+          size="lg"
+          className="w-full"
           disabled={atiende === null || supervisa === null || enviando}
           onClick={() =>
             startTransition(async () => {
