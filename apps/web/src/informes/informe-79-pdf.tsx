@@ -221,7 +221,7 @@ export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
             {[...new Set(datos.centros.flatMap((c) => c.guias))].join(', ') || 'No especificado'}.
           </Text>
           <Text style={{ marginTop: 4 }}>
-            Ciclo de evaluación: {datos.ciclo.nombre}. Empleados asignados:{' '}
+            Ciclo de evaluación: {datos.ciclo.nombre}. Cuestionarios asignados:{' '}
             {datos.participacion.asignados}; cuestionarios completados:{' '}
             {datos.participacion.completados}.
           </Text>

@@ -7,6 +7,7 @@ import {
   type EntradaCapacitacion,
   type EntradaExpediente,
   type EntradaParticipacionCentro,
+  type EntradaResumenAuditoria,
 } from './expediente';
 
 // Cubre el Step 1 de Task 5: (a) contenido del ZIP, (b) sha256 del manifiesto vs bytes
@@ -54,6 +55,11 @@ const CAPACITACION: EntradaCapacitacion[] = [
   },
 ];
 
+const RESUMEN_AUDITORIA: EntradaResumenAuditoria[] = [
+  { eventType: 'informe_generado', conteo: 2 },
+  { eventType: 'expediente_generado', conteo: 1 },
+];
+
 function entradaCompleta(overrides?: Partial<EntradaExpediente>): EntradaExpediente {
   return {
     datos: DATOS_BASE,
@@ -62,6 +68,7 @@ function entradaCompleta(overrides?: Partial<EntradaExpediente>): EntradaExpedie
     acusesPolitica: ACUSES,
     participacion: PARTICIPACION,
     capacitacion: CAPACITACION,
+    resumenAuditoria: RESUMEN_AUDITORIA,
     generadoEl: '2026-07-11T12:00:00.000Z',
     ...overrides,
   };
@@ -81,6 +88,7 @@ describe('armarExpediente', () => {
         'participacion.csv',
         'acciones.csv',
         'capacitacion.csv',
+        'resumen-auditoria.csv',
       ].sort(),
     );
   });
@@ -107,22 +115,42 @@ describe('armarExpediente', () => {
     const acuses = await leido.file('acuses-politica.csv')!.async('string');
     const participacion = await leido.file('participacion.csv')!.async('string');
     const capacitacion = await leido.file('capacitacion.csv')!.async('string');
+    const resumenAuditoria = await leido.file('resumen-auditoria.csv')!.async('string');
 
     // Cabeceras exactas: ninguna columna de resultado/nivel de riesgo.
     expect(acuses.replace(/^\uFEFF/, '').split('\r\n')[0]).toBe('empleado,fecha_acuse');
     expect(participacion.replace(/^\uFEFF/, '').split('\r\n')[0]).toBe(
-      'centro_trabajo,asignados,completados',
+      'centro_trabajo,cuestionarios_asignados,cuestionarios_completados',
     );
     expect(capacitacion.replace(/^\uFEFF/, '').split('\r\n')[0]).toBe(
       'empleado,capacitacion,fecha_completado,estatus',
     );
+    // resumen-auditoria.csv: solo evento + conteo, sin actor_id/entity_id/detalles (no
+    // tiene ligadura a empleado alguno, pero se cubre la misma frontera anti-reidentificación).
+    expect(resumenAuditoria.replace(/^\uFEFF/, '').split('\r\n')[0]).toBe('evento,conteo');
 
-    // Ningún nivel de riesgo del motor debe aparecer como dato en estos tres archivos
+    // Ningún nivel de riesgo del motor debe aparecer como dato en estos archivos
     // (frontera anti-reidentificación: son evidencia de proceso, no de resultado).
     const NIVELES_PROHIBIDOS = /\b(nulo|bajo|medio|alto|muy_alto|muy alto)\b/i;
-    for (const contenido of [acuses, participacion, capacitacion]) {
+    for (const contenido of [acuses, participacion, capacitacion, resumenAuditoria]) {
       expect(contenido).not.toMatch(NIVELES_PROHIBIDOS);
     }
+  });
+
+  it('(e) resumen-auditoria.csv trae evento + conteo de cada tipo, sin más columnas', async () => {
+    const { zip } = await armarExpediente(entradaCompleta());
+    const leido = await JSZip.loadAsync(zip);
+
+    const contenido = await leido.file('resumen-auditoria.csv')!.async('string');
+    const lineas = contenido
+      .replace(/^\uFEFF/, '')
+      .split('\r\n')
+      .filter(Boolean);
+
+    expect(lineas[0]).toBe('evento,conteo');
+    expect(lineas[1]).toBe('informe_generado,2');
+    expect(lineas[2]).toBe('expediente_generado,1');
+    expect(lineas.length).toBe(3);
   });
 
   it('(d) sin política publicada, el manifiesto la marca "ausente" y el ZIP no truena', async () => {

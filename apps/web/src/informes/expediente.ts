@@ -39,6 +39,12 @@ export interface EntradaPoliticaArchivo {
   bytes: Buffer;
 }
 
+export interface EntradaResumenAuditoria {
+  /** audit_log.event_type. */
+  eventType: string;
+  conteo: number;
+}
+
 export interface EntradaExpediente {
   /** Ya armado por armarDatosInforme79: se reutiliza para el contexto empresa/ciclo y Tabla 7. */
   datos: Pick<DatosInforme79, 'empresa' | 'ciclo' | 'acciones'>;
@@ -48,6 +54,9 @@ export interface EntradaExpediente {
   acusesPolitica: readonly EntradaAcusePolitica[];
   participacion: readonly EntradaParticipacionCentro[];
   capacitacion: readonly EntradaCapacitacion[];
+  /** Conteo de eventos de audit_log por tipo, SIN detalles sensibles (sin actor_id, sin
+   * entity_id, sin el JSON de `details`): solo `event_type` + conteo. */
+  resumenAuditoria: readonly EntradaResumenAuditoria[];
   /** ISO; lo inyecta el caller (este módulo no llama a Date.now/new Date). */
   generadoEl: string;
 }
@@ -102,8 +111,11 @@ function csvAcusesPolitica(filas: readonly EntradaAcusePolitica[]): Buffer {
 }
 
 function csvParticipacion(filas: readonly EntradaParticipacionCentro[]): Buffer {
+  // Cabeceras explícitas "cuestionarios_*": `asignados`/`completados` cuentan filas de
+  // questionnaire_assignments, no empleados (cada empleado recibe 2 asignaciones,
+  // GR-I + GR-II/III) — ver Finding 2 de la revisión final de M5.
   return construirCsv(
-    ['centro_trabajo', 'asignados', 'completados'],
+    ['centro_trabajo', 'cuestionarios_asignados', 'cuestionarios_completados'],
     filas.map((f) => [f.nombreCentro, String(f.asignados), String(f.completados)]),
   );
 }
@@ -125,6 +137,15 @@ function csvCapacitacion(filas: readonly EntradaCapacitacion[]): Buffer {
   return construirCsv(
     ['empleado', 'capacitacion', 'fecha_completado', 'estatus'],
     filas.map((f) => [f.nombreEmpleado, f.nombreCapacitacion, f.fechaCompletado ?? '', f.estatus]),
+  );
+}
+
+// Conteo de eventos por tipo, sin ningún detalle sensible: ni actor_id, ni entity_id, ni
+// el JSON de `details` de audit_log. Solo `event_type` + conteo (reglas inviolables 3 y 4).
+function csvResumenAuditoria(filas: readonly EntradaResumenAuditoria[]): Buffer {
+  return construirCsv(
+    ['evento', 'conteo'],
+    filas.map((f) => [f.eventType, String(f.conteo)]),
   );
 }
 
@@ -158,6 +179,7 @@ export async function armarExpediente(
   agregar('participacion.csv', csvParticipacion(entrada.participacion));
   agregar('acciones.csv', csvAcciones(entrada.datos.acciones));
   agregar('capacitacion.csv', csvCapacitacion(entrada.capacitacion));
+  agregar('resumen-auditoria.csv', csvResumenAuditoria(entrada.resumenAuditoria));
 
   const manifiesto: ManifiestoExpediente = {
     empresa: entrada.datos.empresa.razonSocial,

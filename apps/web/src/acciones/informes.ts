@@ -23,6 +23,7 @@ import {
   type EntradaCapacitacion,
   type EntradaParticipacionCentro,
   type EntradaPoliticaArchivo,
+  type EntradaResumenAuditoria,
 } from '@/informes/expediente';
 
 // Acciones de servidor del informe normativo 7.9. Igual que en panel.ts: TODA acción
@@ -339,6 +340,22 @@ export async function accionGenerarExpediente(
     completados: datos.participacion.completados,
   }));
 
+  // Resumen de auditoría del ZIP (plan M5, "sin detalles sensibles"): conteo de eventos
+  // por tipo, nada de actor_id/entity_id/details. supabase-js no hace GROUP BY: se trae
+  // solo la columna event_type de toda la empresa y se cuenta en JS (volumen de audit_log
+  // por empresa es chico para este propósito).
+  const { data: auditoriaFilas } = await supabase
+    .from('audit_log')
+    .select('event_type')
+    .eq('company_id', companyId);
+  const conteosPorEvento = new Map<string, number>();
+  for (const fila of auditoriaFilas ?? []) {
+    conteosPorEvento.set(fila.event_type, (conteosPorEvento.get(fila.event_type) ?? 0) + 1);
+  }
+  const resumenAuditoria: EntradaResumenAuditoria[] = [...conteosPorEvento.entries()].map(
+    ([eventType, conteo]) => ({ eventType, conteo }),
+  );
+
   const { zip, manifiesto } = await armarExpediente({
     datos,
     pdfInforme: pdf,
@@ -346,6 +363,7 @@ export async function accionGenerarExpediente(
     acusesPolitica,
     participacion,
     capacitacion,
+    resumenAuditoria,
     generadoEl: new Date().toISOString(),
   });
   const sha256 = createHash('sha256').update(zip).digest('hex');
