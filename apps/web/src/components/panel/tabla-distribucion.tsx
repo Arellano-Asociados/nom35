@@ -52,7 +52,18 @@ export function TablaDistribucion({
                   </td>
                 );
               })}
-              <td className="py-2 text-slate-500">{distribucion.total}</td>
+              <td className="py-2 text-slate-500">
+                {distribucion.totalSuprimido ? (
+                  <span
+                    title="Total suprimido: sin celda complementaria que ocultar, se oculta el total (n<3)"
+                    className="text-slate-400"
+                  >
+                    &lt;3 *
+                  </span>
+                ) : (
+                  distribucion.total
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

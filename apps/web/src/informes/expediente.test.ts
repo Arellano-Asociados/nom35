@@ -38,8 +38,18 @@ const DATOS_BASE: EntradaExpediente['datos'] = {
 };
 
 const ACUSES: EntradaAcusePolitica[] = [
-  { nombreEmpleado: 'José Pérez, "El Jefe"', fechaAcuse: '2026-02-01T10:00:00.000Z' },
-  { nombreEmpleado: 'María López', fechaAcuse: '2026-02-02T10:00:00.000Z' },
+  {
+    nombreEmpleado: 'José Pérez, "El Jefe"',
+    tituloPolitica: 'Política de Prevención de Riesgos Psicosociales, 2026',
+    versionPolitica: '2.1',
+    fechaAcuse: '2026-02-01T10:00:00.000Z',
+  },
+  {
+    nombreEmpleado: 'María López',
+    tituloPolitica: 'Política de Prevención',
+    versionPolitica: '1.0',
+    fechaAcuse: '2026-02-02T10:00:00.000Z',
+  },
 ];
 
 const PARTICIPACION: EntradaParticipacionCentro[] = [
@@ -118,7 +128,9 @@ describe('armarExpediente', () => {
     const resumenAuditoria = await leido.file('resumen-auditoria.csv')!.async('string');
 
     // Cabeceras exactas: ninguna columna de resultado/nivel de riesgo.
-    expect(acuses.replace(/^\uFEFF/, '').split('\r\n')[0]).toBe('empleado,fecha_acuse');
+    expect(acuses.replace(/^\uFEFF/, '').split('\r\n')[0]).toBe(
+      'empleado,politica,version,fecha_acuse',
+    );
     expect(participacion.replace(/^\uFEFF/, '').split('\r\n')[0]).toBe(
       'centro_trabajo,cuestionarios_asignados,cuestionarios_completados',
     );
@@ -175,7 +187,102 @@ describe('armarExpediente', () => {
 
     // 'José Pérez, "El Jefe"' trae coma y comillas: debe ir entre comillas dobles con
     // las comillas internas escapadas como "" (RFC 4180), y el acento debe preservarse.
-    expect(lineas[1]).toBe('"José Pérez, ""El Jefe""",2026-02-01T10:00:00.000Z');
+    expect(lineas[1]).toBe(
+      '"José Pérez, ""El Jefe""","Política de Prevención de Riesgos Psicosociales, 2026",2.1,2026-02-01T10:00:00.000Z',
+    );
+  });
+
+  it('neutraliza inyección de fórmulas: campos que inician con =, +, -, @ llevan apóstrofo antepuesto', async () => {
+    const entrada = entradaCompleta({
+      acusesPolitica: [
+        {
+          nombreEmpleado: '=HYPERLINK("http://evil.com","x")',
+          tituloPolitica: 'Política de Prevención',
+          versionPolitica: '1.0',
+          fechaAcuse: '2026-02-01T10:00:00.000Z',
+        },
+        {
+          nombreEmpleado: '+1234',
+          tituloPolitica: 'Política de Prevención',
+          versionPolitica: '1.0',
+          fechaAcuse: '2026-02-02T10:00:00.000Z',
+        },
+        {
+          nombreEmpleado: '-5',
+          tituloPolitica: 'Política de Prevención',
+          versionPolitica: '1.0',
+          fechaAcuse: '2026-02-03T10:00:00.000Z',
+        },
+        {
+          nombreEmpleado: '@SUM(A1)',
+          tituloPolitica: 'Política de Prevención',
+          versionPolitica: '1.0',
+          fechaAcuse: '2026-02-04T10:00:00.000Z',
+        },
+        {
+          nombreEmpleado: 'María López',
+          tituloPolitica: 'Política de Prevención',
+          versionPolitica: '1.0',
+          fechaAcuse: '2026-02-05T10:00:00.000Z',
+        },
+      ],
+    });
+    const { zip } = await armarExpediente(entrada);
+    const leido = await JSZip.loadAsync(zip);
+    const acuses = await leido.file('acuses-politica.csv')!.async('string');
+    const lineas = acuses
+      .replace(/^\uFEFF/, '')
+      .split('\r\n')
+      .filter(Boolean);
+
+    // Cabecera intacta: ninguna columna inicia con =, +, -, @.
+    expect(lineas[0]).toBe('empleado,politica,version,fecha_acuse');
+    // '=HYPERLINK(...)' trae coma y comillas dobles: recibe AMBOS tratamientos, el
+    // apóstrofo de neutralización Y el entrecomillado RFC 4180 (con "" internas).
+    expect(lineas[1]).toBe(
+      '"\'=HYPERLINK(""http://evil.com"",""x"")",Política de Prevención,1.0,2026-02-01T10:00:00.000Z',
+    );
+    // '+', '-', '@' sin coma/comillas: solo el apóstrofo, sin entrecomillado.
+    expect(lineas[2]).toBe("'+1234,Política de Prevención,1.0,2026-02-02T10:00:00.000Z");
+    expect(lineas[3]).toBe("'-5,Política de Prevención,1.0,2026-02-03T10:00:00.000Z");
+    expect(lineas[4]).toBe("'@SUM(A1),Política de Prevención,1.0,2026-02-04T10:00:00.000Z");
+    // Campo normal y fecha ISO (inicia con dígito): sin cambios.
+    expect(lineas[5]).toBe('María López,Política de Prevención,1.0,2026-02-05T10:00:00.000Z');
+  });
+
+  it('neutraliza inyección de fórmulas: campos que inician con tab (\\t) o retorno de carro (\\r) también llevan apóstrofo antepuesto', async () => {
+    const entrada = entradaCompleta({
+      acusesPolitica: [
+        {
+          nombreEmpleado: '\tEmpleado con tab',
+          tituloPolitica: 'Política de Prevención',
+          versionPolitica: '1.0',
+          fechaAcuse: '2026-02-01T10:00:00.000Z',
+        },
+        {
+          nombreEmpleado: '\rEmpleado con cr',
+          tituloPolitica: 'Política de Prevención',
+          versionPolitica: '1.0',
+          fechaAcuse: '2026-02-02T10:00:00.000Z',
+        },
+      ],
+    });
+    const { zip } = await armarExpediente(entrada);
+    const leido = await JSZip.loadAsync(zip);
+    const acuses = await leido.file('acuses-politica.csv')!.async('string');
+    const lineas = acuses.replace(/^\uFEFF/, '').split('\r\n');
+
+    // '\t'-prefijado: sin coma/comilla/CR/LF, solo recibe el apóstrofo de neutralización
+    // (sin entrecomillado RFC 4180).
+    expect(lineas[1]).toBe(
+      "'\tEmpleado con tab,Política de Prevención,1.0,2026-02-01T10:00:00.000Z",
+    );
+    // '\r'-prefijado: recibe AMBOS tratamientos — el apóstrofo de neutralización Y el
+    // entrecomillado RFC 4180 (el \r embebido dispara la regla de comillas de esta
+    // implementación, aunque no traiga coma ni comilla).
+    expect(lineas[2]).toBe(
+      '"\'\rEmpleado con cr",Política de Prevención,1.0,2026-02-02T10:00:00.000Z',
+    );
   });
 
   it('el manifiesto incluye contexto de empresa/ciclo y fecha de generación', async () => {

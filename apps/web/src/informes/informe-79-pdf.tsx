@@ -131,9 +131,30 @@ const styles = StyleSheet.create({
   },
 });
 
+// Node 22 (runtime objetivo de CI/Vercel) trae ICU completo por defecto (full-icu),
+// así que los datos de la locale es-MX están disponibles sin configuración adicional
+// (sin necesidad de --icu-data-dir ni del paquete full-icu).
+const FORMATO_FECHA_PIE = new Intl.DateTimeFormat('es-MX', {
+  dateStyle: 'long',
+  timeStyle: 'short',
+});
+
+// `datos.generadoEl` permanece ISO en `DatosInforme79` (no se reformatea en el tipo ni en
+// las acciones de servidor): el formateo es puramente de presentación, al renderizar.
+function formatearFechaPie(iso: string): string {
+  return FORMATO_FECHA_PIE.format(new Date(iso));
+}
+
 function textoCelda(c: CeldaAgregado): string {
   if (c.suprimida) return '— (n<3)';
   return `${c.n} (${c.porcentaje}%)`;
+}
+
+// Supresión complementaria (agregados.ts): cuando no hubo celda visible positiva que
+// complementar, se oculta el total del grupo (mismo criterio "— (n<3)" que una celda
+// suprimida, para no confundir "oculto" con "cero").
+function textoTotal(dist: Distribucion): string {
+  return dist.totalSuprimido ? '— (n<3)' : String(dist.total);
 }
 
 function TablaDistribucion({ titulo, dist }: { titulo: string; dist: Distribucion }) {
@@ -155,7 +176,7 @@ function TablaDistribucion({ titulo, dist }: { titulo: string; dist: Distribucio
         ))}
       </View>
       <View style={styles.filaTablaUltima}>
-        <Text style={styles.celdaEtiquetaFila}>Total: {dist.total}</Text>
+        <Text style={styles.celdaEtiquetaFila}>Total: {textoTotal(dist)}</Text>
         {niveles.map((n) => (
           <Text key={n} style={styles.celdaValor}>
             {textoCelda(dist.celdas[n])}
@@ -342,7 +363,8 @@ export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
         <Text
           style={styles.pie}
           render={({ pageNumber, totalPages }) =>
-            `Motor de cálculo NOM-035 v${datos.motorVersion} · Generado el ${datos.generadoEl} · ` +
+            `Motor de cálculo NOM-035 v${datos.motorVersion} · ` +
+            `Generado el ${formatearFechaPie(datos.generadoEl)} · ` +
             'La integridad de este documento se verifica mediante el hash SHA-256 registrado en ' +
             `el expediente de inspección (no incluido en el PDF) · Página ${pageNumber} de ${totalPages}`
           }

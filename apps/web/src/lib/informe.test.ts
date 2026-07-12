@@ -2,6 +2,7 @@ import { MOTOR_NOM035_VERSION } from '@nom35/motor-nom035';
 import { describe, expect, it } from 'vitest';
 import {
   armarDatosInforme79,
+  resultadosVigentesPorAsignacion,
   type EntradaAccion,
   type EntradaAsignacion,
   type EntradaCentro,
@@ -110,12 +111,22 @@ describe('armarDatosInforme79', () => {
 
     expect(informe.participacion).toEqual({ asignados: 5, completados: 5 });
     expect(informe.resultados.global.total).toBe(5);
+    // alto y medio tienen n=1 cada uno: se suprimen por la regla base (0 < n < 3),
+    // k=2 celdas suprimidas. S = total(5) - visibles(nulo=3) = 2 = k → única
+    // descomposición posible sobre 2 celdas ∈{1,2}: AMBAS valen 1 (alto=1, medio=1),
+    // que es justo su valor real. Con la regla anterior de esta tarea (actuar solo
+    // si exactamente 1 celda estaba suprimida) esto no se detectaba y 'nulo' quedaba
+    // visible con n:3, revelando ambos valores por resta. Con la regla extendida
+    // (descomposición única con k>=1, ver `aplicarSupresionComplementaria`), 'nulo'
+    // (la única celda visible positiva) también se suprime; el total permanece
+    // visible porque ahora hay 3 celdas suprimidas y la resta solo revelaría su suma.
+    // (Expectativa actualizada conscientemente por esta tarea: antes 'nulo' quedaba
+    // visible con n:3, porcentaje:60.)
     expect(informe.resultados.global.celdas.nulo).toEqual({
-      n: 3,
-      porcentaje: 60,
-      suprimida: false,
+      n: null,
+      porcentaje: null,
+      suprimida: true,
     });
-    // alto y medio tienen n=1 cada uno: se suprimen (0 < n < 3)
     expect(informe.resultados.global.celdas.alto).toEqual({
       n: null,
       porcentaje: null,
@@ -355,5 +366,51 @@ describe('armarDatosInforme79', () => {
     expect(informe.empresa).toEqual({ razonSocial: 'Sin RFC S.A.', rfc: '' });
     expect(informe.acciones).toEqual(acciones);
     expect(informe.ciclo).toEqual(CICLO_BASE);
+  });
+});
+
+describe('resultadosVigentesPorAsignacion (exportada, genérica)', () => {
+  // El dashboard administrativo consume filas de risk_results con una forma propia
+  // (nivel_final/categorias/dominios/employees, sin engineVersion ni nivelFinal): la
+  // función debe filtrar por vigencia sin exigir los campos que el informe 7.9 sí usa.
+  it('filtra por vigencia sobre una forma mínima ajena a EntradaResultado', () => {
+    interface FilaDashboard {
+      id: string;
+      assignmentId: string;
+      supersedesId: string | null;
+      createdAt: string;
+      nivel_final: string;
+    }
+
+    const filas: FilaDashboard[] = [
+      {
+        id: 'r1-viejo',
+        assignmentId: 'asig-0',
+        supersedesId: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        nivel_final: 'muy_alto',
+      },
+      {
+        id: 'r1-nuevo',
+        assignmentId: 'asig-0',
+        supersedesId: 'r1-viejo',
+        createdAt: '2026-02-01T00:00:00.000Z',
+        nivel_final: 'nulo',
+      },
+      {
+        id: 'r2',
+        assignmentId: 'asig-1',
+        supersedesId: null,
+        createdAt: '2026-01-05T00:00:00.000Z',
+        nivel_final: 'bajo',
+      },
+    ];
+
+    const vigentes = resultadosVigentesPorAsignacion(filas);
+
+    expect(vigentes).toHaveLength(2);
+    expect(vigentes.map((r) => r.id).sort()).toEqual(['r1-nuevo', 'r2']);
+    // La fila devuelta conserva su forma original (nivel_final incluido, no aplanado).
+    expect(vigentes.find((r) => r.id === 'r1-nuevo')?.nivel_final).toBe('nulo');
   });
 });

@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": false,
+    // El paquete declara "type": "module" (consumido como fuente TS por Next.js/tsx), pero
+    // este build alterno emite CommonJS SOLO para que scripts/demo-seed.mjs (Node puro, sin
+    // bundler) pueda importar el motor sin instalar un loader de TypeScript. verbatimModuleSyntax
+    // exige que la sintaxis de módulo coincida con el "type" del package.json; lo desactivamos
+    // únicamente en este tsconfig alterno (el build normal de la app no lo usa).
+    "verbatimModuleSyntax": false
+  },
+  "exclude": ["src/**/*.test.ts", "vitest.config.ts"]
+}

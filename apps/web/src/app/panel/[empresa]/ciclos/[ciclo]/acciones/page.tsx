@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { distribucionPorNombre } from '@/lib/agregados';
 import { autorizarEmpresa } from '@/lib/autorizacion';
+import { resultadosVigentesPorAsignacion } from '@/lib/informe';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
@@ -32,15 +33,28 @@ export default async function PaginaAcciones({
       .order('created_at'),
     supabase
       .from('risk_results')
-      .select('categorias')
+      .select('id, assignment_id, supersedes_id, created_at, categorias')
       .eq('company_id', empresa)
       .eq('cycle_id', ciclo),
     supabase.from('system_config').select('value').eq('key', 'sugerencias_tabla7').maybeSingle(),
   ]);
 
+  // Mismo criterio que el dashboard y el informe 7.9 (regla inviolable 1): con cualquier
+  // recálculo, las sugerencias de la Tabla 7 deben basarse solo en la fila VIGENTE por
+  // asignación, nunca en el historial completo (que incluiría filas superadas).
+  const vigentes = resultadosVigentesPorAsignacion(
+    (resultados ?? []).map((r) => ({
+      id: r.id,
+      assignmentId: r.assignment_id,
+      supersedesId: r.supersedes_id,
+      createdAt: r.created_at,
+      categorias: r.categorias,
+    })),
+  );
+
   // Categorías con nivel medio+ en el ciclo → sugerencias automáticas (Tabla 7)
   const porCategoria = distribucionPorNombre(
-    (resultados ?? []).flatMap((r) =>
+    vigentes.flatMap((r) =>
       (r.categorias as PuntuadoJson[]).map((c) => ({ nombre: c.nombre, nivel: c.nivel })),
     ),
   );

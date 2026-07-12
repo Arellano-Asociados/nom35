@@ -131,22 +131,37 @@ export interface EntradaInforme79 {
   generadoEl: string;
 }
 
+/** Campos mínimos que necesita {@link resultadosVigentesPorAsignacion} para determinar
+ * la fila vigente por asignación; cualquier fila (de `risk_results` o su espejo
+ * `EntradaResultado`) que los tenga puede filtrarse con esta función. */
+export interface FilaConVigencia {
+  id: string;
+  assignmentId: string;
+  supersedesId: string | null;
+  createdAt: string;
+}
+
 /**
  * Reduce los resultados (que pueden traer historial de recálculo) al VIGENTE por
  * asignación: la fila que ningún `supersedes_id` de otra fila señala. Si por algún
  * motivo quedara más de una vigente para la misma asignación, gana la más reciente
  * por `createdAt` (regla inviolable 1: recálculo = fila nueva con supersedes_id,
  * nunca UPDATE).
+ *
+ * Genérica sobre `T` (en vez de fija a `EntradaResultado`) para que tanto el informe
+ * 7.9 como el dashboard administrativo apliquen el MISMO criterio de vigencia sobre
+ * sus propias formas de fila, sin que uno tenga que rellenar campos que no usa
+ * (`categorias`/`dominios`/`engineVersion`/`nivelFinal`) solo para satisfacer el tipo.
  */
-function resultadosVigentesPorAsignacion(
-  resultados: readonly EntradaResultado[],
-): EntradaResultado[] {
+export function resultadosVigentesPorAsignacion<T extends FilaConVigencia>(
+  resultados: readonly T[],
+): T[] {
   const supersedidos = new Set(
     resultados.map((r) => r.supersedesId).filter((id): id is string => id !== null),
   );
   const vigentes = resultados.filter((r) => !supersedidos.has(r.id));
 
-  const porAsignacion = new Map<string, EntradaResultado>();
+  const porAsignacion = new Map<string, T>();
   for (const r of vigentes) {
     const actual = porAsignacion.get(r.assignmentId);
     if (!actual || r.createdAt > actual.createdAt) {

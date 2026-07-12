@@ -314,10 +314,12 @@ export async function accionGenerarExpediente(
   // únicamente, nada de risk_results/gr1_results/responses se toca aquí.
   const { data: acusesFilas } = await supabase
     .from('policy_acknowledgments')
-    .select('acknowledged_at, employees (full_name)')
+    .select('acknowledged_at, employees (full_name), policies (title, version)')
     .eq('company_id', companyId);
   const acusesPolitica: EntradaAcusePolitica[] = (acusesFilas ?? []).map((a) => ({
     nombreEmpleado: (a.employees as unknown as { full_name: string } | null)?.full_name ?? '',
+    tituloPolitica: (a.policies as unknown as { title: string } | null)?.title ?? '',
+    versionPolitica: (a.policies as unknown as { version: string } | null)?.version ?? '',
     fechaAcuse: a.acknowledged_at,
   }));
 
