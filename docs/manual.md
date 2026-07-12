@@ -50,7 +50,7 @@ flowchart TD
     C --> D["Crear ciclo de evaluacion<br/>guias segun categoria del centro"]
     D --> E["Distribuir cuestionarios<br/>enlace tokenizado por empleado"]
     E --> F["Empleado responde<br/>consentimiento, filtros, cuestionario"]
-    F --> G["Motor NOM-035 califica<br/>calificarCuestionario / evaluarGR1"]
+    F --> G["Motor de cálculo NOM-035<br/>(califica con las matrices oficiales)"]
     G --> H["Dashboard agregado<br/>distribuciones y conteos, supresion n menor a 3"]
     G --> K["Canalizaciones GR-I<br/>solo Responsable Designado"]
     H --> I["Informe 7.9"]
@@ -76,8 +76,10 @@ sequenceDiagram
     Empleado->>Sistema: Abre el enlace
     Sistema-->>Empleado: Aviso de privacidad y consentimiento
     Empleado->>Sistema: Acepta consentimiento expreso
-    Sistema-->>Empleado: Preguntas filtro (atiende clientes, supervisa personal)
-    Empleado->>Sistema: Responde preguntas filtro
+    alt Guía GR-II o GR-III
+        Sistema-->>Empleado: Preguntas filtro (atiende clientes, supervisa personal)
+        Empleado->>Sistema: Responde preguntas filtro
+    end
     loop Por cada pregunta del cuestionario
         Empleado->>Sistema: Selecciona una respuesta
         Sistema->>Sistema: Guarda la respuesta al instante
@@ -91,6 +93,8 @@ sequenceDiagram
 El consentimiento queda registrado con la versión del aviso de privacidad, la fecha/hora y la
 IP de origen. Cada respuesta se guarda de inmediato (no hasta el final), así que si el
 empleado cierra la pestaña y vuelve con el mismo enlace, retoma exactamente donde se quedó.
+La excepción es la Guía I: al no tener ítems condicionales, se salta la pantalla de preguntas
+filtro y pasa directo del consentimiento al cuestionario.
 
 ### 2.2 El Responsable Designado consulta un resultado individual
 
@@ -246,24 +250,24 @@ agregados y evidencia de proceso.
 
 ### 3.8 Qué rol ve qué
 
-|                                                                                                                                                            | Admin de Organización           | Consultor asignado              | Responsable Designado (flag, sobre cualquier rol) | Empleado (enlace tokenizado)                  |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------- | ------------------------------------------------- | --------------------------------------------- |
-| Centros / empleados / ciclos (ver)                                                                                                                         | Sí                              | Sí                              | —                                                 | No                                            |
-| Crear centros, empleados, ciclos; importar CSV; distribuir/recordatorios; registrar acciones; publicar política/capacitación; generar informe y expediente | Sí                              | Sí                              | —                                                 | No                                            |
-| Dashboard agregado, Acciones (Cap. 8), Informes y expediente (ver)                                                                                         | Sí                              | Sí                              | —                                                 | No                                            |
-| Designarse RD / agregar consultores                                                                                                                        | Sí (solo Admin de Organización) | No                              | No                                                | No                                            |
-| Canalizaciones GR-I (ver y cambiar estatus)                                                                                                                | Solo si además tiene el flag RD | Solo si además tiene el flag RD | Sí                                                | No                                            |
-| Resultados individuales procesados (ver, tras interstitial)                                                                                                | Solo si además tiene el flag RD | Solo si además tiene el flag RD | Sí, y cada consulta se audita                     | No                                            |
-| Respuestas crudas ítem por ítem                                                                                                                            | **Nunca**                       | **Nunca**                       | **Nunca**                                         | Solo mientras responde su propio cuestionario |
-| Su propio cuestionario y su propio resultado                                                                                                               | No aplica                       | No aplica                       | No aplica                                         | Sí                                            |
+|                                                                                                                                                            | Admin de Organización           | Consultor asignado                          | Responsable Designado (flag, sobre cualquier rol) | Empleado (enlace tokenizado)                  |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------- | ------------------------------------------------- | --------------------------------------------- |
+| Centros / empleados / ciclos (ver)                                                                                                                         | Sí                              | Sí                                          | —                                                 | No                                            |
+| Crear centros, empleados, ciclos; importar CSV; distribuir/recordatorios; registrar acciones; publicar política/capacitación; generar informe y expediente | Sí                              | Sí                                          | —                                                 | No                                            |
+| Dashboard agregado, Acciones (Cap. 8), Informes y expediente (ver)                                                                                         | Sí                              | Sí                                          | —                                                 | No                                            |
+| Designarse RD / agregar consultores                                                                                                                        | Sí (solo Admin de Organización) | No                                          | No                                                | No                                            |
+| Canalizaciones GR-I (ver y cambiar estatus)                                                                                                                | Solo si además tiene el flag RD | No (un Consultor no puede ser designado RD) | Sí                                                | No                                            |
+| Resultados individuales procesados (ver, tras interstitial)                                                                                                | Solo si además tiene el flag RD | No (un Consultor no puede ser designado RD) | Sí, y cada consulta se audita                     | No                                            |
+| Respuestas crudas ítem por ítem                                                                                                                            | **Nunca**                       | **Nunca**                                   | **Nunca**                                         | Solo mientras responde su propio cuestionario |
+| Su propio cuestionario y su propio resultado                                                                                                               | No aplica                       | No aplica                                   | No aplica                                         | Sí                                            |
 
 Notas sobre esta tabla, derivadas directamente de cómo la plataforma aplica permisos:
 
-- El "Responsable Designado" **no es un rol aparte**: es una bandera (`is_designated_responsible`)
-  que se activa sobre la membresía de una persona en la empresa. En la demo, por ejemplo, la
-  cuenta RD tiene el rol base "miembro" (sin permisos de gestión) más la bandera RD; también
-  es válido que un Admin de Organización se autodesigne RD desde "Equipo" y acumule ambos
-  permisos.
+- El "Responsable Designado" **no es un rol aparte**: es una designación que se activa sobre
+  la membresía de una persona en la empresa, con el botón "Designarme Responsable Designado"
+  de la pestaña Equipo. En la demo, por ejemplo, la cuenta RD tiene el rol base "miembro" (sin
+  permisos de gestión) más esa designación; también es válido que un Admin de Organización se
+  autodesigne RD desde "Equipo" y acumule ambos permisos.
 - Un Consultor tiene exactamente los mismos permisos de gestión que un Admin de Organización
   dentro de la empresa a la que está asignado (crear, distribuir, generar informes), salvo
   que no puede designar Responsables Designados ni agregar otros consultores — eso es
