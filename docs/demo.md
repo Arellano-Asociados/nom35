@@ -20,8 +20,18 @@ realistas, no inventados a mano.
    `supabase start` (`NEXT_PUBLIC_SUPABASE_URL` normalmente ya es `http://127.0.0.1:54321`).
    El seed lee las mismas dos variables (`NEXT_PUBLIC_SUPABASE_URL` y
    `SUPABASE_SERVICE_ROLE_KEY`) directamente del entorno del shell donde lo corras — expórtalas
-   ahí también si no usas un cargador de `.env` (`export $(cat apps/web/.env.local | xargs)` o
-   equivalente).
+   ahí también si no usas un cargador de `.env`:
+   - bash: `export $(cat apps/web/.env.local | xargs)` (o equivalente).
+   - PowerShell 5.1 (Windows): sin `xargs` ni `export`; carga cada línea `CLAVE=valor` de
+     `.env.local` como variable de entorno del proceso actual con
+     ```powershell
+     Get-Content apps/web/.env.local | ForEach-Object {
+       if ($_ -match '^\s*([^#=]+)=(.*)$') {
+         [System.Environment]::SetEnvironmentVariable($Matches[1].Trim(), $Matches[2].Trim(), 'Process')
+       }
+     }
+     ```
+     (dura solo esa sesión de PowerShell; repítelo si abres una terminal nueva).
 4. Siembra los datos de demo:
    ```bash
    pnpm demo:seed
@@ -57,8 +67,14 @@ membresía en `role_assignments` — no hace falta registrarse, solo "Ingresar".
   condicionales de la GR-II/GR-III).
 - Un ciclo "Ciclo 2026" por centro, ya distribuido: cada empleado tiene su asignación GR-I +
   la guía Likert de su centro.
-- Resultados Likert repartidos deliberadamente en los 5 niveles (nulo/bajo/medio/alto/muy
-  alto) para que el dashboard agregado muestre distribución real, no un único nivel.
+- Resultados Likert repartidos deliberadamente para que el dashboard agregado muestre
+  distribución real, no un único nivel: el Centro Corporativo CDMX rota los 5 niveles
+  (nulo/bajo/medio/alto/muy alto); el Centro Sucursal Guadalajara rota solo 3 (nulo/medio/
+  alto) a propósito — con sus 11 completados repartidos en 5 niveles, las celdas de n=2
+  dispararían la supresión complementaria por descomposición forzada (regla inviolable 3,
+  `lib/agregados.ts`) y ocultarían la tabla global de Cfinal por completo; con 3 niveles
+  (4/4/3) ninguna celda queda por debajo de 3 y la tabla global se ve completa (los filtros
+  por área siguen mostrando supresión real, con celdas más pequeñas).
 - GR-I: la mayoría "sin acontecimiento traumático"; **en cada uno de los dos centros** hay un
   caso con acontecimiento que **dispara canalización** (ya marcado como `canalizado` en la
   vista de canalizaciones: 2 en total) y otro caso con acontecimiento que **no** alcanza el
@@ -90,8 +106,10 @@ membresía en `role_assignments` — no hace falta registrarse, solo "Ingresar".
 5. **Dashboard agregado** (subpestaña del ciclo): distribución de niveles por Cfinal,
    categoría y dominio. Filtra por área y señala que **nunca hay promedios**, solo conteos —
    y que cualquier celda con menos de 3 personas se **suprime** (anti-reidentificación,
-   regla inviolable 3): con 18/12 empleados repartidos en 5 niveles vas a encontrar alguna
-   celda pequeña, sobre todo si filtras por área.
+   regla inviolable 3): la tabla global de Cfinal se ve completa en ambos centros, pero en
+   cuanto filtras por área vas a encontrar alguna celda pequeña suprimida (con 17/11
+   completados repartidos entre 4 áreas, cualquier área cae fácilmente por debajo de 3 en
+   algún nivel).
 6. **Acciones (Cap. 8)**: las 4 acciones de la Tabla 7 ya cargadas, con su nivel de origen.
 7. **Canalizaciones GR-I**: aquí necesitas estar **ingresado como el Responsable Designado**
    (cierra sesión, entra con `rd@demo.nom035.mx`) — el Admin de Organización ve el aviso de

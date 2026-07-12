@@ -215,7 +215,7 @@ const NIVELES = ['nulo', 'bajo', 'medio', 'alto', 'muy_alto'];
 
 const AREAS = ['Ventas', 'Producción', 'Administración', 'Logística'];
 
-function generarPerfilesEmpleados(prefijoEmail, cantidad) {
+function generarPerfilesEmpleados(prefijoEmail, cantidad, niveles = NIVELES) {
   const perfiles = [];
   for (let i = 0; i < cantidad; i++) {
     perfiles.push({
@@ -224,7 +224,7 @@ function generarPerfilesEmpleados(prefijoEmail, cantidad) {
       area: AREAS[i % AREAS.length],
       atiendeClientes: i % 3 === 0,
       supervisaPersonal: i % 4 === 0,
-      nivel: NIVELES[i % NIVELES.length],
+      nivel: niveles[i % niveles.length],
       // Al último de cada centro lo dejamos sin completar: ilustra el estado "en curso" del
       // ciclo (progreso por área, recordatorios) sin necesidad de tocar la BD dos veces.
       pendiente: i === cantidad - 1,
@@ -232,6 +232,18 @@ function generarPerfilesEmpleados(prefijoEmail, cantidad) {
   }
   return perfiles;
 }
+
+// Centro Sucursal Guadalajara (Centro B) rota solo 3 niveles, no los 5: con 12 empleados (11
+// completados) sobre 5 niveles, la rotación NIVELES[i%5] produce nulo=3/bajo=2/medio=2/alto=2/
+// muy_alto=2 — las cuatro celdas con n=2 quedan suprimidas por la regla base (0<n<3) con
+// k=4 y S=8=2k, lo que dispara la supresión complementaria por descomposición forzada
+// (lib/agregados.ts: aplicarSupresionComplementaria) y esta, al no quedar ninguna otra celda
+// visible positiva salvo nulo, termina suprimiendo TAMBIÉN nulo: la tabla global de Cfinal de
+// este centro queda 100% suprimida, contradiciendo la distribución real que promete
+// docs/demo.md. Con 3 niveles (nulo/medio/alto) sobre 11 completados el resultado es 4/4/3:
+// ninguna celda cae en 0<n<3, así que k=0 y no hay supresión alguna a nivel global (los
+// filtros por área siguen mostrando supresión real, con celdas más pequeñas).
+const NIVELES_ROTACION_CENTRO_B = ['nulo', 'medio', 'alto'];
 
 // GR-I: perfil "sin acontecimiento" (mayoría), y un par de casos con acontecimiento traumático
 // para mostrar variedad — uno dispara canalización (y lo marcamos "canalizado"), el otro no.
@@ -451,6 +463,7 @@ async function sembrarCentro({
   guiaDef,
   cantidadEmpleados,
   prefijoEmail,
+  nivelesRotacion,
 }) {
   const centro = await crearCentro(companyId, nombreCentro, headcount);
   const cycleId = await crearCiclo(companyId, centro.id, 'Ciclo 2026', {
@@ -458,7 +471,7 @@ async function sembrarCentro({
     cedula: 'CED-DEMO-001',
   });
 
-  const perfiles = generarPerfilesEmpleados(prefijoEmail, cantidadEmpleados);
+  const perfiles = generarPerfilesEmpleados(prefijoEmail, cantidadEmpleados, nivelesRotacion);
   const tokensPendientes = [];
   const empleadosCreados = [];
 
@@ -747,6 +760,7 @@ async function main() {
     guiaDef: GR2,
     cantidadEmpleados: 12,
     prefijoEmail: 'b',
+    nivelesRotacion: NIVELES_ROTACION_CENTRO_B,
   });
 
   const todosLosEmpleadosCompletos = [...centroA.empleados, ...centroB.empleados].filter(
