@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { accionDistribuir, accionRecordatorios } from '@/acciones/panel';
 import { BotonAccion } from '@/components/panel/boton-accion';
+import { claseEstadoVacio } from '@/components/panel/campos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 import { clienteAdmin } from '@/lib/supabase-admin';
@@ -68,12 +69,15 @@ export default async function PaginaCiclo({
             Evaluador: {datosCiclo.evaluator_name} (cédula {datosCiclo.evaluator_license}) ·{' '}
             {datosCiclo.date_start} — {datosCiclo.date_end ?? 'en curso'}
           </p>
-          <nav className="flex flex-wrap gap-2">
+          <nav
+            aria-label="Secciones del ciclo"
+            className="flex flex-wrap gap-1 border-b border-slate-200 pb-px"
+          >
             {SUBPAGINAS.map(([ruta, etiqueta]) => (
               <Link
                 key={ruta}
                 href={`/panel/${empresa}/ciclos/${ciclo}/${ruta}`}
-                className="rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-100"
+                className="rounded-t-md px-3 py-2 font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
                 {etiqueta}
               </Link>
@@ -104,28 +108,35 @@ export default async function PaginaCiclo({
         </CardHeader>
         <CardContent>
           {porArea.size === 0 ? (
-            <p className="text-sm text-slate-600">
-              Aún no hay cuestionarios distribuidos en este ciclo.
+            <p className={claseEstadoVacio}>
+              Aún no hay cuestionarios distribuidos en este ciclo. Usa &quot;Distribuir
+              cuestionarios&quot; arriba.
             </p>
           ) : (
-            <table className="w-full text-sm" data-testid="progreso-areas">
-              <thead>
-                <tr className="border-b border-slate-200 text-left text-slate-500">
-                  <th className="py-2">Área</th>
-                  <th className="py-2">Completados</th>
-                  <th className="py-2">Pendientes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...porArea.entries()].map(([area, conteo]) => (
-                  <tr key={area} className="border-b border-slate-100">
-                    <td className="py-2 font-medium text-slate-900">{area}</td>
-                    <td className="py-2">{conteo.completados}</td>
-                    <td className="py-2">{conteo.pendientes}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" data-testid="progreso-areas">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-xs tracking-wide text-slate-500 uppercase">
+                    <th className="py-2 font-medium">Área</th>
+                    <th className="py-2 text-right font-medium">Completados</th>
+                    <th className="py-2 text-right font-medium">Pendientes</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {[...porArea.entries()].map(([area, conteo]) => (
+                    <tr key={area} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="py-2 font-medium text-slate-900">{area}</td>
+                      <td className="py-2 text-right text-slate-700 tabular-nums">
+                        {conteo.completados}
+                      </td>
+                      <td className="py-2 text-right text-slate-700 tabular-nums">
+                        {conteo.pendientes}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

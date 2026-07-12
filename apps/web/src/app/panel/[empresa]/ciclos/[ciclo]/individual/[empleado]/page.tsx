@@ -1,18 +1,11 @@
 import Link from 'next/link';
+import { BadgeNivel } from '@/components/panel/badges';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { registrarAuditoriaEstricta } from '@/lib/auditoria';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
-
-const ETIQUETA_NIVEL: Record<string, string> = {
-  nulo: 'Nulo',
-  bajo: 'Bajo',
-  medio: 'Medio',
-  alto: 'Alto',
-  muy_alto: 'Muy alto',
-};
 
 interface PuntuadoJson {
   nombre: string;
@@ -140,29 +133,34 @@ export default async function PaginaResultadoIndividual({
         <p className="rounded-md bg-amber-50 p-3 text-amber-900">
           Consulta registrada en la bitácora de auditoría.
         </p>
-        <p className="text-slate-800">
-          Calificación final: <strong>{Number(resultado.cfinal)}</strong> · Nivel:{' '}
-          <strong data-testid="nivel-individual">
-            {ETIQUETA_NIVEL[resultado.nivel_final] ?? resultado.nivel_final}
-          </strong>
+        <p className="flex flex-wrap items-center gap-2 text-slate-800">
+          Calificación final: <strong className="tabular-nums">{Number(resultado.cfinal)}</strong>
+          <span className="text-slate-400">·</span> Nivel:{' '}
+          <span data-testid="nivel-individual">
+            <BadgeNivel nivel={resultado.nivel_final} />
+          </span>
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <h3 className="mb-1 font-semibold text-slate-900">Categorías</h3>
-            <ul className="flex flex-col gap-1 text-slate-700">
+            <h3 className="mb-2 font-semibold text-slate-900">Categorías</h3>
+            <ul className="flex flex-col gap-2 text-slate-700">
               {categorias.map((c) => (
-                <li key={c.nombre}>
-                  {c.nombre}: {ETIQUETA_NIVEL[c.nivel] ?? c.nivel} ({c.puntaje})
+                <li key={c.nombre} className="flex flex-wrap items-center gap-2">
+                  <span>{c.nombre}</span>
+                  <BadgeNivel nivel={c.nivel} />
+                  <span className="text-xs text-slate-500 tabular-nums">({c.puntaje})</span>
                 </li>
               ))}
             </ul>
           </div>
           <div>
-            <h3 className="mb-1 font-semibold text-slate-900">Dominios</h3>
-            <ul className="flex flex-col gap-1 text-slate-700">
+            <h3 className="mb-2 font-semibold text-slate-900">Dominios</h3>
+            <ul className="flex flex-col gap-2 text-slate-700">
               {dominios.map((d) => (
-                <li key={d.nombre}>
-                  {d.nombre}: {ETIQUETA_NIVEL[d.nivel] ?? d.nivel} ({d.puntaje})
+                <li key={d.nombre} className="flex flex-wrap items-center gap-2">
+                  <span>{d.nombre}</span>
+                  <BadgeNivel nivel={d.nivel} />
+                  <span className="text-xs text-slate-500 tabular-nums">({d.puntaje})</span>
                 </li>
               ))}
             </ul>

@@ -1,13 +1,31 @@
 @import 'tailwindcss';
 
-body {
-  background: var(--color-slate-100);
-  color: var(--color-slate-900);
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+@theme inline {
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Foco de teclado visible en toda la app (WCAG 2.4.7). Los componentes interactivos
+   no necesitan estilos de foco propios: este anillo azul aplica de forma consistente. */
+:focus-visible {
+  outline: 2px solid var(--color-blue-600);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Transición suave al cambiar de sección en el cuestionario del empleado (M7). Puramente
+   decorativa: no afecta el contenido ni el momento en que el DOM queda listo para el E2E. */
+@keyframes seccion-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-seccion {
+  animation: seccion-entrada 0.2s ease-out;
 }

@@ -2,8 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
 import type { ResultadoPanel } from '@/acciones/panel';
+import { claseCampo } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export function ImportadorCsv({
   importar,
@@ -28,7 +31,7 @@ export function ImportadorCsv({
         aria-label="Centro de trabajo destino"
         value={centro}
         onChange={(e) => setCentro(e.target.value)}
-        className="rounded-md border border-slate-300 px-3 py-2"
+        className={claseCampo}
       >
         {centros.map((c) => (
           <option key={c.id} value={c.id}>
@@ -42,7 +45,7 @@ export function ImportadorCsv({
         value={contenido}
         onChange={(e) => setContenido(e.target.value)}
         rows={6}
-        className="rounded-md border border-slate-300 px-3 py-2 font-mono text-xs"
+        className={cn(claseCampo, 'font-mono text-xs')}
       />
       <Button
         disabled={pendiente || contenido.trim() === '' || centro === ''}
@@ -51,7 +54,12 @@ export function ImportadorCsv({
           startTransition(async () => {
             const r = await importar(centro, contenido);
             setResultado(r);
-            if (r.ok) router.refresh();
+            if (r.ok) {
+              toast.success(r.detalle?.[0] ?? 'Empleados importados');
+              router.refresh();
+            } else {
+              toast.error(r.error ?? 'No se pudo importar el CSV');
+            }
           })
         }
       >

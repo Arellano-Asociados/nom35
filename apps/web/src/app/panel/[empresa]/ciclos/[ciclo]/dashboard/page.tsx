@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { BadgeNivel } from '@/components/panel/badges';
 import { TablaDistribucion } from '@/components/panel/tabla-distribucion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { distribucionNiveles, distribucionPorNombre } from '@/lib/agregados';
+import { distribucionNiveles, distribucionPorNombre, NIVELES } from '@/lib/agregados';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 import { resultadosVigentesPorAsignacion } from '@/lib/informe';
 import { clienteAdmin } from '@/lib/supabase-admin';
@@ -11,6 +13,18 @@ export const dynamic = 'force-dynamic';
 interface PuntuadoJson {
   nombre: string;
   nivel: string;
+}
+
+/** Tile de resumen: metadata + valor grande. Presentación pura, sin datos nuevos. */
+function TileResumen({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-1 p-4">
+        <p className="text-xs text-slate-500">{etiqueta}</p>
+        <p className="text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">{valor}</p>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default async function PaginaDashboard({
@@ -73,8 +87,42 @@ export default async function PaginaDashboard({
     ),
   );
 
+  // Tiles de resumen: derivados de los objetos que esta página ya calculó arriba (ningún
+  // dato nuevo ni consulta adicional). El nivel predominante ignora celdas suprimidas
+  // (regla inviolable 3): si todas están suprimidas, no hay uno seguro que mostrar.
+  const nivelPredominante = NIVELES.reduce<{ nivel: string; n: number } | null>((mejor, nivel) => {
+    const celda = cfinal.celdas[nivel];
+    if (celda.suprimida || celda.n === null) return mejor;
+    if (!mejor || celda.n > mejor.n) return { nivel, n: celda.n };
+    return mejor;
+  }, null);
+
   return (
     <div className="flex flex-col gap-4">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <TileResumen etiqueta="Completados" valor={filtrados.length} />
+        <TileResumen
+          etiqueta="Áreas cubiertas"
+          valor={
+            new Set(
+              filtrados.map(
+                (r) => (r.employees as unknown as { area: string | null }).area ?? 'Sin área',
+              ),
+            ).size
+          }
+        />
+        <TileResumen
+          etiqueta="Nivel predominante"
+          valor={
+            nivelPredominante ? (
+              <BadgeNivel nivel={nivelPredominante.nivel} />
+            ) : (
+              <span className="text-base font-normal text-slate-400">Sin datos suficientes</span>
+            )
+          }
+        />
+      </div>
+
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-slate-600">Filtrar por área:</span>
         <Link

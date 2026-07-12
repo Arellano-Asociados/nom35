@@ -1,5 +1,9 @@
 # Guion de demo (10 minutos)
 
+> Para el manual completo de uso (guía del Administrador, guía del empleado, diagramas de
+> flujo y de secuencia, tabla de permisos por rol y preguntas frecuentes), ver
+> [`docs/manual.md`](./manual.md).
+
 Guion para presentar el ciclo completo de la plataforma sobre datos de
 "Empresa Demo NOM-035, S.A. de C.V." sembrados por `scripts/demo-seed.mjs`. Todos los
 resultados que se muestran fueron calculados por el motor real

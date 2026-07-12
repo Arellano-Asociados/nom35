@@ -1,4 +1,5 @@
 import { accionCrearEmpleado, accionImportarCsv } from '@/acciones/panel';
+import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { ImportadorCsv } from '@/components/panel/importador-csv';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,12 +39,20 @@ export default async function PaginaEmpleados({
           <CardTitle>Empleados ({(empleados ?? []).length})</CardTitle>
         </CardHeader>
         <CardContent>
+          {(empleados ?? []).length === 0 && (
+            <p className={claseEstadoVacio}>
+              Aún no hay empleados. Agrega el primero con el formulario o importa un CSV.
+            </p>
+          )}
           <ul
             className="flex max-h-96 flex-col gap-1 overflow-y-auto"
             data-testid="lista-empleados"
           >
             {(empleados ?? []).map((e) => (
-              <li key={e.id} className="rounded border border-slate-100 px-3 py-2 text-sm">
+              <li
+                key={e.id}
+                className="rounded border border-slate-100 px-3 py-2 text-sm hover:bg-slate-50"
+              >
                 <span className="font-medium text-slate-900">{e.full_name}</span>{' '}
                 <span className="text-slate-500">
                   · {e.email} · {e.area ?? 'Sin área'} ·{' '}
@@ -64,32 +73,19 @@ export default async function PaginaEmpleados({
             <form action={crear} className="flex flex-col gap-3 text-sm">
               <label className="flex flex-col gap-1 font-medium text-slate-800">
                 Nombre completo
-                <input
-                  name="nombre"
-                  required
-                  className="rounded-md border border-slate-300 px-3 py-2"
-                />
+                <input name="nombre" required className={claseCampo} />
               </label>
               <label className="flex flex-col gap-1 font-medium text-slate-800">
                 Correo electrónico
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  className="rounded-md border border-slate-300 px-3 py-2"
-                />
+                <input name="email" type="email" required className={claseCampo} />
               </label>
               <label className="flex flex-col gap-1 font-medium text-slate-800">
                 Área
-                <input name="area" className="rounded-md border border-slate-300 px-3 py-2" />
+                <input name="area" className={claseCampo} />
               </label>
               <label className="flex flex-col gap-1 font-medium text-slate-800">
                 Centro de trabajo
-                <select
-                  name="centro"
-                  required
-                  className="rounded-md border border-slate-300 px-3 py-2"
-                >
+                <select name="centro" required className={claseCampo}>
                   {(centros ?? []).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -99,10 +95,12 @@ export default async function PaginaEmpleados({
               </label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 text-slate-800">
-                  <input type="checkbox" name="atiende" value="si" /> Atiende clientes
+                  <input type="checkbox" name="atiende" value="si" className="accent-blue-700" />{' '}
+                  Atiende clientes
                 </label>
                 <label className="flex items-center gap-2 text-slate-800">
-                  <input type="checkbox" name="supervisa" value="si" /> Supervisa personal
+                  <input type="checkbox" name="supervisa" value="si" className="accent-blue-700" />{' '}
+                  Supervisa personal
                 </label>
               </div>
               {error === 'duplicado' && (

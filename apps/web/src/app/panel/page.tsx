@@ -24,7 +24,9 @@ export default async function PaginaPanel() {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {membresias.length === 0 ? (
-          <p className="text-sm text-slate-600">Aún no perteneces a ninguna empresa.</p>
+          <p className="rounded-md border border-dashed border-slate-300 bg-slate-50/60 px-4 py-8 text-center text-sm text-slate-500">
+            Aún no perteneces a ninguna empresa. Registra la primera con el enlace de abajo.
+          </p>
         ) : (
           <ul className="flex flex-col gap-2" data-testid="lista-empresas">
             {membresias.map((m) => (

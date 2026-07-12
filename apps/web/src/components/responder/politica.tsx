@@ -25,9 +25,9 @@ export function PoliticaPendiente({
   return (
     <div
       data-testid="politica-pendiente"
-      className="flex flex-col gap-3 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-slate-800"
+      className="flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 p-5 text-sm text-slate-800 shadow-sm"
     >
-      <p>
+      <p className="leading-relaxed">
         Tu empresa publicó la <strong>política de prevención de riesgos psicosociales</strong>:{' '}
         {titulo} (versión {version}).
         {url && (

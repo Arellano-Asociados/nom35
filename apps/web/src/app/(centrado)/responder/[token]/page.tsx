@@ -51,7 +51,7 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
       <div className="flex flex-col gap-4">
         <div
           data-testid="confirmacion"
-          className="rounded-md bg-emerald-50 p-4 text-sm font-medium text-emerald-900"
+          className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-900 shadow-sm"
         >
           Tu cuestionario fue enviado. Gracias por tu participación. Puedes volver a esta página con
           tu mismo enlace para consultar tu resultado.
