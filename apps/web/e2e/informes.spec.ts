@@ -162,8 +162,9 @@ test('el Admin de Organización genera informe 7.9 y expediente con auditoría',
   // comprueban los magic bytes. Esto es una verificación más robusta y determinista en CI
   // headless que perseguir la pestaña emergente, al costo de no ejercitar el manejo del
   // navegador de la propia ventana emergente end-to-end (ver limitaciones en el reporte).
+  // Timeout explícito de 15s para fallar rápido si window.open retorna null (fallback link).
   const [popup] = await Promise.all([
-    page.waitForEvent('popup'),
+    page.waitForEvent('popup', { timeout: 15_000 }),
     filaInforme79.getByTestId('descargar-informe').click(),
   ]);
   await popup.close();
