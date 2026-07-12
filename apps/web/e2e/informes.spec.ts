@@ -141,7 +141,10 @@ test('el Admin de Organización genera informe 7.9 y expediente con auditoría',
   // (a) Generar informe 7.9 → aparece en la tabla con un sha256 visible (truncado)
   await page.getByTestId('generar-informe-79').click();
   const filaInforme79 = page.locator('[data-testid="fila-informe"][data-report-type="informe_79"]');
-  await expect(filaInforme79).toHaveCount(1);
+  // Timeout explícito de 15s: el flujo cubierto es generar→renderizar PDF→subir→insertar→
+  // auditar→refrescar la tabla completo, no solo un cambio de DOM instantáneo (mismo criterio
+  // que el timeout del popup más abajo).
+  await expect(filaInforme79).toHaveCount(1, { timeout: 15_000 });
   const shaTruncado = await filaInforme79.locator('td').nth(2).innerText();
   expect(shaTruncado.replace('…', '')).toMatch(/^[0-9a-f]{12}$/);
 
@@ -190,7 +193,9 @@ test('el Admin de Organización genera informe 7.9 y expediente con auditoría',
   const filaExpediente = page.locator(
     '[data-testid="fila-informe"][data-report-type="expediente_zip"]',
   );
-  await expect(filaExpediente).toHaveCount(1);
+  // Mismo timeout de 15s que la fila del informe 7.9: generar el expediente arma el PDF
+  // completo más los CSVs y el ZIP antes de subir/insertar/auditar/refrescar.
+  await expect(filaExpediente).toHaveCount(1, { timeout: 15_000 });
 
   const [reporteExpediente] = await consultar<{ storage_path: string; sha256: string }>(
     `select storage_path, sha256 from compliance_reports
