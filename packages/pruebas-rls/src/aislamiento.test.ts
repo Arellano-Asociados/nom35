@@ -553,3 +553,33 @@ describe('alerta de ciclo vencido (numeral 7.9)', () => {
     });
   });
 });
+
+describe('hook de emisión de JWT (app.custom_access_token)', () => {
+  it('supabase_auth_admin tiene USAGE en el esquema app y EXECUTE en el hook', async () => {
+    // Sin USAGE en el esquema, GoTrue falla al emitir TODO JWT administrativo
+    // (signup/login con contraseña devuelven 500 con cuerpo vacío).
+    await comoPostgres(async (q) => {
+      const r = await q(
+        `select has_schema_privilege('supabase_auth_admin', 'app', 'usage') as usa,
+                has_function_privilege('supabase_auth_admin', 'app.custom_access_token(jsonb)', 'execute') as ejecuta`,
+      );
+      expect(r.rows[0]).toEqual({ usa: true, ejecuta: true });
+    });
+  });
+
+  it('agrega el claim company_id desde la membresía real y no inventa nada sin membresía', async () => {
+    await comoPostgres(async (q) => {
+      const conMembresia = await q(`select app.custom_access_token($1::jsonb) as evento`, [
+        JSON.stringify({ user_id: ADMIN_A, claims: {} }),
+      ]);
+      const claimsA = (conMembresia.rows[0].evento as { claims: { company_id?: string } }).claims;
+      expect(claimsA.company_id).toBe(TENANT_A);
+
+      const sinMembresia = await q(`select app.custom_access_token($1::jsonb) as evento`, [
+        JSON.stringify({ user_id: '99999999-0000-4000-8000-000000000099', claims: {} }),
+      ]);
+      const claimsX = (sinMembresia.rows[0].evento as { claims: Record<string, unknown> }).claims;
+      expect(claimsX.company_id).toBeUndefined();
+    });
+  });
+});
