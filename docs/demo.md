@@ -179,13 +179,13 @@ scripts/demo-seed.mjs`, así que el build corre automáticamente en cada invocac
   propósito). El botón "Enviar recordatorios a pendientes" y la notificación de canalización
   al RD funcionan (generan el token nuevo / el evento de auditoría) pero ningún correo real
   sale; no hay nada que mostrar en una bandeja de entrada durante la demo.
-- **Sin verificación de runtime**: este seed se escribió y revisó sin Docker/Supabase local
-  disponibles en el entorno de desarrollo. Se validó con `node --check`, ESLint, Prettier,
-  `tsc --noEmit` (typecheck del repo, sin relación directa con este script) y trazando cada
-  INSERT contra el esquema real (`supabase/migrations/20260711200002_tablas_tenant.sql`) y
-  contra `packages/pruebas-rls/src/fixtures.sql` como referencia de forma de fila. La primera
-  corrida real contra Supabase local **no se ejecutó**; síguela con atención la primera vez
-  (ver `.superpowers/sdd/task-6-report.md` para el checklist paso a paso).
+- **Primera corrida real: verificada (2026-07-12)**. El seed corrió completo contra Supabase
+  local en Windows sin errores: 28 resultados con la distribución de niveles diseñada
+  (8/4/7/6/3), archivos reales en Storage, cuentas de auth funcionando y el claim
+  `company_id` presente en el JWT del admin. Nota Windows: `[analytics]` está deshabilitado
+  en `supabase/config.toml` porque el contenedor de Logflare exige el daemon de Docker
+  expuesto por TCP (inseguro) y sin eso `supabase start` truena completo; nada del producto
+  usa analytics local.
 - **Reintentos tras una corrida interrumpida a la mitad de un empleado**: la idempotencia de
   respuestas/resultados se decide por "¿ya hay filas en `responses` para esta asignación?". Si
   el script se cae justo entre insertar `responses` e insertar `risk_results`/`gr1_results`
