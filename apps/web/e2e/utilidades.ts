@@ -33,6 +33,9 @@ export async function responderFiltros(
   await grupos.nth(0).getByText(atiende, { exact: true }).click();
   await grupos.nth(1).getByText(supervisa, { exact: true }).click();
   await page.getByRole('button', { name: 'Comenzar cuestionario' }).click();
+  // locator.count() no espera: hay que confirmar que el cuestionario ya montó su primera
+  // sección antes de que completarYEnviar empiece a contar fieldsets, o se cuenta 0/stale.
+  await expect(page.getByTestId('progreso')).toBeVisible();
 }
 
 /** Responde todas las preguntas visibles de la sección actual con la opción dada.
@@ -49,13 +52,20 @@ export async function responderSeccionActual(page: Page, opcion: string): Promis
   }
 }
 
-/** Recorre todas las secciones respondiendo con la opción dada y envía el cuestionario. */
+/** Recorre todas las secciones respondiendo con la opción dada y envía el cuestionario.
+ * Tras cada "Siguiente" espera a que la etiqueta de sección cambie antes de volver a contar
+ * los fieldsets: sin esto, responderSeccionActual puede contar la sección VIEJA (aún no
+ * desmontada) y solo recorrer sus primeros N ítems, dejando ítems de la sección nueva sin
+ * responder para siempre (el contador global queda corto y el botón Enviar nunca se habilita). */
 export async function completarYEnviar(page: Page, opcion: string): Promise<void> {
+  const etiquetaSeccion = page.getByText(/^Sección \d+ de \d+$/);
   for (;;) {
     await responderSeccionActual(page, opcion);
     const siguiente = page.getByRole('button', { name: 'Siguiente' });
     if (await siguiente.isVisible()) {
+      const anterior = await etiquetaSeccion.textContent();
       await siguiente.click();
+      await expect(etiquetaSeccion).not.toHaveText(anterior ?? '');
     } else {
       break;
     }
