@@ -101,7 +101,16 @@ export default async function PaginaDashboard({
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-3">
         <TileResumen etiqueta="Completados" valor={filtrados.length} />
-        <TileResumen etiqueta="Áreas cubiertas" valor={new Set(filtrados.map((r) => (r.employees as unknown as { area: string | null }).area ?? 'Sin área')).size} />
+        <TileResumen
+          etiqueta="Áreas cubiertas"
+          valor={
+            new Set(
+              filtrados.map(
+                (r) => (r.employees as unknown as { area: string | null }).area ?? 'Sin área',
+              ),
+            ).size
+          }
+        />
         <TileResumen
           etiqueta="Nivel predominante"
           valor={
