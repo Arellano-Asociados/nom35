@@ -32,9 +32,11 @@ El informe debe contener: a) el o los centros de trabajo evaluados; b) el métod
 ### Task 1: Migración — bucket `informes`
 
 **Files:**
+
 - Create: `supabase/migrations/20260712000000_informes.sql`
 
 **Interfaces:**
+
 - Produces: bucket privado `informes` en storage (solo service_role), siguiendo el patrón exacto de `supabase/migrations/20260711220000_panel_admin.sql:5` (buckets `politicas`/`capacitacion`).
 
 - [ ] **Step 1: Escribir la migración** copiando el patrón de creación de bucket de `panel_admin.sql` (insert en `storage.buckets` con `public = false`, idempotente con `on conflict do nothing`). Sin políticas de storage para roles no-service (los archivos solo se sirven vía signed URL creado con service_role tras autorización en acción de servidor).
@@ -45,10 +47,12 @@ El informe debe contener: a) el o los centros de trabajo evaluados; b) el métod
 ### Task 2: Módulo puro de armado de datos del informe
 
 **Files:**
+
 - Create: `apps/web/src/lib/informe.ts`
 - Test: `apps/web/src/lib/informe.test.ts` (Vitest, junto a `agregados` — seguir patrón de tests existentes en `src/lib/`)
 
 **Interfaces:**
+
 - Consumes: `celda`, `distribucionNiveles`, `distribucionPorNombre` de `src/lib/agregados.ts` (verificar firmas reales antes de usar).
 - Produces:
 
@@ -91,11 +95,13 @@ Reglas dentro de la función: usar solo el resultado VIGENTE por asignación (fi
 ### Task 3: Plantilla PDF del informe
 
 **Files:**
+
 - Create: `apps/web/src/informes/informe-79-pdf.tsx` (componente `@react-pdf/renderer` — NO es componente cliente de Next; vive fuera de `app/`)
 - Create: `apps/web/src/informes/generar-pdf.ts` (`renderToBuffer`)
 - Test: `apps/web/src/informes/generar-pdf.test.ts`
 
 **Interfaces:**
+
 - Consumes: `DatosInforme79` (Task 2).
 - Produces: `generarPdfInforme79(datos: DatosInforme79): Promise<Buffer>`.
 
@@ -108,14 +114,17 @@ Reglas dentro de la función: usar solo el resultado VIGENTE por asignación (fi
 ### Task 4: Acción de servidor — generar informe 7.9
 
 **Files:**
+
 - Modify: `apps/web/src/acciones/panel.ts` (o crear `src/acciones/informes.ts` si panel.ts ya es muy grande — preferible archivo nuevo)
 - Test: cubierto por E2E (Task 7); la lógica pura ya está testeada en Tasks 2–3.
 
 **Interfaces:**
+
 - Consumes: `autorizarEmpresa`, `puedeGestionar` (`src/lib/autorizacion.ts`), `clienteAdmin`, `armarDatosInforme79`, `generarPdfInforme79`, `registrarAuditoria`.
 - Produces: `accionGenerarInforme79(companyId: string, cycleId: string): Promise<{ ok: true; reporteId: string } | { ok: false; error: string }>`.
 
 Flujo obligatorio de la acción:
+
 1. `autorizarEmpresa(companyId)` + `puedeGestionar` (admin_org o consultor; el informe solo contiene agregados).
 2. Leer con `clienteAdmin()`: empresa, centros, ciclo (validar que pertenece a la empresa vía FK compuesta), asignaciones, `risk_results` vigentes, `gr1_results`, `action_items`.
 3. `armarDatosInforme79(...)` con `generadoEl = new Date().toISOString()` (la fecha vive en la acción, no en el módulo puro).
@@ -133,11 +142,13 @@ Flujo obligatorio de la acción:
 ### Task 5: Expediente de inspección (ZIP)
 
 **Files:**
+
 - Create: `apps/web/src/informes/expediente.ts` (armado puro de manifiesto + CSVs a partir de datos ya leídos)
 - Modify: `apps/web/src/acciones/informes.ts` (nueva acción)
 - Test: `apps/web/src/informes/expediente.test.ts`
 
 **Interfaces:**
+
 - Consumes: `jszip` (`pnpm --filter web add jszip`), `DatosInforme79`, buffer del PDF, archivo de política (bytes) si existe, filas de acuses/capacitación/participación/auditoría.
 - Produces:
   - `armarExpediente(entrada): Promise<{ zip: Buffer; manifiesto: ManifiestoExpediente }>` — puro salvo jszip; cada archivo listado en `manifiesto.json` con su sha256.
@@ -152,11 +163,13 @@ Flujo obligatorio de la acción:
 ### Task 6: UI del panel — página de informes del ciclo
 
 **Files:**
+
 - Create: `apps/web/src/app/panel/[empresa]/ciclos/[ciclo]/informes/page.tsx` (server component)
 - Create: `apps/web/src/components/panel/generar-informe.tsx` (client component con botones/estado — fuera de carpetas con corchetes)
 - Modify: navegación del ciclo (donde estén las pestañas dashboard/acciones/gr1 — replicar patrón existente)
 
 **Interfaces:**
+
 - Consumes: acciones de Tasks 4–5; lista `compliance_reports` del ciclo (SELECT de gestión ya permitido por RLS `rls_tenant.sql:264`).
 - Produces: página “Informes y expediente” con: botón “Generar informe 7.9”, botón “Generar expediente de inspección”, tabla histórica (tipo, fecha, sha256 abreviado con title completo, botón Descargar). Estados de carga y error en es-MX; accesible (botones reales, aria-busy).
 
@@ -168,6 +181,7 @@ Flujo obligatorio de la acción:
 ### Task 7: E2E Playwright
 
 **Files:**
+
 - Create: `apps/web/e2e/informes.spec.ts` (seguir setup/helpers de los specs del panel existentes en `apps/web/e2e/`)
 
 - [ ] **Step 1: Leer los specs E2E del panel existentes** para reutilizar login/seed/fixtures.
