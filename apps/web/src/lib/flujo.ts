@@ -97,12 +97,14 @@ export interface Pregunta {
   section: string | null;
   item_number: number;
   text: string;
+  /** Encabezado de bloque del DOF que precede a este ítem (solo primer ítem del bloque). */
+  instruccion_previa: string | null;
 }
 
 export async function obtenerPreguntas(questionnaireId: string): Promise<Pregunta[]> {
   const { data, error } = await clienteAdmin()
     .from('questions')
-    .select('section, item_number, text')
+    .select('section, item_number, text, instruccion_previa')
     .eq('questionnaire_id', questionnaireId)
     .order('section', { ascending: true, nullsFirst: true })
     .order('item_number', { ascending: true });

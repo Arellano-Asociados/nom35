@@ -11,6 +11,8 @@ export interface PreguntaUI {
   seccion: string | null;
   numero: number;
   texto: string;
+  /** Encabezado de bloque del DOF que se muestra encima de este ítem (primer ítem del bloque). */
+  instruccion?: string | null;
 }
 
 export interface SeccionUI {
@@ -126,38 +128,48 @@ export function Cuestionario({
         </CardHeader>
         <CardContent className="flex flex-col gap-7">
           {seccionActual.preguntas.map((pregunta) => (
-            <fieldset key={pregunta.clave} data-testid={`pregunta-${pregunta.clave}`}>
-              <legend className="mb-3 text-base font-medium leading-relaxed text-slate-900">
-                {pregunta.numero}. {pregunta.texto}
-              </legend>
-              <div className={esGR1 ? 'flex gap-3' : 'grid grid-cols-1 gap-2 sm:grid-cols-5'}>
-                {opciones.map((opcion) => {
-                  const marcada = respuestas[pregunta.clave] === opcion.valor;
-                  return (
-                    <label
-                      key={opcion.valor}
-                      className={`flex min-h-11 cursor-pointer items-center justify-center rounded-lg border-2 text-center transition-colors duration-150 ${
-                        esGR1 ? 'flex-1 px-4 py-4 text-base font-medium' : 'px-3 py-2.5 text-sm'
-                      } ${
-                        marcada
-                          ? 'border-blue-700 bg-blue-50 font-semibold text-blue-900 shadow-sm'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name={pregunta.clave}
-                        value={opcion.valor}
-                        checked={marcada}
-                        onChange={() => responder(pregunta, opcion.valor)}
-                        className="sr-only"
-                      />
-                      {opcion.etiqueta}
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
+            <div key={pregunta.clave} className="flex flex-col gap-3">
+              {pregunta.instruccion && (
+                <p
+                  data-testid={`instruccion-${pregunta.clave}`}
+                  className="rounded-md bg-slate-100 px-3 py-2 text-sm italic leading-relaxed text-slate-700"
+                >
+                  {pregunta.instruccion}
+                </p>
+              )}
+              <fieldset data-testid={`pregunta-${pregunta.clave}`}>
+                <legend className="mb-3 text-base font-medium leading-relaxed text-slate-900">
+                  {pregunta.numero}. {pregunta.texto}
+                </legend>
+                <div className={esGR1 ? 'flex gap-3' : 'grid grid-cols-1 gap-2 sm:grid-cols-5'}>
+                  {opciones.map((opcion) => {
+                    const marcada = respuestas[pregunta.clave] === opcion.valor;
+                    return (
+                      <label
+                        key={opcion.valor}
+                        className={`flex min-h-11 cursor-pointer items-center justify-center rounded-lg border-2 text-center transition-colors duration-150 ${
+                          esGR1 ? 'flex-1 px-4 py-4 text-base font-medium' : 'px-3 py-2.5 text-sm'
+                        } ${
+                          marcada
+                            ? 'border-blue-700 bg-blue-50 font-semibold text-blue-900 shadow-sm'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={pregunta.clave}
+                          value={opcion.valor}
+                          checked={marcada}
+                          onChange={() => responder(pregunta, opcion.valor)}
+                          className="sr-only"
+                        />
+                        {opcion.etiqueta}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            </div>
           ))}
         </CardContent>
       </Card>

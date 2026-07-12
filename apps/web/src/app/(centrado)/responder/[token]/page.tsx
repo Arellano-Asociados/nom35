@@ -14,11 +14,12 @@ import { Resultado } from '@/components/responder/resultado';
 
 export const dynamic = 'force-dynamic';
 
+// Títulos de sección literales del DOF 23-oct-2018 (Guía de Referencia I).
 const TITULOS_GR1: Record<string, string> = {
-  I: 'Sección I. Acontecimiento traumático severo',
-  II: 'Sección II. Recuerdos persistentes sobre el acontecimiento (último mes)',
-  III: 'Sección III. Esfuerzo por evitar circunstancias parecidas o asociadas (último mes)',
-  IV: 'Sección IV. Afectación (último mes)',
+  I: 'I.- Acontecimiento traumático severo',
+  II: 'II.- Recuerdos persistentes sobre el acontecimiento (durante el último mes)',
+  III: 'III.- Esfuerzo por evitar circunstancias parecidas o asociadas al acontecimiento (durante el último mes)',
+  IV: 'IV.- Afectación (durante el último mes)',
 };
 
 function Mensaje({ titulo, children }: { titulo: string; children: React.ReactNode }) {
@@ -112,6 +113,7 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
           seccion: s,
           numero: p.item_number,
           texto: p.text,
+          instruccion: p.instruccion_previa,
         })),
     }));
   } else {
@@ -139,6 +141,7 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
         seccion: null,
         numero: p.item_number,
         texto: p.text,
+        instruccion: p.instruccion_previa,
       });
     }
     secciones = [...porDominio.values()];
@@ -151,6 +154,12 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
         <p className="text-sm text-slate-600">
           {ctx.empresa.razonSocial} · Tus respuestas se guardan automáticamente.
         </p>
+        {ctx.guia !== 'GR-I' && (
+          <p className="mt-1 text-sm text-slate-600">
+            Al responder, considera las condiciones de tu trabajo durante los dos últimos meses. No
+            hay respuestas correctas ni incorrectas.
+          </p>
+        )}
       </header>
       <Cuestionario
         token={token}
