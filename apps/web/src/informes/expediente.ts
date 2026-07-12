@@ -15,6 +15,10 @@ import type { DatosInforme79 } from '../lib/informe';
 
 export interface EntradaAcusePolitica {
   nombreEmpleado: string;
+  /** policies.title de la política acusada. */
+  tituloPolitica: string;
+  /** policies.version de la política acusada. */
+  versionPolitica: string;
   /** policy_acknowledgments.acknowledged_at, ISO */
   fechaAcuse: string;
 }
@@ -122,8 +126,8 @@ function sha256Hex(contenido: Buffer): string {
 
 function csvAcusesPolitica(filas: readonly EntradaAcusePolitica[]): Buffer {
   return construirCsv(
-    ['empleado', 'fecha_acuse'],
-    filas.map((f) => [f.nombreEmpleado, f.fechaAcuse]),
+    ['empleado', 'politica', 'version', 'fecha_acuse'],
+    filas.map((f) => [f.nombreEmpleado, f.tituloPolitica, f.versionPolitica, f.fechaAcuse]),
   );
 }
 
