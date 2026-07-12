@@ -164,73 +164,77 @@ export function GenerarInforme({
       </div>
 
       {informes.length === 0 ? (
-        <p className="text-sm text-slate-600">Aún no se ha generado ningún informe.</p>
+        <p className="rounded-md border border-dashed border-slate-300 bg-slate-50/60 px-4 py-8 text-center text-sm text-slate-500">
+          Aún no se ha generado ningún informe. Genera el primero con los botones de arriba.
+        </p>
       ) : (
-        <table className="w-full text-sm" data-testid="historial-informes">
-          <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="py-2">Tipo</th>
-              <th className="py-2">Fecha</th>
-              <th className="py-2">SHA-256</th>
-              <th className="py-2">Descarga</th>
-            </tr>
-          </thead>
-          <tbody>
-            {informes.map((informe) => {
-              const enCurso = descargando.has(informe.id);
-              const errorFila = erroresDescarga.get(informe.id);
-              const urlRespaldo = urlsRespaldo.get(informe.id);
-              const fechaFormateada = new Date(informe.createdAt).toLocaleString('es-MX');
-              return (
-                <tr
-                  key={informe.id}
-                  className="border-b border-slate-100"
-                  data-testid="fila-informe"
-                  data-report-id={informe.id}
-                  data-report-type={informe.reportType}
-                >
-                  <td className="py-2 font-medium text-slate-900">
-                    {ETIQUETA_TIPO[informe.reportType]}
-                  </td>
-                  <td className="py-2">{fechaFormateada}</td>
-                  <td className="py-2">
-                    <span title={informe.sha256}>{informe.sha256.slice(0, 12)}…</span>
-                  </td>
-                  <td className="py-2">
-                    <div className="flex flex-col items-start gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={enCurso}
-                        aria-busy={enCurso}
-                        aria-label={`Descargar ${ETIQUETA_TIPO[informe.reportType]} del ${fechaFormateada}`}
-                        data-testid="descargar-informe"
-                        onClick={() => descargar(informe.id)}
-                      >
-                        {enCurso ? 'Preparando…' : 'Descargar'}
-                      </Button>
-                      {errorFila && (
-                        <p role="alert" className="text-sm text-red-700">
-                          {errorFila}
-                        </p>
-                      )}
-                      {urlRespaldo && (
-                        <a
-                          href={urlRespaldo}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-700 underline"
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm" data-testid="historial-informes">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-xs tracking-wide text-slate-500 uppercase">
+                <th className="py-2 font-medium">Tipo</th>
+                <th className="py-2 font-medium">Fecha</th>
+                <th className="py-2 font-medium">SHA-256</th>
+                <th className="py-2 font-medium">Descarga</th>
+              </tr>
+            </thead>
+            <tbody>
+              {informes.map((informe) => {
+                const enCurso = descargando.has(informe.id);
+                const errorFila = erroresDescarga.get(informe.id);
+                const urlRespaldo = urlsRespaldo.get(informe.id);
+                const fechaFormateada = new Date(informe.createdAt).toLocaleString('es-MX');
+                return (
+                  <tr
+                    key={informe.id}
+                    className="border-b border-slate-100 hover:bg-slate-50"
+                    data-testid="fila-informe"
+                    data-report-id={informe.id}
+                    data-report-type={informe.reportType}
+                  >
+                    <td className="py-2 font-medium text-slate-900">
+                      {ETIQUETA_TIPO[informe.reportType]}
+                    </td>
+                    <td className="py-2 text-slate-700 tabular-nums">{fechaFormateada}</td>
+                    <td className="py-2 text-slate-700 tabular-nums">
+                      <span title={informe.sha256}>{informe.sha256.slice(0, 12)}…</span>
+                    </td>
+                    <td className="py-2">
+                      <div className="flex flex-col items-start gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={enCurso}
+                          aria-busy={enCurso}
+                          aria-label={`Descargar ${ETIQUETA_TIPO[informe.reportType]} del ${fechaFormateada}`}
+                          data-testid="descargar-informe"
+                          onClick={() => descargar(informe.id)}
                         >
-                          Descargar manualmente
-                        </a>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                          {enCurso ? 'Preparando…' : 'Descargar'}
+                        </Button>
+                        {errorFila && (
+                          <p role="alert" className="text-sm text-red-700">
+                            {errorFila}
+                          </p>
+                        )}
+                        {urlRespaldo && (
+                          <a
+                            href={urlRespaldo}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-700 underline"
+                          >
+                            Descargar manualmente
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
