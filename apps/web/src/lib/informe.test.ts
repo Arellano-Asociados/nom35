@@ -111,12 +111,22 @@ describe('armarDatosInforme79', () => {
 
     expect(informe.participacion).toEqual({ asignados: 5, completados: 5 });
     expect(informe.resultados.global.total).toBe(5);
+    // alto y medio tienen n=1 cada uno: se suprimen por la regla base (0 < n < 3),
+    // k=2 celdas suprimidas. S = total(5) - visibles(nulo=3) = 2 = k → única
+    // descomposición posible sobre 2 celdas ∈{1,2}: AMBAS valen 1 (alto=1, medio=1),
+    // que es justo su valor real. Con la regla anterior de esta tarea (actuar solo
+    // si exactamente 1 celda estaba suprimida) esto no se detectaba y 'nulo' quedaba
+    // visible con n:3, revelando ambos valores por resta. Con la regla extendida
+    // (descomposición única con k>=1, ver `aplicarSupresionComplementaria`), 'nulo'
+    // (la única celda visible positiva) también se suprime; el total permanece
+    // visible porque ahora hay 3 celdas suprimidas y la resta solo revelaría su suma.
+    // (Expectativa actualizada conscientemente por esta tarea: antes 'nulo' quedaba
+    // visible con n:3, porcentaje:60.)
     expect(informe.resultados.global.celdas.nulo).toEqual({
-      n: 3,
-      porcentaje: 60,
-      suprimida: false,
+      n: null,
+      porcentaje: null,
+      suprimida: true,
     });
-    // alto y medio tienen n=1 cada uno: se suprimen (0 < n < 3)
     expect(informe.resultados.global.celdas.alto).toEqual({
       n: null,
       porcentaje: null,
