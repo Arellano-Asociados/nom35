@@ -81,14 +81,16 @@ export interface ManifiestoExpediente {
 
 const BOM = '\uFEFF';
 
-// Caracteres que Excel/Sheets interpreta como inicio de fórmula al abrir un CSV.
-const INICIO_FORMULA = /^[=+\-@]/;
+// Caracteres que Excel/Sheets interpreta como inicio de fórmula al abrir un CSV (conjunto
+// canónico de OWASP para neutralización de CSV injection: =, +, -, @, tab y retorno de carro).
+const INICIO_FORMULA = /^[=+\-@\t\r]/;
 
 /**
  * Escapa un campo CSV: primero neutraliza formula injection (si el valor inicia con
- * =, +, - o @, antepone un apóstrofo — convención estándar de Excel para forzar texto,
- * p. ej. un nombre de empleado capturado como `=HYPERLINK("http://evil","x")` no debe
- * ejecutarse como fórmula al abrir el expediente en Excel), y LUEGO aplica el
+ * =, +, -, @, tab o retorno de carro —conjunto canónico OWASP—, antepone un apóstrofo —
+ * convención estándar de Excel para forzar texto, p. ej. un nombre de empleado capturado
+ * como `=HYPERLINK("http://evil","x")` no debe ejecutarse como fórmula al abrir el
+ * expediente en Excel), y LUEGO aplica el
  * entrecomillado RFC 4180 (comillas dobles alrededor si trae coma, comilla o salto de
  * línea) sobre el resultado ya neutralizado.
  *

@@ -250,6 +250,41 @@ describe('armarExpediente', () => {
     expect(lineas[5]).toBe('María López,Política de Prevención,1.0,2026-02-05T10:00:00.000Z');
   });
 
+  it('neutraliza inyección de fórmulas: campos que inician con tab (\\t) o retorno de carro (\\r) también llevan apóstrofo antepuesto', async () => {
+    const entrada = entradaCompleta({
+      acusesPolitica: [
+        {
+          nombreEmpleado: '\tEmpleado con tab',
+          tituloPolitica: 'Política de Prevención',
+          versionPolitica: '1.0',
+          fechaAcuse: '2026-02-01T10:00:00.000Z',
+        },
+        {
+          nombreEmpleado: '\rEmpleado con cr',
+          tituloPolitica: 'Política de Prevención',
+          versionPolitica: '1.0',
+          fechaAcuse: '2026-02-02T10:00:00.000Z',
+        },
+      ],
+    });
+    const { zip } = await armarExpediente(entrada);
+    const leido = await JSZip.loadAsync(zip);
+    const acuses = await leido.file('acuses-politica.csv')!.async('string');
+    const lineas = acuses.replace(/^\uFEFF/, '').split('\r\n');
+
+    // '\t'-prefijado: sin coma/comilla/CR/LF, solo recibe el apóstrofo de neutralización
+    // (sin entrecomillado RFC 4180).
+    expect(lineas[1]).toBe(
+      "'\tEmpleado con tab,Política de Prevención,1.0,2026-02-01T10:00:00.000Z",
+    );
+    // '\r'-prefijado: recibe AMBOS tratamientos — el apóstrofo de neutralización Y el
+    // entrecomillado RFC 4180 (el \r embebido dispara la regla de comillas de esta
+    // implementación, aunque no traiga coma ni comilla).
+    expect(lineas[2]).toBe(
+      '"\'\rEmpleado con cr",Política de Prevención,1.0,2026-02-02T10:00:00.000Z',
+    );
+  });
+
   it('el manifiesto incluye contexto de empresa/ciclo y fecha de generación', async () => {
     const { manifiesto } = await armarExpediente(entradaCompleta());
     expect(manifiesto.empresa).toBe('Acme, S.A. de "C.V."');
