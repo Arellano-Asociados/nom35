@@ -16,7 +16,13 @@ export interface Distribucion {
   celdas: Record<NivelRiesgo, CeldaAgregado>;
 }
 
-function celda(n: number, total: number): CeldaAgregado {
+/**
+ * Celda de un agregado: suprime (n: null) cuando 0 < n < 3 (anti-reidentificación);
+ * n = 0 se conserva (no reidentifica). Exportada para que otros módulos de armado
+ * de vistas agregadas (p. ej. el informe 7.9) reutilicen el mismo criterio de
+ * supresión en vez de reimplementarlo.
+ */
+export function celda(n: number, total: number): CeldaAgregado {
   if (n > 0 && n < 3) {
     return { n: null, porcentaje: null, suprimida: true };
   }
