@@ -42,15 +42,20 @@ const DATOS_DE_EJEMPLO: DatosInforme79 = {
     },
     categorias: new Map([
       [
+        // total suprimido (regla inviolable 3, ampliada M6/tarea 2): las dos únicas celdas
+        // con datos (n=1 cada una) están suprimidas por la regla base y no queda ninguna
+        // celda visible positiva con la que aplicar la supresión complementaria de celda
+        // — se oculta el TOTAL del grupo entero (ver aplicarSupresionComplementaria en
+        // lib/agregados.ts). Cubre el branch del PDF que antes ningún fixture ejercitaba.
         'Carga de trabajo',
         {
-          total: 5,
-          totalSuprimido: false,
+          total: null,
+          totalSuprimido: true,
           celdas: {
-            nulo: { n: 3, porcentaje: 60, suprimida: false },
-            bajo: { n: 0, porcentaje: 0, suprimida: false },
-            medio: { n: null, porcentaje: null, suprimida: true },
-            alto: { n: null, porcentaje: null, suprimida: true },
+            nulo: { n: null, porcentaje: null, suprimida: true },
+            bajo: { n: null, porcentaje: null, suprimida: true },
+            medio: { n: 0, porcentaje: 0, suprimida: false },
+            alto: { n: 0, porcentaje: 0, suprimida: false },
             muy_alto: { n: 0, porcentaje: 0, suprimida: false },
           },
         },
