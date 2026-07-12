@@ -2,7 +2,10 @@
 // Funciones puras, sin I/O. Los valores normativos (matrices, grupos, rangos) llegan como
 // datos (src/datos/ = contenido seed de scoring_rules / item_structure / risk_level_ranges).
 
-export const MOTOR_NOM035_VERSION = '0.1.0';
+// 0.2.0: corrección normativa GR-II — los ítems 18 y 19 puntúan en la categoría
+// "Factores propios de la actividad" (Tabla 3 del DOF 23-oct-2018). Los risk_results
+// calculados con engine_version 0.1.0 en centros GR-II subcalifican esa categoría.
+export const MOTOR_NOM035_VERSION = '0.2.0';
 
 export type {
   CategoriaDef,

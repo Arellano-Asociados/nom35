@@ -11,7 +11,7 @@ import {
 
 describe('API pública del motor', () => {
   it('exporta las funciones y datos normativos', () => {
-    expect(MOTOR_NOM035_VERSION).toBe('0.1.0');
+    expect(MOTOR_NOM035_VERSION).toBe('0.2.0');
     expect(typeof calificarCuestionario).toBe('function');
     expect(typeof evaluarGR1).toBe('function');
     expect(typeof nivelDeRiesgo).toBe('function');

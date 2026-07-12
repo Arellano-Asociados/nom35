@@ -83,14 +83,19 @@ Resultado del motor: **Cfinal = 144 → MUY ALTO**
 
 Atiende clientes: Sí · Supervisa personal: No (ítems 44–46 no aplican) · 43 ítems respondidos.
 
-Resultado del motor: **Cfinal = 87 → ALTO**
+Resultado del motor (v0.2.0): **Cfinal = 87 → ALTO**
 
-| Categoría                            | Puntaje | Nivel |
-| ------------------------------------ | ------- | ----- |
-| Ambiente de trabajo                  | 7       | Alto  |
-| Factores propios de la actividad     | 34      | Alto  |
-| Organización del tiempo de trabajo   | 8       | Medio |
-| Liderazgo y relaciones en el trabajo | 32      | Alto  |
+| Categoría                            | Puntaje | Nivel    |
+| ------------------------------------ | ------- | -------- |
+| Ambiente de trabajo                  | 7       | Alto     |
+| Factores propios de la actividad     | 40      | Muy alto |
+| Organización del tiempo de trabajo   | 8       | Medio    |
+| Liderazgo y relaciones en el trabajo | 32      | Alto     |
+
+> Nota (motor 0.2.0): corrección normativa GR-II — los ítems 18 y 19 SÍ puntúan en
+> "Factores propios de la actividad" (Tabla 3 del DOF). El resultado anterior del motor
+> 0.1.0 para esta categoría era 34 → Alto (subcalificado). Al capturar en Evalúa035,
+> comparar contra los valores de ESTA tabla.
 
 | Dominio                                      | Puntaje | Nivel    |
 | -------------------------------------------- | ------- | -------- |

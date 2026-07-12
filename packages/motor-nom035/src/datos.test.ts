@@ -185,15 +185,25 @@ describe('GR-II (46 ítems, centros de trabajo de 16 a 50 trabajadores)', () => 
     expect(todos).toEqual(serie(1, 46));
   });
 
-  it('las 4 categorías tienen los ítems y rangos del DOF (18 y 19 NO puntúan en Factores propios)', () => {
+  it('las 4 categorías particionan los ítems 1–46 con los rangos de la Tabla 3 del DOF', () => {
+    // Transcripción independiente de la Tabla 3 del DOF 23-oct-2018 (numeral II.3 b) 2):
+    // la calificación de cada categoría es la SUMA de todos los ítems que la integran, sin
+    // exclusiones. Los ítems 18 y 19 (dimensión "Limitada o nula posibilidad de desarrollo",
+    // dominio "Falta de control sobre el trabajo") SÍ integran "Factores propios de la actividad".
     const esperado: Record<string, { items: number[]; rango: number[] }> = {
       'Ambiente de trabajo': { items: serie(1, 3), rango: [3, 5, 7, 9] },
       'Factores propios de la actividad': {
-        items: [...serie(4, 13), ...serie(20, 22), 26, 27, ...serie(41, 43)],
+        // Carga de trabajo (4–13, 41–43) + Falta de control sobre el trabajo (18–22, 26, 27)
+        items: [...serie(4, 13), ...serie(18, 22), 26, 27, ...serie(41, 43)],
         rango: [10, 20, 30, 40],
       },
-      'Organización del tiempo de trabajo': { items: serie(14, 17), rango: [4, 6, 9, 12] },
+      'Organización del tiempo de trabajo': {
+        // Jornada de trabajo (14, 15) + Interferencia en la relación trabajo-familia (16, 17)
+        items: serie(14, 17),
+        rango: [4, 6, 9, 12],
+      },
       'Liderazgo y relaciones en el trabajo': {
+        // Liderazgo (23–25, 28, 29) + Relaciones en el trabajo (30–32, 44–46) + Violencia (33–40)
         items: [...serie(23, 25), ...serie(28, 40), ...serie(44, 46)],
         rango: [10, 18, 28, 38],
       },
@@ -204,6 +214,16 @@ describe('GR-II (46 ítems, centros de trabajo de 16 a 50 trabajadores)', () => 
       const categoria = GR2.categorias.find((c) => c.nombre === nombre);
       const [nuloMax, bajoMax, medioMax, altoMax] = def.rango;
       expect(categoria?.rango, nombre).toEqual({ nuloMax, bajoMax, medioMax, altoMax });
+    }
+    // Partición exacta: cada ítem 1–46 puntúa en exactamente una categoría
+    const todos = GR2.categorias.flatMap((c) => [...c.items]).sort((a, b) => a - b);
+    expect(todos).toEqual(serie(1, 46));
+    // Los ítems de cada categoría son la unión de los de sus dominios
+    for (const categoria of GR2.categorias) {
+      const deSusDominios = categoria.dominios
+        .flatMap((nombre) => itemsDeDominio(GR2, nombre))
+        .sort((a, b) => a - b);
+      expect(itemsDeCategoria(GR2, categoria.nombre), categoria.nombre).toEqual(deSusDominios);
     }
   });
 

@@ -33,8 +33,8 @@ export interface CategoriaDef {
   /** Dominios que pertenecen a la categoría (por nombre). */
   dominios: readonly string[];
   /**
-   * Ítems que puntúan para la categoría. Se listan explícitos porque en la GR-II la categoría
-   * "Factores propios de la actividad" NO incluye los ítems 18 y 19 de su dominio Falta de control.
+   * Ítems que puntúan para la categoría: la unión de los ítems de sus dominios
+   * (Tabla 3 del DOF; la calificación de la categoría es la suma de los ítems que la integran).
    */
   items: readonly number[];
   rango: RangoNiveles;
