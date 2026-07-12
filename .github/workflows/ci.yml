@@ -93,3 +93,11 @@ jobs:
 
       - name: E2E (Playwright)
         run: pnpm --filter @nom35/web test:e2e
+
+      - name: Subir evidencia de fallos E2E
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-resultados
+          path: apps/web/test-results/
+          retention-days: 7
