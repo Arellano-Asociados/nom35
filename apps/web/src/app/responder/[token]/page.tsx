@@ -3,8 +3,10 @@ import {
   obtenerContexto,
   obtenerEstructura,
   obtenerPreguntas,
+  politicaPendienteDe,
   respuestasVigentes,
 } from '@/lib/flujo';
+import { PoliticaPendiente } from '@/components/responder/politica';
 import { Consentimiento } from '@/components/responder/consentimiento';
 import { Cuestionario, type SeccionUI } from '@/components/responder/cuestionario';
 import { Filtros } from '@/components/responder/filtros';
@@ -44,6 +46,7 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
   }
 
   if (ctx.completado) {
+    const politica = await politicaPendienteDe(ctx);
     return (
       <div className="flex flex-col gap-4">
         <div
@@ -53,6 +56,15 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
           Tu cuestionario fue enviado. Gracias por tu participación. Puedes volver a esta página con
           tu mismo enlace para consultar tu resultado.
         </div>
+        {politica && (
+          <PoliticaPendiente
+            token={token}
+            policyId={politica.id}
+            titulo={politica.titulo}
+            version={politica.version}
+            url={politica.url}
+          />
+        )}
         <Resultado asignacionId={ctx.asignacionId} guia={ctx.guia} />
       </div>
     );

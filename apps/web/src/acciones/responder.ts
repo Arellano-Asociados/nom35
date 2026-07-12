@@ -128,3 +128,29 @@ export async function accionEnviarCuestionario(token: string): Promise<Resultado
   if (resultado.error) return { ok: false, error: resultado.error };
   return { ok: true };
 }
+
+/** Acuse de recibo de la política de prevención por el empleado (evidencia de difusión). */
+export async function accionAcusarPolitica(
+  token: string,
+  policyId: string,
+): Promise<ResultadoAccion> {
+  const ctx = await obtenerContexto(token);
+  if (!ctx) return { ok: false, error: 'Enlace inválido' };
+  if (!ctx.consentido) return { ok: false, error: 'Falta el consentimiento' };
+
+  const supabase = clienteAdmin();
+  const { data: politica } = await supabase
+    .from('policies')
+    .select('id')
+    .eq('company_id', ctx.companyId)
+    .eq('id', policyId)
+    .maybeSingle();
+  if (!politica) return { ok: false, error: 'Política no encontrada' };
+
+  await supabase.from('policy_acknowledgments').insert({
+    company_id: ctx.companyId,
+    policy_id: policyId,
+    employee_id: ctx.employeeId,
+  });
+  return { ok: true };
+}

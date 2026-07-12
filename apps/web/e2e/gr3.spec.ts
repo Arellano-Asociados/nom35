@@ -21,9 +21,11 @@ test('flujo completo GR-III con condicionales y guardado incremental', async ({ 
   await expect(page.getByText('Cuestionario GR-III')).toBeVisible();
   await expect(page.getByTestId('progreso')).toHaveText('0 / 68 respondidas');
 
-  // Guardado incremental: responde la primera sección, recarga y nada se pierde
+  // Guardado incremental: responde la primera sección, espera a que no queden guardados
+  // en vuelo, recarga y nada se pierde
   await responderSeccionActual(page, 'Algunas veces');
   await expect(page.getByTestId('progreso')).toHaveText('5 / 68 respondidas');
+  await expect(page.getByTestId('progreso')).toHaveAttribute('data-guardando', '0');
   await page.reload();
   await expect(page.getByTestId('progreso')).toHaveText('5 / 68 respondidas');
 
