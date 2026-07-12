@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { registrarAuditoriaEstricta } from '@/lib/auditoria';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
@@ -103,15 +104,27 @@ export default async function PaginaResultadoIndividual({
     );
   }
 
-  // Evento de auditoría OBLIGATORIO en cada consulta (regla inviolable 5)
-  await supabase.from('audit_log').insert({
-    company_id: empresa,
-    actor_user_id: acceso.userId,
-    event_type: 'individual_result_access',
-    entity: 'risk_results',
-    entity_id: resultado.id,
-    details: { employee_id: empleado, cycle_id: ciclo },
-  });
+  // Evento de auditoría OBLIGATORIO en cada consulta (regla inviolable 5): variante estricta,
+  // si el INSERT falla NO se muestra el resultado ("sin evento no hay consulta").
+  const auditoriaRegistrada = await registrarAuditoriaEstricta(
+    empresa,
+    acceso.userId,
+    'individual_result_access',
+    'risk_results',
+    resultado.id,
+    { employee_id: empleado, cycle_id: ciclo },
+  );
+
+  if (!auditoriaRegistrada) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-sm text-slate-700" data-testid="error-auditoria">
+          No fue posible registrar la consulta en la bitácora de auditoría; por protección de los
+          datos, el resultado no puede mostrarse. Intenta de nuevo.
+        </CardContent>
+      </Card>
+    );
+  }
 
   const categorias = resultado.categorias as PuntuadoJson[];
   const dominios = resultado.dominios as PuntuadoJson[];
