@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@nom35/motor-nom035": "workspace:*",
+    "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.50.0",
     "class-variance-authority": "^0.7.1",
