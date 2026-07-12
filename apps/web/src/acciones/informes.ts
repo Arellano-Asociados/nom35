@@ -3,6 +3,7 @@
 import { createHash } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
+import { registrarAuditoria } from '@/lib/auditoria';
 import {
   armarDatosInforme79,
   type EntradaAccion,
@@ -26,26 +27,6 @@ import { generarPdfInforme79 } from '@/informes/generar-pdf';
 export type ResultadoGenerarInforme =
   { ok: true; reporteId: string } | { ok: false; error: string };
 export type ResultadoUrlDescarga = { ok: true; url: string } | { ok: false; error: string };
-
-async function registrarAuditoria(
-  companyId: string,
-  actorUserId: string,
-  eventType: string,
-  entity?: string,
-  entityId?: string,
-  details?: Record<string, unknown>,
-): Promise<void> {
-  await clienteAdmin()
-    .from('audit_log')
-    .insert({
-      company_id: companyId,
-      actor_user_id: actorUserId,
-      event_type: eventType,
-      entity: entity ?? null,
-      entity_id: entityId ?? null,
-      details: details ?? {},
-    });
-}
 
 export async function accionGenerarInforme79(
   companyId: string,

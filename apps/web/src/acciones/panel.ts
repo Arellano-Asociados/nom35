@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
+import { registrarAuditoria } from '@/lib/auditoria';
 import { proveedorCorreo } from '@/lib/correo';
 import { parsearCsvEmpleados } from '@/lib/csv-empleados';
 import { clienteAdmin } from '@/lib/supabase-admin';
@@ -17,26 +18,6 @@ export interface ResultadoPanel {
   ok: boolean;
   error?: string;
   detalle?: string[];
-}
-
-async function registrarAuditoria(
-  companyId: string,
-  actorUserId: string,
-  eventType: string,
-  entity?: string,
-  entityId?: string,
-  details?: Record<string, unknown>,
-): Promise<void> {
-  await clienteAdmin()
-    .from('audit_log')
-    .insert({
-      company_id: companyId,
-      actor_user_id: actorUserId,
-      event_type: eventType,
-      entity: entity ?? null,
-      entity_id: entityId ?? null,
-      details: details ?? {},
-    });
 }
 
 // ─── Empresas ────────────────────────────────────────────────────────────────
