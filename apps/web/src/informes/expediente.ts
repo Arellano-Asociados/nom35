@@ -77,12 +77,29 @@ export interface ManifiestoExpediente {
 
 const BOM = '\uFEFF';
 
-/** Escapa un campo CSV: comillas dobles alrededor si trae coma, comilla o salto de línea. */
+// Caracteres que Excel/Sheets interpreta como inicio de fórmula al abrir un CSV.
+const INICIO_FORMULA = /^[=+\-@]/;
+
+/**
+ * Escapa un campo CSV: primero neutraliza formula injection (si el valor inicia con
+ * =, +, - o @, antepone un apóstrofo — convención estándar de Excel para forzar texto,
+ * p. ej. un nombre de empleado capturado como `=HYPERLINK("http://evil","x")` no debe
+ * ejecutarse como fórmula al abrir el expediente en Excel), y LUEGO aplica el
+ * entrecomillado RFC 4180 (comillas dobles alrededor si trae coma, comilla o salto de
+ * línea) sobre el resultado ya neutralizado.
+ *
+ * Tradeoff aceptado: un valor numérico legítimamente negativo recibiría un apóstrofo
+ * espurio (dejaría de leerse como número en Excel, pero el valor se sigue mostrando
+ * correctamente como texto). Ninguna columna de este módulo produce hoy valores
+ * negativos (conteos y asignaciones son siempre >= 0; fechas son ISO y empiezan con
+ * dígito), así que el costo es hipotético, no actual.
+ */
 function escaparCampoCsv(valor: string): string {
-  if (/[",\r\n]/.test(valor)) {
-    return `"${valor.replace(/"/g, '""')}"`;
+  const neutralizado = INICIO_FORMULA.test(valor) ? `'${valor}` : valor;
+  if (/[",\r\n]/.test(neutralizado)) {
+    return `"${neutralizado.replace(/"/g, '""')}"`;
   }
-  return valor;
+  return neutralizado;
 }
 
 function filaCsv(campos: readonly string[]): string {

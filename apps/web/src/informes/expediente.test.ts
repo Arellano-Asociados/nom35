@@ -178,6 +178,40 @@ describe('armarExpediente', () => {
     expect(lineas[1]).toBe('"José Pérez, ""El Jefe""",2026-02-01T10:00:00.000Z');
   });
 
+  it('neutraliza inyección de fórmulas: campos que inician con =, +, -, @ llevan apóstrofo antepuesto', async () => {
+    const entrada = entradaCompleta({
+      acusesPolitica: [
+        {
+          nombreEmpleado: '=HYPERLINK("http://evil.com","x")',
+          fechaAcuse: '2026-02-01T10:00:00.000Z',
+        },
+        { nombreEmpleado: '+1234', fechaAcuse: '2026-02-02T10:00:00.000Z' },
+        { nombreEmpleado: '-5', fechaAcuse: '2026-02-03T10:00:00.000Z' },
+        { nombreEmpleado: '@SUM(A1)', fechaAcuse: '2026-02-04T10:00:00.000Z' },
+        { nombreEmpleado: 'María López', fechaAcuse: '2026-02-05T10:00:00.000Z' },
+      ],
+    });
+    const { zip } = await armarExpediente(entrada);
+    const leido = await JSZip.loadAsync(zip);
+    const acuses = await leido.file('acuses-politica.csv')!.async('string');
+    const lineas = acuses
+      .replace(/^\uFEFF/, '')
+      .split('\r\n')
+      .filter(Boolean);
+
+    // Cabecera intacta: ninguna columna inicia con =, +, -, @.
+    expect(lineas[0]).toBe('empleado,fecha_acuse');
+    // '=HYPERLINK(...)' trae coma y comillas dobles: recibe AMBOS tratamientos, el
+    // apóstrofo de neutralización Y el entrecomillado RFC 4180 (con "" internas).
+    expect(lineas[1]).toBe('"\'=HYPERLINK(""http://evil.com"",""x"")",2026-02-01T10:00:00.000Z');
+    // '+', '-', '@' sin coma/comillas: solo el apóstrofo, sin entrecomillado.
+    expect(lineas[2]).toBe("'+1234,2026-02-02T10:00:00.000Z");
+    expect(lineas[3]).toBe("'-5,2026-02-03T10:00:00.000Z");
+    expect(lineas[4]).toBe("'@SUM(A1),2026-02-04T10:00:00.000Z");
+    // Campo normal y fecha ISO (inicia con dígito): sin cambios.
+    expect(lineas[5]).toBe('María López,2026-02-05T10:00:00.000Z');
+  });
+
   it('el manifiesto incluye contexto de empresa/ciclo y fecha de generación', async () => {
     const { manifiesto } = await armarExpediente(entradaCompleta());
     expect(manifiesto.empresa).toBe('Acme, S.A. de "C.V."');
