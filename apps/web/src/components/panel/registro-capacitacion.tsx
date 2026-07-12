@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
 import type { ResultadoPanel } from '@/acciones/panel';
 import { Button } from '@/components/ui/button';
 
@@ -52,8 +53,11 @@ export function RegistroCapacitacion({
           startTransition(async () => {
             const r = await registrar(trainingId, [...seleccion]);
             if (r.ok) {
+              toast.success(r.detalle?.[0] ?? 'Capacitación registrada');
               setSeleccion(new Set());
               router.refresh();
+            } else {
+              toast.error(r.error ?? 'No se pudo registrar la capacitación');
             }
           })
         }

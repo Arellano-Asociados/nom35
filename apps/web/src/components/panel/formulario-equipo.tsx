@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
 import type { ResultadoPanel } from '@/acciones/panel';
 import { Button } from '@/components/ui/button';
 
@@ -32,7 +33,12 @@ export function DesignarmeRD({
           startTransition(async () => {
             const r = await designar(cedula.trim());
             setResultado(r);
-            if (r.ok) router.refresh();
+            if (r.ok) {
+              toast.success('Designación registrada como Responsable Designado');
+              router.refresh();
+            } else {
+              toast.error(r.error ?? 'No se pudo completar la designación');
+            }
           })
         }
       >
@@ -78,8 +84,11 @@ export function AgregarConsultor({
             const r = await agregar(email.trim());
             setResultado(r);
             if (r.ok) {
+              toast.success('Consultor asignado');
               setEmail('');
               router.refresh();
+            } else {
+              toast.error(r.error ?? 'No se pudo asignar al consultor');
             }
           })
         }

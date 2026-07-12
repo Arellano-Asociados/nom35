@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
 import type { ResultadoPanel } from '@/acciones/panel';
 import { Button } from '@/components/ui/button';
 
@@ -31,7 +32,12 @@ export function BotonAccion({
           startTransition(async () => {
             const r = await accion();
             setResultado(r);
-            if (r.ok) router.refresh();
+            if (r.ok) {
+              toast.success(r.detalle?.[0] ?? `Listo: ${etiqueta}`);
+              router.refresh();
+            } else {
+              toast.error(r.error ?? `No se pudo completar: ${etiqueta}`);
+            }
           })
         }
       >

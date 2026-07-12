@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
 import type { ResultadoPanel } from '@/acciones/panel';
 
 type Estatus = 'pendiente' | 'canalizado' | 'atendido';
@@ -30,8 +31,13 @@ export function SelectorCanalizacion({
             const estatus = e.target.value as Estatus;
             const fecha = estatus === 'pendiente' ? null : new Date().toISOString().slice(0, 10);
             const r = await actualizar(gr1Id, estatus, fecha);
-            if (!r.ok) setError(r.error ?? 'Error');
-            else router.refresh();
+            if (!r.ok) {
+              setError(r.error ?? 'Error');
+              toast.error(r.error ?? 'No se pudo actualizar la canalización');
+            } else {
+              toast.success('Canalización actualizada');
+              router.refresh();
+            }
           })
         }
         className="rounded-md border border-slate-300 px-2 py-1 text-sm"

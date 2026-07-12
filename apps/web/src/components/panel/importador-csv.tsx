@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
 import type { ResultadoPanel } from '@/acciones/panel';
 import { Button } from '@/components/ui/button';
 
@@ -51,7 +52,12 @@ export function ImportadorCsv({
           startTransition(async () => {
             const r = await importar(centro, contenido);
             setResultado(r);
-            if (r.ok) router.refresh();
+            if (r.ok) {
+              toast.success(r.detalle?.[0] ?? 'Empleados importados');
+              router.refresh();
+            } else {
+              toast.error(r.error ?? 'No se pudo importar el CSV');
+            }
           })
         }
       >

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
 import type { ResultadoGenerarInforme, ResultadoUrlDescarga } from '@/acciones/informes';
 import { Button } from '@/components/ui/button';
 
@@ -57,14 +58,17 @@ export function GenerarInforme({
     accion: () => Promise<ResultadoGenerarInforme>,
     iniciar: typeof iniciar79,
     setError: typeof setError79,
+    mensajeExito: string,
   ) {
     iniciar(async () => {
       setError(null);
       const r = await accion();
       if (r.ok) {
+        toast.success(mensajeExito);
         router.refresh();
       } else {
         setError(r.error);
+        toast.error(r.error);
       }
     });
   }
@@ -98,9 +102,13 @@ export function GenerarInforme({
             ),
           );
           setUrlsRespaldo((prev) => new Map(prev).set(reporteId, r.url));
+          toast.error('El navegador bloqueó la ventana emergente de descarga.', {
+            description: 'Habilita las ventanas emergentes o usa el enlace de respaldo.',
+          });
         }
       } else {
         setErroresDescarga((prev) => new Map(prev).set(reporteId, r.error));
+        toast.error(r.error);
       }
     } finally {
       setDescargando((prev) => {
@@ -119,7 +127,7 @@ export function GenerarInforme({
             disabled={pendiente79}
             aria-busy={pendiente79}
             data-testid="generar-informe-79"
-            onClick={() => generar(generarInforme79, iniciar79, setError79)}
+            onClick={() => generar(generarInforme79, iniciar79, setError79, 'Informe 7.9 generado')}
           >
             {pendiente79 ? 'Generando…' : 'Generar informe 7.9'}
           </Button>
@@ -136,7 +144,14 @@ export function GenerarInforme({
             disabled={pendienteExpediente}
             aria-busy={pendienteExpediente}
             data-testid="generar-expediente"
-            onClick={() => generar(generarExpediente, iniciarExpediente, setErrorExpediente)}
+            onClick={() =>
+              generar(
+                generarExpediente,
+                iniciarExpediente,
+                setErrorExpediente,
+                'Expediente de inspección generado',
+              )
+            }
           >
             {pendienteExpediente ? 'Generando…' : 'Generar expediente de inspección'}
           </Button>
