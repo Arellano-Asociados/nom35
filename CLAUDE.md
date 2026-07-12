@@ -131,6 +131,9 @@ pnpm --filter @nom35/pruebas-rls test:rls # Suite de aislamiento (requiere BD lo
 pnpm demo:seed   # Siembra datos de demo (Supabase local arriba; guion en docs/demo.md)
 ```
 
+Manual de uso completo (guías de Administrador y de empleado, diagramas, tabla de permisos
+por rol, FAQ): `docs/manual.md`.
+
 ### Convenciones de base de datos
 
 - No hay default privileges: **toda tabla nueva necesita GRANT explícito** por rol
