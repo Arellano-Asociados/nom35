@@ -45,6 +45,11 @@ export default async function PaginaIndividual({
         <p className="text-sm text-slate-600">
           Cada consulta de un resultado individual queda registrada en la bitácora de auditoría.
         </p>
+        {empleados.size === 0 && (
+          <p className="rounded-md border border-dashed border-slate-300 bg-slate-50/60 px-4 py-8 text-center text-sm text-slate-500">
+            Aún no hay resultados individuales en este ciclo.
+          </p>
+        )}
         <ul className="flex flex-col gap-2" data-testid="lista-individual">
           {[...empleados.entries()].map(([id, e]) => (
             <li key={id}>

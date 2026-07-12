@@ -1,4 +1,6 @@
 import { accionCrearAccion } from '@/acciones/panel';
+import { BadgeNivel } from '@/components/panel/badges';
+import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { distribucionPorNombre } from '@/lib/agregados';
@@ -79,15 +81,20 @@ export default async function PaginaAcciones({
           </CardHeader>
           <CardContent>
             {(acciones ?? []).length === 0 ? (
-              <p className="text-sm text-slate-600">Aún no hay acciones registradas.</p>
+              <p className={claseEstadoVacio}>
+                Aún no hay acciones registradas. Registra la primera con el formulario.
+              </p>
             ) : (
               <ul className="flex flex-col gap-2 text-sm" data-testid="lista-acciones">
                 {(acciones ?? []).map((a) => (
                   <li key={a.id} className="rounded-md border border-slate-200 px-4 py-3">
                     <p className="font-medium text-slate-900">{a.description}</p>
-                    <p className="text-slate-600">
-                      Nivel de origen: {a.origin_level} · Responsable: {a.responsible} ·{' '}
-                      {a.due_date ?? 'sin fecha'} · {a.status}
+                    <p className="mt-1 flex flex-wrap items-center gap-2 text-slate-600">
+                      <span>Nivel de origen:</span>
+                      <BadgeNivel nivel={a.origin_level} />
+                      <span>· Responsable: {a.responsible} ·</span>
+                      <span>{a.due_date ?? 'sin fecha'}</span>
+                      <span>· {a.status}</span>
                     </p>
                   </li>
                 ))}
@@ -102,7 +109,7 @@ export default async function PaginaAcciones({
           </CardHeader>
           <CardContent>
             {categoriasEnRiesgo.length === 0 ? (
-              <p className="text-sm text-slate-600">
+              <p className={claseEstadoVacio}>
                 No hay categorías con nivel medio o superior en este ciclo.
               </p>
             ) : (
@@ -131,20 +138,11 @@ export default async function PaginaAcciones({
           <form action={crear} className="flex flex-col gap-3 text-sm">
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Descripción
-              <textarea
-                name="descripcion"
-                required
-                rows={3}
-                className="rounded-md border border-slate-300 px-3 py-2"
-              />
+              <textarea name="descripcion" required rows={3} className={claseCampo} />
             </label>
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Nivel de riesgo de origen
-              <select
-                name="nivel"
-                required
-                className="rounded-md border border-slate-300 px-3 py-2"
-              >
+              <select name="nivel" required className={claseCampo}>
                 <option value="medio">Medio</option>
                 <option value="alto">Alto</option>
                 <option value="muy_alto">Muy alto</option>
@@ -154,19 +152,11 @@ export default async function PaginaAcciones({
             </label>
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Responsable
-              <input
-                name="responsable"
-                required
-                className="rounded-md border border-slate-300 px-3 py-2"
-              />
+              <input name="responsable" required className={claseCampo} />
             </label>
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Fecha compromiso
-              <input
-                name="fecha"
-                type="date"
-                className="rounded-md border border-slate-300 px-3 py-2"
-              />
+              <input name="fecha" type="date" className={claseCampo} />
             </label>
             <Button type="submit">Registrar acción</Button>
           </form>

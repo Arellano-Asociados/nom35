@@ -1,4 +1,5 @@
 import { accionActualizarCanalizacion } from '@/acciones/panel';
+import { claseEstadoVacio } from '@/components/panel/campos';
 import { SelectorCanalizacion } from '@/components/panel/selector-canalizacion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
@@ -44,42 +45,48 @@ export default async function PaginaGR1({
       </CardHeader>
       <CardContent>
         {(canalizaciones ?? []).length === 0 ? (
-          <p className="text-sm text-slate-600">No hay canalizaciones pendientes en este ciclo.</p>
+          <p className={claseEstadoVacio}>No hay canalizaciones pendientes en este ciclo.</p>
         ) : (
-          <table className="w-full text-sm" data-testid="tabla-gr1">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-slate-500">
-                <th className="py-2">Trabajador</th>
-                <th className="py-2">Área</th>
-                <th className="py-2">Fecha de resultado</th>
-                <th className="py-2">Canalización</th>
-                <th className="py-2">Fecha de canalización</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(canalizaciones ?? []).map((c) => {
-                const empleado = c.employees as unknown as {
-                  full_name: string;
-                  area: string | null;
-                };
-                return (
-                  <tr key={c.id} className="border-b border-slate-100">
-                    <td className="py-2 font-medium text-slate-900">{empleado.full_name}</td>
-                    <td className="py-2">{empleado.area ?? 'Sin área'}</td>
-                    <td className="py-2">{String(c.created_at).slice(0, 10)}</td>
-                    <td className="py-2">
-                      <SelectorCanalizacion
-                        gr1Id={c.id}
-                        estatusActual={c.canalizacion_estatus}
-                        actualizar={actualizar}
-                      />
-                    </td>
-                    <td className="py-2">{c.canalizacion_fecha ?? '—'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="tabla-gr1">
+              <thead>
+                <tr className="border-b border-slate-200 text-left text-xs tracking-wide text-slate-500 uppercase">
+                  <th className="py-2 font-medium">Trabajador</th>
+                  <th className="py-2 font-medium">Área</th>
+                  <th className="py-2 font-medium">Fecha de resultado</th>
+                  <th className="py-2 font-medium">Canalización</th>
+                  <th className="py-2 font-medium">Fecha de canalización</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(canalizaciones ?? []).map((c) => {
+                  const empleado = c.employees as unknown as {
+                    full_name: string;
+                    area: string | null;
+                  };
+                  return (
+                    <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="py-2 font-medium text-slate-900">{empleado.full_name}</td>
+                      <td className="py-2 text-slate-700">{empleado.area ?? 'Sin área'}</td>
+                      <td className="py-2 text-slate-700 tabular-nums">
+                        {String(c.created_at).slice(0, 10)}
+                      </td>
+                      <td className="py-2">
+                        <SelectorCanalizacion
+                          gr1Id={c.id}
+                          estatusActual={c.canalizacion_estatus}
+                          actualizar={actualizar}
+                        />
+                      </td>
+                      <td className="py-2 text-slate-700 tabular-nums">
+                        {c.canalizacion_fecha ?? '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </CardContent>
     </Card>
