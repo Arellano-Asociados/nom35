@@ -174,12 +174,26 @@ function nivelPredominante(niveles: readonly NivelRiesgo[]): NivelRiesgo | null 
   return mejor;
 }
 
+/** true si algún nivel (string suelto, ya que categorías/dominios vienen de jsonb) amerita
+ * acciones del Capítulo 8. */
+function ameritaAccionesCapitulo8(nivel: string): boolean {
+  return nivel === 'medio' || nivel === 'alto' || nivel === 'muy_alto';
+}
+
 /**
- * Conclusiones deterministas (numeral 7.9): nivel predominante global; obligación
- * de acciones del Capítulo 8 si hay algún nivel medio/alto/muy alto; recordatorio
+ * Conclusiones deterministas (numeral 7.9): nivel predominante global (la sentencia de
+ * "nivel predominante" es explícitamente sobre el nivel GLOBAL); obligación de acciones
+ * del Capítulo 8 si hay algún nivel medio/alto/muy alto, ya sea a nivel global O en
+ * cualquier categoría/dominio (`nivelesCategoriasDominios`) — un ciclo puede tener
+ * `nivel_final` global bajo en todos los empleados pero un dominio o categoría en
+ * alto/muy alto, y ese caso también obliga acciones del Capítulo 8 (la tabla de acciones
+ * ya las lista por `origin_level`; las conclusiones no deben contradecirla); recordatorio
  * de reevaluación a 2 años (siempre presente).
  */
-function construirConclusiones(niveles: readonly NivelRiesgo[]): string[] {
+function construirConclusiones(
+  niveles: readonly NivelRiesgo[],
+  nivelesCategoriasDominios: readonly string[],
+): string[] {
   const conclusiones: string[] = [];
 
   const predominante = nivelPredominante(niveles);
@@ -189,7 +203,9 @@ function construirConclusiones(niveles: readonly NivelRiesgo[]): string[] {
     );
   }
 
-  const requiereAcciones = niveles.some((n) => n === 'medio' || n === 'alto' || n === 'muy_alto');
+  const requiereAcciones =
+    niveles.some(ameritaAccionesCapitulo8) ||
+    nivelesCategoriasDominios.some(ameritaAccionesCapitulo8);
   if (requiereAcciones) {
     conclusiones.push(
       'Se identificaron niveles de riesgo medio, alto o muy alto: la organización debe ' +
@@ -225,7 +241,17 @@ export function armarDatosInforme79(entrada: EntradaInforme79): DatosInforme79 {
 
   const completados = entrada.asignaciones.filter((a) => a.completada).length;
 
-  const motorVersion = vigentes[0]?.engineVersion ?? MOTOR_NOM035_VERSION;
+  // Determinista: NO tomar la versión de una fila arbitraria (el orden de llegada de la
+  // BD/Map no está garantizado). Si hay vigentes con más de un engine_version (p. ej. tras
+  // una actualización del motor a mitad de ciclo), se listan todas, ordenadas, para que el
+  // informe sea reproducible sin importar el orden de iteración.
+  const versionesMotor = [...new Set(vigentes.map((r) => r.engineVersion))].sort();
+  const motorVersion = versionesMotor.length > 0 ? versionesMotor.join(', ') : MOTOR_NOM035_VERSION;
+
+  const nivelesCategoriasDominios = vigentes.flatMap((r) => [
+    ...r.categorias.map((c) => c.nivel),
+    ...r.dominios.map((d) => d.nivel),
+  ]);
 
   return {
     empresa: {
@@ -247,7 +273,7 @@ export function armarDatosInforme79(entrada: EntradaInforme79): DatosInforme79 {
     },
     resultados: { global, categorias, dominios },
     gr1: { evaluados: evaluadosGr1, requierenValoracion },
-    conclusiones: construirConclusiones(niveles),
+    conclusiones: construirConclusiones(niveles, nivelesCategoriasDominios),
     acciones: entrada.acciones.map((a) => ({ ...a })),
     motorVersion,
     generadoEl: entrada.generadoEl,

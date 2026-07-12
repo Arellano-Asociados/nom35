@@ -1,3 +1,4 @@
+import { MOTOR_NOM035_VERSION } from '@nom35/motor-nom035';
 import { describe, expect, it } from 'vitest';
 import {
   armarDatosInforme79,
@@ -221,6 +222,67 @@ describe('armarDatosInforme79', () => {
     const informe = armarDatosInforme79(entrada);
 
     expect(informe.conclusiones.some((c) => c.includes('Capítulo 8'))).toBe(false);
+  });
+
+  it('incluye la conclusión de Cap. 8 cuando el global es bajo pero una categoría es alto', () => {
+    const resultadosVigentes: EntradaResultado[] = [
+      resultado({
+        id: 'r1',
+        assignmentId: 'asig-0',
+        nivelFinal: 'bajo',
+        categorias: [{ nombre: 'Carga de trabajo', nivel: 'alto' }],
+      }),
+      resultado({ id: 'r2', assignmentId: 'asig-1', nivelFinal: 'bajo' }),
+      resultado({ id: 'r3', assignmentId: 'asig-2', nivelFinal: 'bajo' }),
+    ];
+    const entrada = baseEntrada({ asignaciones: asignaciones(3), resultadosVigentes });
+
+    const informe = armarDatosInforme79(entrada);
+
+    // El nivel predominante sigue siendo sobre el GLOBAL (bajo), pero la obligación del
+    // Capítulo 8 se dispara igual por la categoría en alto (evidencia internamente
+    // consistente con la tabla de acciones, que puede listar orígenes por categoría/dominio).
+    expect(informe.conclusiones.some((c) => c.includes('Bajo'))).toBe(true);
+    expect(informe.conclusiones.some((c) => c.includes('Capítulo 8'))).toBe(true);
+  });
+
+  it('no incluye la conclusión de Cap. 8 cuando global, categorías y dominios son todos bajo', () => {
+    const resultadosVigentes: EntradaResultado[] = [
+      resultado({
+        id: 'r1',
+        assignmentId: 'asig-0',
+        nivelFinal: 'bajo',
+        categorias: [{ nombre: 'Carga de trabajo', nivel: 'bajo' }],
+        dominios: [{ nombre: 'Condiciones del ambiente', nivel: 'bajo' }],
+      }),
+      resultado({ id: 'r2', assignmentId: 'asig-1', nivelFinal: 'bajo' }),
+      resultado({ id: 'r3', assignmentId: 'asig-2', nivelFinal: 'bajo' }),
+    ];
+    const entrada = baseEntrada({ asignaciones: asignaciones(3), resultadosVigentes });
+
+    const informe = armarDatosInforme79(entrada);
+
+    expect(informe.conclusiones.some((c) => c.includes('Capítulo 8'))).toBe(false);
+  });
+
+  it('motorVersion es determinista: versiones únicas de vigentes, ordenadas y unidas', () => {
+    const resultadosVigentes: EntradaResultado[] = [
+      resultado({ id: 'r1', assignmentId: 'asig-0', engineVersion: '0.2.0' }),
+      resultado({ id: 'r2', assignmentId: 'asig-1', engineVersion: '0.1.0' }),
+    ];
+    const entrada = baseEntrada({ asignaciones: asignaciones(2), resultadosVigentes });
+
+    const informe = armarDatosInforme79(entrada);
+
+    expect(informe.motorVersion).toBe('0.1.0, 0.2.0');
+  });
+
+  it('motorVersion cae al fallback del paquete cuando no hay vigentes', () => {
+    const entrada = baseEntrada({ asignaciones: [], resultadosVigentes: [] });
+
+    const informe = armarDatosInforme79(entrada);
+
+    expect(informe.motorVersion).toBe(MOTOR_NOM035_VERSION);
   });
 
   it('(e) deriva las guías de centros a partir de nom_category', () => {
