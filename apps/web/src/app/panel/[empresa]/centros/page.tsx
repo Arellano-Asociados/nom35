@@ -1,4 +1,5 @@
 import { accionCrearCentro } from '@/acciones/panel';
+import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
@@ -32,14 +33,16 @@ export default async function PaginaCentros({ params }: { params: Promise<{ empr
         </CardHeader>
         <CardContent>
           {(centros ?? []).length === 0 ? (
-            <p className="text-sm text-slate-600">Aún no hay centros registrados.</p>
+            <p className={claseEstadoVacio}>
+              Aún no hay centros de trabajo. Crea el primero con el formulario.
+            </p>
           ) : (
             <ul className="flex flex-col gap-2" data-testid="lista-centros">
               {(centros ?? []).map((c) => (
                 <li key={c.id} className="rounded-md border border-slate-200 px-4 py-3 text-sm">
                   <p className="font-medium text-slate-900">{c.name}</p>
                   <p className="text-slate-600">
-                    {c.headcount} trabajadores ·{' '}
+                    <span className="tabular-nums">{c.headcount}</span> trabajadores ·{' '}
                     {ETIQUETA_CATEGORIA[c.nom_category] ?? c.nom_category}
                   </p>
                 </li>
@@ -57,29 +60,19 @@ export default async function PaginaCentros({ params }: { params: Promise<{ empr
           <form action={crear} className="flex flex-col gap-3 text-sm">
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Nombre
-              <input
-                name="nombre"
-                required
-                className="rounded-md border border-slate-300 px-3 py-2"
-              />
+              <input name="nombre" required className={claseCampo} />
             </label>
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Número de trabajadores
-              <input
-                name="headcount"
-                type="number"
-                min={1}
-                required
-                className="rounded-md border border-slate-300 px-3 py-2"
-              />
+              <input name="headcount" type="number" min={1} required className={claseCampo} />
             </label>
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Domicilio
-              <input name="direccion" className="rounded-md border border-slate-300 px-3 py-2" />
+              <input name="direccion" className={claseCampo} />
             </label>
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Actividad principal
-              <input name="actividad" className="rounded-md border border-slate-300 px-3 py-2" />
+              <input name="actividad" className={claseCampo} />
             </label>
             <p className="text-xs text-slate-500">
               La categoría normativa (guías a aplicar) se deriva automáticamente del número de

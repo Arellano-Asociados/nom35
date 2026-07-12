@@ -32,13 +32,14 @@ export function RegistroCapacitacion({
     <div className="flex flex-col gap-2 text-sm">
       <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto">
         {empleados.map((e) => (
-          <li key={e.id}>
+          <li key={e.id} className="rounded px-1 py-0.5 hover:bg-slate-50">
             <label className="flex items-center gap-2 text-slate-800">
               <input
                 type="checkbox"
                 disabled={e.completado}
                 checked={e.completado || seleccion.has(e.id)}
                 onChange={() => alternar(e.id)}
+                className="accent-blue-700"
               />
               {e.nombre}
               {e.completado && <span className="text-xs text-emerald-700">(completada)</span>}

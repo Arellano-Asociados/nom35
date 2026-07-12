@@ -1,8 +1,10 @@
 import { accionSubirPolitica } from '@/acciones/panel';
+import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 import { clienteAdmin } from '@/lib/supabase-admin';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +36,9 @@ export default async function PaginaPolitica({ params }: { params: Promise<{ emp
         </CardHeader>
         <CardContent>
           {(politicas ?? []).length === 0 ? (
-            <p className="text-sm text-slate-600">Aún no se publica una política.</p>
+            <p className={claseEstadoVacio}>
+              Aún no se publica una política. Publica la primera con el formulario.
+            </p>
           ) : (
             <ul className="flex flex-col gap-2 text-sm" data-testid="lista-politicas">
               {(politicas ?? []).map((p) => (
@@ -42,7 +46,7 @@ export default async function PaginaPolitica({ params }: { params: Promise<{ emp
                   <p className="font-medium text-slate-900">
                     {p.title} (versión {p.version})
                   </p>
-                  <p className="text-slate-600">
+                  <p className="text-slate-600 tabular-nums">
                     Acuses:{' '}
                     <span data-testid={`acuses-${p.id}`}>
                       {(p.policy_acknowledgments as unknown as unknown[]).length}
@@ -64,19 +68,11 @@ export default async function PaginaPolitica({ params }: { params: Promise<{ emp
           <form action={subir} className="flex flex-col gap-3 text-sm">
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Título
-              <input
-                name="titulo"
-                required
-                className="rounded-md border border-slate-300 px-3 py-2"
-              />
+              <input name="titulo" required className={claseCampo} />
             </label>
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Versión
-              <input
-                name="version"
-                required
-                className="rounded-md border border-slate-300 px-3 py-2"
-              />
+              <input name="version" required className={claseCampo} />
             </label>
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Archivo (PDF)
@@ -85,7 +81,10 @@ export default async function PaginaPolitica({ params }: { params: Promise<{ emp
                 type="file"
                 accept="application/pdf"
                 required
-                className="rounded-md border border-slate-300 px-3 py-2"
+                className={cn(
+                  claseCampo,
+                  'file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700',
+                )}
               />
             </label>
             <p className="text-xs text-slate-500">

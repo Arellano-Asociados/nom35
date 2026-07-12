@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import type { ResultadoPanel } from '@/acciones/panel';
+import { claseCampo } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 
 export function DesignarmeRD({
@@ -20,11 +21,7 @@ export function DesignarmeRD({
     <div className="flex flex-col gap-2 text-sm">
       <label className="flex flex-col gap-1 font-medium text-slate-800">
         Cédula profesional (evidencia del responsable)
-        <input
-          value={cedula}
-          onChange={(e) => setCedula(e.target.value)}
-          className="rounded-md border border-slate-300 px-3 py-2"
-        />
+        <input value={cedula} onChange={(e) => setCedula(e.target.value)} className={claseCampo} />
       </label>
       <Button
         disabled={pendiente || cedula.trim() === ''}
@@ -72,7 +69,7 @@ export function AgregarConsultor({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           data-testid="email-consultor"
-          className="rounded-md border border-slate-300 px-3 py-2"
+          className={claseCampo}
         />
       </label>
       <Button

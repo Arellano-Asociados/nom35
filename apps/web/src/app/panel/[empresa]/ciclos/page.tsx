@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { accionCrearCiclo } from '@/acciones/panel';
+import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
@@ -47,6 +48,11 @@ export default async function PaginaCiclos({ params }: { params: Promise<{ empre
             <CardTitle>Ciclos de evaluación</CardTitle>
           </CardHeader>
           <CardContent>
+            {(ciclos ?? []).length === 0 && (
+              <p className={claseEstadoVacio}>
+                Aún no hay ciclos de evaluación. Crea el primero con el formulario.
+              </p>
+            )}
             <ul className="flex flex-col gap-2" data-testid="lista-ciclos">
               {(ciclos ?? []).map((c) => (
                 <li key={c.id}>
@@ -74,19 +80,11 @@ export default async function PaginaCiclos({ params }: { params: Promise<{ empre
             <form action={crear} className="flex flex-col gap-3 text-sm">
               <label className="flex flex-col gap-1 font-medium text-slate-800">
                 Nombre del ciclo
-                <input
-                  name="nombre"
-                  required
-                  className="rounded-md border border-slate-300 px-3 py-2"
-                />
+                <input name="nombre" required className={claseCampo} />
               </label>
               <label className="flex flex-col gap-1 font-medium text-slate-800">
                 Centro de trabajo
-                <select
-                  name="centro"
-                  required
-                  className="rounded-md border border-slate-300 px-3 py-2"
-                >
+                <select name="centro" required className={claseCampo}>
                   {(centros ?? []).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -97,37 +95,20 @@ export default async function PaginaCiclos({ params }: { params: Promise<{ empre
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1 font-medium text-slate-800">
                   Fecha de inicio
-                  <input
-                    name="inicio"
-                    type="date"
-                    required
-                    className="rounded-md border border-slate-300 px-3 py-2"
-                  />
+                  <input name="inicio" type="date" required className={claseCampo} />
                 </label>
                 <label className="flex flex-col gap-1 font-medium text-slate-800">
                   Fecha de fin
-                  <input
-                    name="fin"
-                    type="date"
-                    className="rounded-md border border-slate-300 px-3 py-2"
-                  />
+                  <input name="fin" type="date" className={claseCampo} />
                 </label>
               </div>
               <label className="flex flex-col gap-1 font-medium text-slate-800">
                 Nombre del evaluador
-                <input
-                  name="evaluador"
-                  required
-                  className="rounded-md border border-slate-300 px-3 py-2"
-                />
+                <input name="evaluador" required className={claseCampo} />
               </label>
               <label className="flex flex-col gap-1 font-medium text-slate-800">
                 Cédula profesional del evaluador
-                <input
-                  name="cedula"
-                  required
-                  className="rounded-md border border-slate-300 px-3 py-2"
-                />
+                <input name="cedula" required className={claseCampo} />
               </label>
               <p className="text-xs text-slate-500">
                 Las guías a aplicar se seleccionan automáticamente según la categoría normativa del

@@ -29,7 +29,7 @@ export default async function PaginaEquipo({ params }: { params: Promise<{ empre
           <CardTitle>Roles en la empresa</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 text-sm text-slate-700">
-          <p>
+          <p className="tabular-nums">
             Administradores: {(roles ?? []).filter((r) => r.role === 'admin_org').length} ·
             Responsables Designados:{' '}
             <span data-testid="conteo-rd">
