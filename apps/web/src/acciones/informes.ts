@@ -245,16 +245,23 @@ export async function accionUrlDescargaInforme(
   return { ok: true, url: firmado.signedUrl };
 }
 
+type ResultadoPoliticaPublicada =
+  { ok: true; politica: EntradaPoliticaArchivo | null } | { ok: false; error: string };
+
 /**
  * Política de prevención actualmente publicada de la empresa (la más reciente por
- * `published_at`) y sus bytes desde el bucket privado `politicas`. `null` si la empresa
- * aún no ha publicado ninguna (el expediente se genera igual; el manifiesto lo marca
- * "ausente" — no truena, ver `armarExpediente`).
+ * `published_at`) y sus bytes desde el bucket privado `politicas`. `{ ok: true, politica:
+ * null }` si la empresa aún no ha publicado ninguna (el expediente se genera igual; el
+ * manifiesto lo marca "ausente" — no truena, ver `armarExpediente`). Si SÍ existe una
+ * política publicada pero su archivo no se puede descargar del storage, se distingue
+ * ese caso con `{ ok: false }`: el expediente es evidencia ante la STPS y no debe
+ * generarse marcando "ausente" una política que en realidad existe pero no se pudo
+ * recuperar.
  */
 async function politicaPublicadaDesdeBd(
   supabase: SupabaseClient,
   companyId: string,
-): Promise<EntradaPoliticaArchivo | null> {
+): Promise<ResultadoPoliticaPublicada> {
   const { data: politica } = await supabase
     .from('policies')
     .select('storage_path')
@@ -262,15 +269,20 @@ async function politicaPublicadaDesdeBd(
     .order('published_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!politica) return null;
+  if (!politica) return { ok: true, politica: null };
 
   const { data: descarga, error } = await supabase.storage
     .from('politicas')
     .download(politica.storage_path);
-  if (error || !descarga) return null;
+  if (error || !descarga) {
+    return {
+      ok: false,
+      error: 'No se pudo recuperar el archivo de la política de prevención publicada',
+    };
+  }
 
   const bytes = Buffer.from(await descarga.arrayBuffer());
-  return { nombreArchivo: politica.storage_path, bytes };
+  return { ok: true, politica: { nombreArchivo: politica.storage_path, bytes } };
 }
 
 export async function accionGenerarExpediente(
@@ -293,7 +305,9 @@ export async function accionGenerarExpediente(
     return { ok: false, error: 'No se pudo generar el PDF del informe' };
   }
 
-  const politica = await politicaPublicadaDesdeBd(supabase, companyId);
+  const resultadoPolitica = await politicaPublicadaDesdeBd(supabase, companyId);
+  if (!resultadoPolitica.ok) return { ok: false, error: resultadoPolitica.error };
+  const { politica } = resultadoPolitica;
 
   // Evidencia de PROCESO, no de resultado (reglas inviolables 3 y 4): nombre + fecha
   // únicamente, nada de risk_results/gr1_results/responses se toca aquí.
