@@ -145,9 +145,24 @@ pnpm --filter @nom35/pruebas-rls test:rls # Suite de aislamiento (requiere BD lo
 | M1        | Motor de cálculo + suite de validación (antes de cualquier UI)   | 🟡 Cerrado para desarrollo: casos 1–11 verdes, cobertura 100% líneas / 97% ramas. PENDIENTE: captura manual de los 2 casos mixtos en Evalúa035 (tablas listas en `reference-cases/README.md`) y validación de lanzamiento con casos del consultor                                                      |
 | M2        | Base de datos, multi-tenancy y auth (RLS + tests de aislamiento) | ✅ Cerrado: 4 migraciones reproducibles, RLS + grants mínimos en 18 tablas de tenant, triggers de inmutabilidad y nom_category, hook company_id, suite de aislamiento (36 tests) verde como gate de CI. PENDIENTE_CONFIRMAR: conteo de preguntas GR-I por sección (6/2/7/5) al cargar textos oficiales |
 | M3        | Flujo del empleado (primera UI) + captura inmutable              | ✅ Cerrado: enlace tokenizado → consentimiento (versión/timestamp/IP) → filtros → cuestionario por secciones con guardado incremental → cálculo síncrono → resultado propio. E2E Playwright verde en las tres guías (condicionales, reconexión, expiración, notificación RD auditada)                  |
-| M4        | Panel administrativo                                             | ⬜ Pendiente                                                                                                                                                                                                                                                                                           |
+| M4        | Panel administrativo                                             | ✅ Cerrado: auth con contraseña (@supabase/ssr) protegiendo `/panel`; alta de empresa/centros (categoría normativa automática) y empleados (alta individual + importación CSV con reporte de errores); ciclos con selección automática de guías y alerta de reevaluación >24 meses (numeral 7.9); distribución con enlaces tokenizados y recordatorios que rotan el token; dashboard agregado (distribuciones/conteos, jamás promedios, supresión n<3); vista GR-I de canalizaciones y acceso individual exclusivos del Responsable Designado con evento `individual_result_access` auditado en cada consulta; sugerencias de acciones (Tabla 7) para niveles medio+; política de prevención (Storage privado + acuse del empleado) y capacitación. E2E Playwright verdes: ciclo completo del Admin de Organización y aislamiento del Consultor entre empresas. PENDIENTE_CONFIRMAR: ninguno nuevo — ver Notas de cierre abajo por dos bugs de CI corregidos durante el cierre. |
 | M5        | Informe 7.9 y expediente de inspección                           | ⬜ Pendiente                                                                                                                                                                                                                                                                                           |
 | M6        | Endurecimiento y demo                                            | ⬜ Pendiente                                                                                                                                                                                                                                                                                           |
+
+### Notas de cierre de M4 (para no repetir la investigación)
+
+- El hook `app.custom_access_token` corre como `supabase_auth_admin`. El `GRANT EXECUTE`
+  sobre la función (migración de M2) no basta: sin `GRANT USAGE ON SCHEMA app TO
+  supabase_auth_admin` (migración `20260711230000_grant_hook_auth.sql`), GoTrue no puede
+  siquiera resolver la función y **todo** signup/login con contraseña falla con 500. El
+  flujo del empleado no pasa por GoTrue y la suite RLS corre sin servicio de auth, así que
+  nada lo había ejercitado hasta el primer E2E del panel.
+- `locator.count()` de Playwright **no espera** — lee el DOM en el instante exacto en que se
+  llama. Tras un clic que dispara una transición cliente (nueva sección del cuestionario,
+  montaje inicial tras "Comenzar cuestionario"), hay que esperar una señal explícita (texto,
+  testid) de que el nuevo contenido ya montó antes de volver a contar/clicar; si no, se
+  cuenta la sección vieja y se responde de menos, dejando el cuestionario permanentemente
+  incompleto. Ver `apps/web/e2e/utilidades.ts`.
 
 ### Dependencias externas abiertas
 
