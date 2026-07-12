@@ -52,6 +52,7 @@ export default async function PaginaCiclo({
     ['acciones', 'Acciones (Cap. 8)'],
     ['gr1', 'Canalizaciones GR-I'],
     ['individual', 'Resultados individuales'],
+    ['informes', 'Informes y expediente'],
   ] as const;
 
   return (
