@@ -71,7 +71,8 @@ Estas reglas no admiten excepciones, flags de configuración ni "casos especiale
    modificaciones.
 2. **Sin promedios:** los resultados NUNCA se promedian entre empleados. Agregados =
    distribuciones y conteos.
-3. **Anti-reidentificación:** toda vista agregada suprime celdas con **n < 3**.
+3. **Anti-reidentificación:** toda vista agregada suprime celdas con **n < 3**. La
+   supresión incluye complementaria (evita recuperación por resta).
 4. **Respuestas crudas: nadie patronal.** Ningún rol patronal (Admin Org, Consultor,
    Responsable Designado, Admin Plataforma) puede leer respuestas crudas ítem por ítem.
    Sin excepciones, sin flags.

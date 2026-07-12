@@ -30,6 +30,7 @@ const DATOS_DE_EJEMPLO: DatosInforme79 = {
   resultados: {
     global: {
       total: 5,
+      totalSuprimido: false,
       celdas: {
         nulo: { n: 3, porcentaje: 60, suprimida: false },
         bajo: { n: 0, porcentaje: 0, suprimida: false },
@@ -44,6 +45,7 @@ const DATOS_DE_EJEMPLO: DatosInforme79 = {
         'Carga de trabajo',
         {
           total: 5,
+          totalSuprimido: false,
           celdas: {
             nulo: { n: 3, porcentaje: 60, suprimida: false },
             bajo: { n: 0, porcentaje: 0, suprimida: false },
@@ -59,6 +61,7 @@ const DATOS_DE_EJEMPLO: DatosInforme79 = {
         'Ambiente de trabajo',
         {
           total: 5,
+          totalSuprimido: false,
           celdas: {
             nulo: { n: 5, porcentaje: 100, suprimida: false },
             bajo: { n: 0, porcentaje: 0, suprimida: false },

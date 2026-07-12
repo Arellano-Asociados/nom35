@@ -136,6 +136,13 @@ function textoCelda(c: CeldaAgregado): string {
   return `${c.n} (${c.porcentaje}%)`;
 }
 
+// Supresión complementaria (agregados.ts): cuando no hubo celda visible positiva que
+// complementar, se oculta el total del grupo (mismo criterio "— (n<3)" que una celda
+// suprimida, para no confundir "oculto" con "cero").
+function textoTotal(dist: Distribucion): string {
+  return dist.totalSuprimido ? '— (n<3)' : String(dist.total);
+}
+
 function TablaDistribucion({ titulo, dist }: { titulo: string; dist: Distribucion }) {
   const niveles: Array<keyof Distribucion['celdas']> = [
     'nulo',
@@ -155,7 +162,7 @@ function TablaDistribucion({ titulo, dist }: { titulo: string; dist: Distribucio
         ))}
       </View>
       <View style={styles.filaTablaUltima}>
-        <Text style={styles.celdaEtiquetaFila}>Total: {dist.total}</Text>
+        <Text style={styles.celdaEtiquetaFila}>Total: {textoTotal(dist)}</Text>
         {niveles.map((n) => (
           <Text key={n} style={styles.celdaValor}>
             {textoCelda(dist.celdas[n])}
