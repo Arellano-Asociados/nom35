@@ -19,16 +19,20 @@ export default function PaginaIngresar() {
     setCargando(true);
     setError(null);
     const supabase = clienteNavegador();
-    const r =
+    let r =
       modo === 'entrar'
         ? await supabase.auth.signInWithPassword({ email, password })
         : await supabase.auth.signUp({ email, password });
+    // Si el registro no devolvió sesión (p. ej. cuenta ya existente), intenta ingresar
+    if (!r.error && !r.data.session && modo === 'registro') {
+      r = await supabase.auth.signInWithPassword({ email, password });
+    }
     setCargando(false);
-    if (r.error) {
+    if (r.error || !r.data.session) {
       setError(
         modo === 'entrar'
           ? 'Correo o contraseña incorrectos'
-          : `No se pudo crear la cuenta: ${r.error.message}`,
+          : `No se pudo crear la cuenta: ${r.error?.message ?? 'sin sesión'}`,
       );
       return;
     }

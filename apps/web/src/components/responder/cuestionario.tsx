@@ -96,7 +96,7 @@ export function Cuestionario({
         <span>
           Sección {indiceSeguro + 1} de {seccionesVisibles.length}
         </span>
-        <span data-testid="progreso">
+        <span data-testid="progreso" data-guardando={guardando}>
           {contestadas} / {totalPreguntas} respondidas
         </span>
       </div>
