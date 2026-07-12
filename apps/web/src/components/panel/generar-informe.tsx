@@ -41,12 +41,17 @@ export function GenerarInforme({
 
   const [pendiente79, iniciar79] = useTransition();
   const [pendienteExpediente, iniciarExpediente] = useTransition();
-  const [pendienteDescargaId, setPendienteDescargaId] = useState<string | null>(null);
-  const [descargaEnCurso, iniciarDescarga] = useTransition();
 
   const [error79, setError79] = useState<string | null>(null);
   const [errorExpediente, setErrorExpediente] = useState<string | null>(null);
-  const [errorDescarga, setErrorDescarga] = useState<string | null>(null);
+
+  // Estado de descarga POR FILA: cada informe.id se rastrea de forma independiente
+  // (Set para "en curso", Map para el error y para el enlace de respaldo) en lugar de un
+  // único valor compartido, para que la descarga de una fila nunca pise el estado de otra
+  // cuando dos descargas están en vuelo al mismo tiempo.
+  const [descargando, setDescargando] = useState<Set<string>>(new Set());
+  const [erroresDescarga, setErroresDescarga] = useState<Map<string, string>>(new Map());
+  const [urlsRespaldo, setUrlsRespaldo] = useState<Map<string, string>>(new Map());
 
   function generar(
     accion: () => Promise<ResultadoGenerarInforme>,
@@ -64,18 +69,46 @@ export function GenerarInforme({
     });
   }
 
-  function descargar(reporteId: string) {
-    setPendienteDescargaId(reporteId);
-    iniciarDescarga(async () => {
-      setErrorDescarga(null);
+  async function descargar(reporteId: string) {
+    setDescargando((prev) => new Set(prev).add(reporteId));
+    setErroresDescarga((prev) => {
+      const siguiente = new Map(prev);
+      siguiente.delete(reporteId);
+      return siguiente;
+    });
+    setUrlsRespaldo((prev) => {
+      const siguiente = new Map(prev);
+      siguiente.delete(reporteId);
+      return siguiente;
+    });
+
+    try {
       const r = await obtenerUrlDescarga(reporteId);
       if (r.ok) {
-        window.open(r.url, '_blank');
+        // window.open ocurre después de un await (fuera de la pila síncrona del click), así
+        // que algunos navegadores pueden bloquearlo como ventana emergente. Si eso pasa,
+        // window.open devuelve null/undefined en lugar de lanzar: hay que revisarlo o el
+        // usuario se queda sin descarga y sin ningún aviso.
+        const ventana = window.open(r.url, '_blank');
+        if (!ventana) {
+          setErroresDescarga((prev) =>
+            new Map(prev).set(
+              reporteId,
+              'El navegador bloqueó la ventana de descarga. Habilita las ventanas emergentes para este sitio, o usa este enlace:',
+            ),
+          );
+          setUrlsRespaldo((prev) => new Map(prev).set(reporteId, r.url));
+        }
       } else {
-        setErrorDescarga(r.error);
+        setErroresDescarga((prev) => new Map(prev).set(reporteId, r.error));
       }
-      setPendienteDescargaId(null);
-    });
+    } finally {
+      setDescargando((prev) => {
+        const siguiente = new Set(prev);
+        siguiente.delete(reporteId);
+        return siguiente;
+      });
+    }
   }
 
   return (
@@ -115,12 +148,6 @@ export function GenerarInforme({
         </div>
       </div>
 
-      {errorDescarga && (
-        <p role="alert" className="text-sm text-red-700">
-          {errorDescarga}
-        </p>
-      )}
-
       {informes.length === 0 ? (
         <p className="text-sm text-slate-600">Aún no se ha generado ningún informe.</p>
       ) : (
@@ -135,7 +162,10 @@ export function GenerarInforme({
           </thead>
           <tbody>
             {informes.map((informe) => {
-              const descargando = descargaEnCurso && pendienteDescargaId === informe.id;
+              const enCurso = descargando.has(informe.id);
+              const errorFila = erroresDescarga.get(informe.id);
+              const urlRespaldo = urlsRespaldo.get(informe.id);
+              const fechaFormateada = new Date(informe.createdAt).toLocaleString('es-MX');
               return (
                 <tr
                   key={informe.id}
@@ -147,21 +177,39 @@ export function GenerarInforme({
                   <td className="py-2 font-medium text-slate-900">
                     {ETIQUETA_TIPO[informe.reportType]}
                   </td>
-                  <td className="py-2">{new Date(informe.createdAt).toLocaleString('es-MX')}</td>
+                  <td className="py-2">{fechaFormateada}</td>
                   <td className="py-2">
                     <span title={informe.sha256}>{informe.sha256.slice(0, 12)}…</span>
                   </td>
                   <td className="py-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={descargando}
-                      aria-busy={descargando}
-                      data-testid="descargar-informe"
-                      onClick={() => descargar(informe.id)}
-                    >
-                      {descargando ? 'Preparando…' : 'Descargar'}
-                    </Button>
+                    <div className="flex flex-col items-start gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={enCurso}
+                        aria-busy={enCurso}
+                        aria-label={`Descargar ${ETIQUETA_TIPO[informe.reportType]} del ${fechaFormateada}`}
+                        data-testid="descargar-informe"
+                        onClick={() => descargar(informe.id)}
+                      >
+                        {enCurso ? 'Preparando…' : 'Descargar'}
+                      </Button>
+                      {errorFila && (
+                        <p role="alert" className="text-sm text-red-700">
+                          {errorFila}
+                        </p>
+                      )}
+                      {urlRespaldo && (
+                        <a
+                          href={urlRespaldo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-700 underline"
+                        >
+                          Descargar manualmente
+                        </a>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
