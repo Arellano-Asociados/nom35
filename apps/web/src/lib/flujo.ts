@@ -6,7 +6,7 @@ import {
   MOTOR_NOM035_VERSION,
   type DefinicionGuia,
 } from '@nom35/motor-nom035';
-import { registrarAuditoria } from './auditoria';
+import { EVENTOS_AUDITORIA, registrarAuditoria } from './auditoria';
 import { proveedorCorreo } from './correo';
 import {
   construirEntradaGR1,
@@ -292,13 +292,16 @@ async function notificarResponsableDesignado(companyId: string): Promise<void> {
     });
   }
 
-  await supabase.from('audit_log').insert({
-    company_id: companyId,
-    actor_user_id: ACTOR_SISTEMA,
-    event_type: 'gr1_notificacion_dr',
-    entity: 'gr1_results',
-    details: { destinatarios: correos.length },
-  });
+  // Último insert directo a audit_log que quedaba: ahora pasa por el helper compartido,
+  // que revisa el error y usa el catálogo tipado de eventos (pendiente post-M6, cerrado).
+  await registrarAuditoria(
+    companyId,
+    ACTOR_SISTEMA,
+    EVENTOS_AUDITORIA.gr1NotificacionDr,
+    'gr1_results',
+    undefined,
+    { destinatarios: correos.length },
+  );
 }
 
 /**
@@ -313,7 +316,7 @@ export async function registrarConsultaResultadoPropio(ctx: Contexto): Promise<v
   await registrarAuditoria(
     ctx.companyId,
     ACTOR_SISTEMA,
-    'resultado_propio_consultado',
+    EVENTOS_AUDITORIA.resultadoPropioConsultado,
     'questionnaire_assignments',
     ctx.asignacionId,
     { guia: ctx.guia },
