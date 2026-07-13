@@ -45,7 +45,7 @@ export default async function PaginaPanel() {
             ))}
           </ul>
         )}
-        <Link href="/panel/nueva" className="text-sm font-medium text-blue-700 underline">
+        <Link href="/panel/nueva" className="text-sm font-medium text-marca-700 underline">
           Registrar una empresa nueva
         </Link>
       </CardContent>

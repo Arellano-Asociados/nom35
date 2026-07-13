@@ -127,7 +127,7 @@ export default async function PaginaDashboard({
         <span className="text-slate-600">Filtrar por área:</span>
         <Link
           href={`/panel/${empresa}/ciclos/${ciclo}/dashboard`}
-          className={`rounded px-2 py-1 ${!area ? 'bg-blue-100 font-medium text-blue-900' : 'text-blue-700 underline'}`}
+          className={`rounded px-2 py-1 ${!area ? 'bg-marca-100 font-medium text-marca-900' : 'text-marca-700 underline'}`}
         >
           Todas
         </Link>
@@ -135,7 +135,7 @@ export default async function PaginaDashboard({
           <Link
             key={a}
             href={`/panel/${empresa}/ciclos/${ciclo}/dashboard?area=${encodeURIComponent(a)}`}
-            className={`rounded px-2 py-1 ${area === a ? 'bg-blue-100 font-medium text-blue-900' : 'text-blue-700 underline'}`}
+            className={`rounded px-2 py-1 ${area === a ? 'bg-marca-100 font-medium text-marca-900' : 'text-marca-700 underline'}`}
           >
             {a}
           </Link>

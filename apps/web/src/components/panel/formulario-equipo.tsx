@@ -42,7 +42,7 @@ export function DesignarmeRD({
         Designarme Responsable Designado
       </Button>
       {resultado?.error && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="text-peligro">
           {resultado.error}
         </p>
       )}
@@ -93,7 +93,7 @@ export function AgregarConsultor({
         Asignar consultor
       </Button>
       {resultado?.error && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="text-peligro">
           {resultado.error}
         </p>
       )}

@@ -66,7 +66,7 @@ export function ImportadorCsv({
         {pendiente ? 'Importando…' : 'Importar CSV'}
       </Button>
       {resultado?.error && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="text-peligro">
           {resultado.error}
         </p>
       )}

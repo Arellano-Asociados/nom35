@@ -54,8 +54,8 @@ Confianza institucional y seriedad legal, sin competir con el semáforo de la no
 | `marca-200` | `#c3d1ef` | Bordes de énfasis                                       |
 | `marca-300` | `#9db3e3` | Decorativo sobre fondos oscuros                         |
 | `marca-500` | `#4b69c2` | Anillo de foco (≥3:1 sobre blanco, WCAG 2.4.13)         |
-| `marca-600` | `#3550ae` | Hover del botón primario · enlaces (7.3:1 sobre blanco) |
-| `marca-700` | `#2b4193` | **Primario**: botones, isotipo (9.2:1 sobre blanco)     |
+| `marca-600` | `#3550ae` | Bordes de foco de inputs · énfasis (7.3:1 sobre blanco) |
+| `marca-700` | `#2b4193` | **Primario**: botones, enlaces, isotipo (9.2:1)         |
 | `marca-800` | `#253677` | Estados presionados                                     |
 | `marca-900` | `#1f2c5e` | Fondo del panel izquierdo del login                     |
 | `marca-950` | `#141c3f` | Fondo de marca más profundo                             |

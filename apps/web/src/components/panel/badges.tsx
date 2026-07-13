@@ -59,7 +59,7 @@ const ETIQUETA_ESTATUS_CANALIZACION: Record<string, string> = {
 const CLASE_ESTATUS_CANALIZACION: Record<string, string> = {
   pendiente: 'bg-amber-100 text-amber-800 border-amber-200',
   canalizado: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  atendido: 'bg-blue-100 text-blue-800 border-blue-200',
+  atendido: 'bg-marca-100 text-marca-800 border-marca-200',
 };
 
 /** Badge de estatus de canalización GR-I: pendiente=amber, canalizado=emerald, atendido=blue. */

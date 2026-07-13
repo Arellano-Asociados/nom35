@@ -33,7 +33,7 @@ const DERECHOS = [
 ];
 
 const claseCampo =
-  'rounded-md border border-slate-400 bg-white px-3 py-2 text-sm shadow-xs transition-colors hover:border-slate-500 focus-visible:border-blue-600';
+  'rounded-md border border-slate-400 bg-white px-3 py-2 text-sm shadow-xs transition-colors hover:border-slate-500 focus-visible:border-marca-600';
 
 export function FormularioArco() {
   const [enviando, iniciar] = useTransition();
@@ -77,7 +77,7 @@ export function FormularioArco() {
         {DERECHOS.map((d, i) => (
           <label
             key={d.valor}
-            className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-300 bg-white p-3 text-sm transition-colors hover:bg-slate-50 has-checked:border-blue-700 has-checked:bg-blue-50 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-blue-600"
+            className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-300 bg-white p-3 text-sm transition-colors hover:bg-slate-50 has-checked:border-marca-700 has-checked:bg-marca-50 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-marca-500"
           >
             <input
               type="radio"
@@ -122,7 +122,7 @@ export function FormularioArco() {
       </label>
 
       {error && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-peligro">
           {error}
         </p>
       )}

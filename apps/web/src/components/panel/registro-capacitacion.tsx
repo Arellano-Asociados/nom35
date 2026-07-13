@@ -39,7 +39,7 @@ export function RegistroCapacitacion({
                 disabled={e.completado}
                 checked={e.completado || seleccion.has(e.id)}
                 onChange={() => alternar(e.id)}
-                className="accent-blue-700"
+                className="accent-marca-700"
               />
               {e.nombre}
               {e.completado && <span className="text-xs text-emerald-700">(completada)</span>}

@@ -95,16 +95,16 @@ export default async function PaginaEmpleados({
               </label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 text-slate-800">
-                  <input type="checkbox" name="atiende" value="si" className="accent-blue-700" />{' '}
+                  <input type="checkbox" name="atiende" value="si" className="accent-marca-700" />{' '}
                   Atiende clientes
                 </label>
                 <label className="flex items-center gap-2 text-slate-800">
-                  <input type="checkbox" name="supervisa" value="si" className="accent-blue-700" />{' '}
+                  <input type="checkbox" name="supervisa" value="si" className="accent-marca-700" />{' '}
                   Supervisa personal
                 </label>
               </div>
               {error === 'duplicado' && (
-                <p role="alert" className="text-red-700">
+                <p role="alert" className="text-peligro">
                   Ya existe un empleado con ese correo en la empresa.
                 </p>
               )}

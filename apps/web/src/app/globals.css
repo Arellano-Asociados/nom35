@@ -1,14 +1,78 @@
 @import 'tailwindcss';
 
-@theme inline {
+/* ─────────────────────────────────────────────────────────────────────────────
+   Design tokens de Constata (fuente única; intención documentada en docs/BRAND.md).
+   Tailwind v4: cada --color-* genera sus utilidades (bg-marca-700, text-peligro…).
+   Regla de la Fase 2: los componentes consumen ESTOS tokens; el color de marca y los
+   semánticos no se escriben como paleta cruda (blue-700, red-*) en ningún componente.
+   Espaciado, radios y sombras usan las escalas estándar de Tailwind, que son los
+   tokens de dimensión del sistema; aquí solo se definen los que se les añaden.
+   ──────────────────────────────────────────────────────────────────────────── */
+@theme {
+  /* Marca — azul profundo (confianza institucional; no compite con el semáforo) */
+  --color-marca-50: #eef2fb;
+  --color-marca-100: #dfe7f7;
+  --color-marca-200: #c3d1ef;
+  --color-marca-300: #9db3e3;
+  --color-marca-400: #6f8dd3;
+  --color-marca-500: #4b69c2; /* anillo de foco: ≥3:1 sobre blanco */
+  --color-marca-600: #3550ae; /* enlaces y hover primario: 7.3:1 sobre blanco */
+  --color-marca-700: #2b4193; /* primario: 9.2:1 sobre blanco */
+  --color-marca-800: #253677;
+  --color-marca-900: #1f2c5e; /* fondo de marca (login) */
+  --color-marca-950: #141c3f;
+
+  /* Semáforo NOM-035 — un triple fondo/texto/borde por nivel (AA en fondo claro,
+     verificado en auditoría v0 §8) + variante clara para fondos oscuros. El color
+     jamás es la única señal: siempre acompaña a la etiqueta de texto. */
+  --color-nivel-nulo-fondo: var(--color-emerald-100);
+  --color-nivel-nulo-texto: var(--color-emerald-800);
+  --color-nivel-nulo-borde: var(--color-emerald-200);
+  --color-nivel-nulo-oscuro: var(--color-emerald-300);
+  --color-nivel-bajo-fondo: var(--color-lime-100);
+  --color-nivel-bajo-texto: var(--color-lime-800);
+  --color-nivel-bajo-borde: var(--color-lime-200);
+  --color-nivel-bajo-oscuro: var(--color-lime-300);
+  --color-nivel-medio-fondo: var(--color-amber-100);
+  --color-nivel-medio-texto: var(--color-amber-800);
+  --color-nivel-medio-borde: var(--color-amber-200);
+  --color-nivel-medio-oscuro: var(--color-amber-300);
+  --color-nivel-alto-fondo: var(--color-orange-100);
+  --color-nivel-alto-texto: var(--color-orange-800);
+  --color-nivel-alto-borde: var(--color-orange-200);
+  --color-nivel-alto-oscuro: var(--color-orange-300);
+  --color-nivel-muy-alto-fondo: var(--color-red-100);
+  --color-nivel-muy-alto-texto: var(--color-red-800);
+  --color-nivel-muy-alto-borde: var(--color-red-200);
+  --color-nivel-muy-alto-oscuro: var(--color-red-300);
+
+  /* Semánticos de interfaz */
+  --color-superficie: #ffffff;
+  --color-fondo: var(--color-slate-50);
+  --color-borde: var(--color-slate-200); /* decorativo (separadores, cards) */
+  --color-borde-control: var(--color-slate-400); /* inputs y opciones: ≥3:1 */
+  --color-texto: var(--color-slate-900);
+  --color-texto-secundario: var(--color-slate-600); /* 7:1 sobre blanco */
+  --color-texto-terciario: var(--color-slate-500); /* 4.76:1 — solo texto grande/meta */
+  --color-peligro: var(--color-red-700);
+  --color-peligro-fondo: var(--color-red-50);
+  --color-peligro-borde: var(--color-red-200);
+  --color-peligro-texto: var(--color-red-800);
+  --color-exito: var(--color-emerald-700);
+
+  /* Tipografía */
   --font-sans:
     var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Sombra de superficie: cards y popovers del panel (más sutil que shadow-md) */
+  --shadow-superficie: 0 1px 2px 0 rgb(15 23 42 / 0.06), 0 1px 3px 0 rgb(15 23 42 / 0.08);
 }
 
 /* Foco de teclado visible en toda la app (WCAG 2.4.7). Los componentes interactivos
-   no necesitan estilos de foco propios: este anillo azul aplica de forma consistente. */
+   no necesitan estilos de foco propios: este anillo de marca aplica de forma
+   consistente. */
 :focus-visible {
-  outline: 2px solid var(--color-blue-600);
+  outline: 2px solid var(--color-marca-500);
   outline-offset: 2px;
   border-radius: 0.25rem;
 }

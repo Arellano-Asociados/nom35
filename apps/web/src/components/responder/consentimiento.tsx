@@ -49,7 +49,7 @@ export function Consentimiento({
         <p className="text-xs text-slate-600">
           Puedes ejercer tus derechos de acceso, rectificación, cancelación y oposición, o revocar
           tu consentimiento, en{' '}
-          <a href="/privacidad" className="text-blue-700 underline hover:text-blue-800">
+          <a href="/privacidad" className="text-marca-700 underline hover:text-marca-800">
             Tus derechos sobre tus datos
           </a>
           .
@@ -59,7 +59,7 @@ export function Consentimiento({
             type="checkbox"
             checked={aceptado}
             onChange={(e) => setAceptado(e.target.checked)}
-            className="mt-0.5 h-5 w-5 shrink-0 accent-blue-700"
+            className="mt-0.5 h-5 w-5 shrink-0 accent-marca-700"
           />
           <span>
             He leído el aviso de privacidad y otorgo mi <strong>consentimiento expreso</strong> para
@@ -67,7 +67,7 @@ export function Consentimiento({
           </span>
         </label>
         {error && (
-          <p role="alert" className="text-sm text-red-700">
+          <p role="alert" className="text-sm text-peligro">
             {error}
           </p>
         )}

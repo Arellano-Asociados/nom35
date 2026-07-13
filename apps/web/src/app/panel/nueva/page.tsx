@@ -25,7 +25,7 @@ export default async function PaginaNuevaEmpresa({
             <input name="rfc" className={claseCampo} />
           </label>
           {error && (
-            <p role="alert" className="text-sm text-red-700">
+            <p role="alert" className="text-sm text-peligro">
               No se pudo registrar la empresa. Revisa los datos.
             </p>
           )}

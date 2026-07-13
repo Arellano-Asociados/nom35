@@ -14,7 +14,7 @@ export default function PaginaInicio() {
       </p>
       <Link
         href="/ingresar"
-        className="text-sm font-medium text-blue-700 underline underline-offset-2 hover:text-blue-800"
+        className="text-sm font-medium text-marca-700 underline underline-offset-2 hover:text-marca-800"
       >
         Acceso administrativo
       </Link>

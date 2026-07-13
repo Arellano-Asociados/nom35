@@ -59,7 +59,7 @@ export default async function PaginaResultadoIndividual({
           <Link
             href={`/panel/${empresa}/ciclos/${ciclo}/individual/${empleado}?confirmar=1`}
             data-testid="confirmar-acceso"
-            className="inline-flex h-11 w-fit items-center rounded-md bg-blue-700 px-5 text-sm font-medium text-white hover:bg-blue-800"
+            className="inline-flex h-11 w-fit items-center rounded-md bg-marca-700 px-5 text-sm font-medium text-white hover:bg-marca-800"
           >
             Entiendo, consultar resultado
           </Link>

@@ -98,7 +98,7 @@ export default function PaginaIngresar() {
             />
           </label>
           {error && (
-            <p role="alert" className="text-sm text-red-700">
+            <p role="alert" className="text-sm text-peligro">
               {error}
             </p>
           )}
@@ -106,7 +106,7 @@ export default function PaginaIngresar() {
             <p
               role="status"
               data-testid="aviso-confirmacion"
-              className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"
+              className="rounded-md border border-marca-200 bg-marca-50 p-3 text-sm text-marca-900"
             >
               {aviso}
             </p>
@@ -117,7 +117,7 @@ export default function PaginaIngresar() {
           <button
             type="button"
             onClick={() => setModo(modo === 'entrar' ? 'registro' : 'entrar')}
-            className="text-sm text-blue-700 underline"
+            className="text-sm text-marca-700 underline"
           >
             {modo === 'entrar' ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Ingresa'}
           </button>
