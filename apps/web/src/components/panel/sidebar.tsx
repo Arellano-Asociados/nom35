@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LogoConstata } from '@/components/marca/logo';
 import { BotonSalir } from '@/components/panel/boton-salir';
+import { claseControl } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const SECCIONES_EMPRESA = [
@@ -16,13 +17,27 @@ const SECCIONES_EMPRESA = [
   ['equipo', 'Equipo'],
 ] as const;
 
-export function Sidebar({ email }: { email: string }) {
+const ETIQUETA_ROL: Record<string, string> = {
+  admin_org: 'Admin de Organización',
+  consultor: 'Consultor',
+  miembro: 'Miembro',
+};
+
+export interface MembresiaSidebar {
+  companyId: string;
+  razonSocial: string;
+  rol: string;
+}
+
+export function Sidebar({ email, membresias }: { email: string; membresias: MembresiaSidebar[] }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [abierto, setAbierto] = useState(false);
 
   // Detecta si estamos dentro de /panel/[empresa]/... (y no en /panel/nueva)
   const coincidencia = pathname.match(/^\/panel\/([^/]+)/);
   const empresa = coincidencia && coincidencia[1] !== 'nueva' ? coincidencia[1] : null;
+  const activa = empresa ? membresias.find((m) => m.companyId === empresa) : undefined;
 
   useEffect(() => {
     setAbierto(false);
@@ -46,7 +61,37 @@ export function Sidebar({ email }: { email: string }) {
 
   const contenido = (
     <div className="flex h-full flex-col">
-      <div className="border-b border-slate-200 px-4 py-4">{marca}</div>
+      <div className="border-b border-borde px-4 py-4">{marca}</div>
+
+      {/* Empresa activa: confirmación persistente del tenant sobre el que se actúa
+          (auditoría v0, dimensión 4 [Alto]) + selector cuando hay más de una. */}
+      {activa && (
+        <div className="flex flex-col gap-2 border-b border-borde px-4 py-3">
+          <p className="text-xs font-medium tracking-wide text-texto-terciario uppercase">
+            Empresa activa
+          </p>
+          <p className="text-sm font-semibold text-texto" data-testid="empresa-activa">
+            {activa.razonSocial}
+          </p>
+          <p className="text-xs text-texto-secundario">{ETIQUETA_ROL[activa.rol] ?? activa.rol}</p>
+          {membresias.length > 1 && (
+            <label className="flex flex-col gap-1 text-xs text-texto-secundario">
+              <span className="sr-only">Cambiar de empresa</span>
+              <select
+                value={activa.companyId}
+                onChange={(evento) => router.push(`/panel/${evento.target.value}/centros`)}
+                className={cn(claseControl, 'h-9 py-1 text-xs')}
+              >
+                {membresias.map((m) => (
+                  <option key={m.companyId} value={m.companyId}>
+                    {m.razonSocial}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      )}
 
       {empresa && (
         <nav aria-label="Secciones de la empresa" className="flex flex-col gap-1 px-3 py-4">
@@ -72,8 +117,8 @@ export function Sidebar({ email }: { email: string }) {
         </nav>
       )}
 
-      <div className="mt-auto flex flex-col gap-2 border-t border-slate-200 px-4 py-4">
-        <span data-testid="usuario-email" className="truncate text-xs text-slate-500">
+      <div className="mt-auto flex flex-col gap-2 border-t border-borde px-4 py-4">
+        <span data-testid="usuario-email" className="truncate text-xs text-texto-terciario">
           {email}
         </span>
         <BotonSalir />
@@ -84,12 +129,12 @@ export function Sidebar({ email }: { email: string }) {
   return (
     <>
       {/* Sidebar fija de escritorio */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-slate-200 lg:bg-white">
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-borde lg:bg-superficie">
         {contenido}
       </aside>
 
       {/* Encabezado móvil con botón de menú */}
-      <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+      <div className="flex items-center justify-between border-b border-borde bg-superficie px-4 py-3 lg:hidden">
         {marca}
         <button
           type="button"
@@ -127,7 +172,7 @@ export function Sidebar({ email }: { email: string }) {
           />
           <div
             id="sidebar-movil"
-            className="fixed inset-y-0 left-0 z-50 w-72 max-w-[80vw] border-r border-slate-200 bg-white shadow-lg"
+            className="fixed inset-y-0 left-0 z-50 w-72 max-w-[80vw] border-r border-borde bg-superficie shadow-lg"
           >
             {contenido}
           </div>

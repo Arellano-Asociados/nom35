@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils';
 export interface Pestana {
   href: string;
   etiqueta: string;
+  /** Activa solo con coincidencia exacta de ruta (para la pestaña raíz/resumen). */
+  exacta?: boolean;
 }
 
 /**
@@ -19,8 +21,10 @@ export function Tabs({ pestanas, ariaLabel }: { pestanas: Pestana[]; ariaLabel: 
   return (
     <nav aria-label={ariaLabel} className="overflow-x-auto">
       <ul className="flex min-w-max gap-1 border-b border-borde">
-        {pestanas.map(({ href, etiqueta }) => {
-          const activa = pathname === href;
+        {pestanas.map(({ href, etiqueta, exacta }) => {
+          const activa = exacta
+            ? pathname === href
+            : pathname === href || pathname.startsWith(`${href}/`);
           return (
             <li key={href}>
               <Link

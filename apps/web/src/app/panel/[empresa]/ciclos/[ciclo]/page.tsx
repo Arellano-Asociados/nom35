@@ -1,10 +1,10 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { accionDistribuir, accionRecordatorios } from '@/acciones/panel';
 import { BotonAccion } from '@/components/panel/boton-accion';
-import { claseEstadoVacio } from '@/components/panel/campos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { autorizarEmpresa } from '@/lib/autorizacion';
+import { fechaEsMx } from '@/lib/fechas';
 import { GUIAS_POR_CATEGORIA, type NomCategory } from '@/lib/informe';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
@@ -63,41 +63,18 @@ export default async function PaginaCiclo({
   const correosDistribuir = Math.max(0, (empleadosActivos ?? 0) * guias.length - totalAsignaciones);
   const pendientes = [...porArea.values()].reduce((suma, c) => suma + c.pendientes, 0);
 
-  const SUBPAGINAS = [
-    ['dashboard', 'Dashboard agregado'],
-    ['acciones', 'Acciones (Cap. 8)'],
-    ['gr1', 'Canalizaciones GR-I'],
-    ['individual', 'Resultados individuales'],
-    ['informes', 'Informes y expediente'],
-  ] as const;
-
   return (
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>
-            {datosCiclo.name} · {centro.name}
-          </CardTitle>
+          <CardTitle as="h3">Aplicación de cuestionarios</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 text-sm text-slate-700">
           <p>
-            Evaluador: {datosCiclo.evaluator_name} (cédula {datosCiclo.evaluator_license}) ·{' '}
-            {datosCiclo.date_start} — {datosCiclo.date_end ?? 'en curso'}
+            Evaluador: {datosCiclo.evaluator_name} (cédula {datosCiclo.evaluator_license}) · inicia{' '}
+            {fechaEsMx(datosCiclo.date_start)}
+            {datosCiclo.date_end ? ` · termina ${fechaEsMx(datosCiclo.date_end)}` : ' · en curso'}
           </p>
-          <nav
-            aria-label="Secciones del ciclo"
-            className="flex flex-wrap gap-1 border-b border-slate-200 pb-px"
-          >
-            {SUBPAGINAS.map(([ruta, etiqueta]) => (
-              <Link
-                key={ruta}
-                href={`/panel/${empresa}/ciclos/${ciclo}/${ruta}`}
-                className="rounded-t-md px-3 py-2 font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-              >
-                {etiqueta}
-              </Link>
-            ))}
-          </nav>
           <div className="flex flex-wrap gap-3">
             <BotonAccion
               etiqueta="Distribuir cuestionarios"
@@ -122,35 +99,41 @@ export default async function PaginaCiclo({
             />
           </div>
           {acceso.membresia.rol === 'consultor' && (
-            <p className="text-xs text-slate-500">Operando como consultor asignado.</p>
+            <p className="text-xs text-texto-terciario">Operando como consultor asignado.</p>
           )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Progreso por área</CardTitle>
+          <CardTitle as="h3">Progreso por área</CardTitle>
         </CardHeader>
         <CardContent>
           {porArea.size === 0 ? (
-            <p className={claseEstadoVacio}>
-              Aún no hay cuestionarios distribuidos en este ciclo. Usa &quot;Distribuir
-              cuestionarios&quot; arriba.
-            </p>
+            <EmptyState
+              titulo="Aún no hay cuestionarios distribuidos en este ciclo"
+              descripcion="La identificación de factores de riesgo empieza cuando cada empleado recibe su enlace personal (la norma exige evaluar a todos). Usa «Distribuir cuestionarios» arriba: cada quien recibirá un correo con su enlace confidencial."
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm" data-testid="progreso-areas">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs tracking-wide text-slate-500 uppercase">
-                    <th className="py-2 font-medium">Área</th>
-                    <th className="py-2 text-right font-medium">Completados</th>
-                    <th className="py-2 text-right font-medium">Pendientes</th>
+                  <tr className="border-b border-borde text-left text-xs tracking-wide text-texto-terciario uppercase">
+                    <th scope="col" className="py-2 font-medium">
+                      Área
+                    </th>
+                    <th scope="col" className="py-2 text-right font-medium">
+                      Completados
+                    </th>
+                    <th scope="col" className="py-2 text-right font-medium">
+                      Pendientes
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...porArea.entries()].map(([area, conteo]) => (
                     <tr key={area} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="py-2 font-medium text-slate-900">{area}</td>
+                      <td className="py-2 font-medium text-texto">{area}</td>
                       <td className="py-2 text-right text-slate-700 tabular-nums">
                         {conteo.completados}
                       </td>
