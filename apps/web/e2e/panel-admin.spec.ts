@@ -12,9 +12,9 @@ const DB_URL =
   process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
 
 const corrida = `${Date.now()}-${randomUUID().slice(0, 6)}`;
-const ADMIN_A = { email: `admin-a-${corrida}@e2e.mx`, password: 'Password123!' };
-const ADMIN_B = { email: `admin-b-${corrida}@e2e.mx`, password: 'Password123!' };
-const CONSULTOR = { email: `consultor-${corrida}@e2e.mx`, password: 'Password123!' };
+const ADMIN_A = { email: `admin-a-${corrida}@e2e.mx`, password: 'Password123!Segura' };
+const ADMIN_B = { email: `admin-b-${corrida}@e2e.mx`, password: 'Password123!Segura' };
+const CONSULTOR = { email: `consultor-${corrida}@e2e.mx`, password: 'Password123!Segura' };
 const EMPRESA_A = `Empresa A ${corrida}`;
 const EMPRESA_B = `Empresa B ${corrida}`;
 const TOKEN_EMPLEADO = `e2e-panel-${corrida}`;
@@ -35,13 +35,25 @@ async function consultar<T extends Record<string, unknown>>(
   }
 }
 
+/**
+ * Alta de cuenta. Con la confirmación de correo obligatoria (endurecimiento de la
+ * auditoría v0: impide que un tercero reclame el correo de un consultor ajeno), el
+ * registro NO deja sesión: la cuenta queda inactiva hasta que la persona abre el
+ * enlace que recibe. Aquí simulamos ese clic confirmando el correo en la BD, que es
+ * exactamente el efecto del enlace, y después ingresamos con la contraseña.
+ */
 async function registrarse(page: Page, cuenta: { email: string; password: string }) {
   await page.goto('/ingresar');
   await page.getByText('¿No tienes cuenta? Regístrate').click();
   await page.getByLabel('Correo electrónico').fill(cuenta.email);
   await page.getByLabel('Contraseña').fill(cuenta.password);
   await page.getByRole('button', { name: 'Crear cuenta' }).click();
-  await expect(page.getByText('Mis empresas')).toBeVisible();
+  await expect(page.getByTestId('aviso-confirmacion')).toBeVisible();
+
+  await consultar(`update auth.users set email_confirmed_at = now() where email = $1`, [
+    cuenta.email,
+  ]);
+  await ingresar(page, cuenta);
 }
 
 async function ingresar(page: Page, cuenta: { email: string; password: string }) {

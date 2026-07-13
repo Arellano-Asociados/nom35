@@ -215,7 +215,26 @@ export async function accionAgregarConsultor(
   const supabase = clienteAdmin();
   const { data } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
   const consultor = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
-  if (!consultor) return { ok: false, error: 'No existe una cuenta con ese correo' };
+  if (!consultor) {
+    return {
+      ok: false,
+      error:
+        'Esa persona aún no tiene cuenta. Pídele que se registre con ese correo y que lo confirme; después vuelve a intentarlo.',
+    };
+  }
+
+  // Anti-secuestro (auditoría v0): antes bastaba coincidir por correo. Con el registro
+  // abierto y sin confirmación, un tercero podía adelantarse a registrar el correo del
+  // despacho que la empresa iba a contratar y recibir el tenant completo (padrón,
+  // agregados, informes) sin que la víctima se enterara. Ahora se exige que el correo
+  // esté CONFIRMADO: quien no probó ser dueño del buzón no puede ser vinculado.
+  if (!consultor.email_confirmed_at) {
+    return {
+      ok: false,
+      error:
+        'Esa cuenta aún no ha confirmado su correo. Pídele que abra el enlace de confirmación que recibió y vuelve a intentarlo.',
+    };
+  }
 
   const { error } = await supabase.from('consultant_assignments').insert({
     company_id: companyId,

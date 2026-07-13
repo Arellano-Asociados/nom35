@@ -22,9 +22,9 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:5
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 
 const corrida = `${Date.now()}-${randomUUID().slice(0, 6)}`;
-const ADMIN_A = { email: `informes-admin-a-${corrida}@e2e.mx`, password: 'Password123!' };
-const ADMIN_B = { email: `informes-admin-b-${corrida}@e2e.mx`, password: 'Password123!' };
-const CONSULTOR = { email: `informes-consultor-${corrida}@e2e.mx`, password: 'Password123!' };
+const ADMIN_A = { email: `informes-admin-a-${corrida}@e2e.mx`, password: 'Password123!Segura' };
+const ADMIN_B = { email: `informes-admin-b-${corrida}@e2e.mx`, password: 'Password123!Segura' };
+const CONSULTOR = { email: `informes-consultor-${corrida}@e2e.mx`, password: 'Password123!Segura' };
 const EMPRESA_A = `Informes Empresa A ${corrida}`;
 const EMPRESA_B = `Informes Empresa B ${corrida}`;
 const TOKEN_EMPLEADO = `e2e-informes-${corrida}`;
@@ -57,12 +57,24 @@ function clienteStorage() {
   return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 }
 
+/** Con la confirmación de correo obligatoria, el registro no deja sesión: se confirma
+ * el correo (efecto del enlace que recibe la persona) y luego se ingresa. */
 async function registrarse(page: Page, cuenta: { email: string; password: string }) {
   await page.goto('/ingresar');
   await page.getByText('¿No tienes cuenta? Regístrate').click();
   await page.getByLabel('Correo electrónico').fill(cuenta.email);
   await page.getByLabel('Contraseña').fill(cuenta.password);
   await page.getByRole('button', { name: 'Crear cuenta' }).click();
+  await expect(page.getByTestId('aviso-confirmacion')).toBeVisible();
+
+  await consultar(`update auth.users set email_confirmed_at = now() where email = $1`, [
+    cuenta.email,
+  ]);
+
+  await page.goto('/ingresar');
+  await page.getByLabel('Correo electrónico').fill(cuenta.email);
+  await page.getByLabel('Contraseña').fill(cuenta.password);
+  await page.getByRole('button', { name: 'Ingresar' }).click();
   await expect(page.getByText('Mis empresas')).toBeVisible();
 }
 
