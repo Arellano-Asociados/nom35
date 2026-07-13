@@ -27,10 +27,10 @@ function PreguntaSiNo({
         ].map(({ etiqueta, v }) => (
           <label
             key={etiqueta}
-            className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg border-2 px-4 py-4 text-center text-base font-medium transition-colors duration-150 ${
+            className={`flex has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-blue-600 min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg border-2 px-4 py-4 text-center text-base font-medium transition-colors duration-150 ${
               valor === v
                 ? 'border-blue-700 bg-blue-50 text-blue-900 shadow-sm'
-                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                : 'border-slate-400 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
             }`}
           >
             <input

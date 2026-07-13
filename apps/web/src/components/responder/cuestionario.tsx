@@ -147,12 +147,17 @@ export function Cuestionario({
                     return (
                       <label
                         key={opcion.valor}
-                        className={`flex min-h-11 cursor-pointer items-center justify-center rounded-lg border-2 text-center transition-colors duration-150 ${
+                        // El <input> real es sr-only (1x1 px): el anillo de foco global se
+                        // dibujaba sobre un elemento invisible, así que un trabajador que navega
+                        // por teclado recorría hasta 360 opciones SIN VER NUNCA dónde estaba el
+                        // foco — en la práctica no podía responder (WCAG 2.4.7). `has-focus-visible`
+                        // sube el indicador al label, que es lo que se ve.
+                        className={`flex min-h-11 cursor-pointer items-center justify-center rounded-lg border-2 text-center transition-colors duration-150 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-blue-600 ${
                           esGR1 ? 'flex-1 px-4 py-4 text-base font-medium' : 'px-3 py-2.5 text-sm'
                         } ${
                           marcada
                             ? 'border-blue-700 bg-blue-50 font-semibold text-blue-900 shadow-sm'
-                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                            : 'border-slate-400 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
                         <input

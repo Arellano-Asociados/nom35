@@ -117,7 +117,7 @@ export default async function PaginaDashboard({
             nivelPredominante ? (
               <BadgeNivel nivel={nivelPredominante.nivel} />
             ) : (
-              <span className="text-base font-normal text-slate-400">Sin datos suficientes</span>
+              <span className="text-base font-normal text-slate-600">Sin datos suficientes</span>
             )
           }
         />
