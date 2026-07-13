@@ -5,6 +5,7 @@ import { BotonAccion } from '@/components/panel/boton-accion';
 import { claseEstadoVacio } from '@/components/panel/campos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
+import { GUIAS_POR_CATEGORIA, type NomCategory } from '@/lib/informe';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,7 @@ export default async function PaginaCiclo({
   const { data: datosCiclo } = await supabase
     .from('compliance_cycles')
     .select(
-      'id, name, date_start, date_end, evaluator_name, evaluator_license, work_centers (name, nom_category)',
+      'id, name, date_start, date_end, evaluator_name, evaluator_license, work_center_id, work_centers (name, nom_category)',
     )
     .eq('company_id', empresa)
     .eq('id', ciclo)
@@ -47,6 +48,20 @@ export default async function PaginaCiclo({
   const distribuir = accionDistribuir.bind(null, empresa, ciclo);
   const recordar = accionRecordatorios.bind(null, empresa, ciclo);
   const centro = datosCiclo.work_centers as unknown as { name: string; nom_category: string };
+
+  // La confirmación debe decir la consecuencia CONCRETA: cuántos correos saldrán.
+  // Distribuir crea (empleado activo × guía) menos lo ya asignado; recordar reenvía
+  // a cada asignación pendiente. Espejo del cálculo de accionDistribuir/accionRecordatorios.
+  const { count: empleadosActivos } = await supabase
+    .from('employees')
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', empresa)
+    .eq('work_center_id', datosCiclo.work_center_id)
+    .eq('active', true);
+  const guias = GUIAS_POR_CATEGORIA[centro.nom_category as NomCategory] ?? ['GR-I'];
+  const totalAsignaciones = asignaciones?.length ?? 0;
+  const correosDistribuir = Math.max(0, (empleadosActivos ?? 0) * guias.length - totalAsignaciones);
+  const pendientes = [...porArea.values()].reduce((suma, c) => suma + c.pendientes, 0);
 
   const SUBPAGINAS = [
     ['dashboard', 'Dashboard agregado'],
@@ -88,12 +103,22 @@ export default async function PaginaCiclo({
               etiqueta="Distribuir cuestionarios"
               accion={distribuir}
               testid="distribuir"
+              confirmacion={{
+                titulo: '¿Distribuir cuestionarios?',
+                descripcion: `Se enviarán ${correosDistribuir} correos, uno por cada cuestionario aún no asignado a un empleado activo del centro, cada uno con su enlace personal. Los correos no se pueden cancelar una vez enviados.`,
+                etiquetaConfirmar: `Enviar ${correosDistribuir} correos`,
+              }}
             />
             <BotonAccion
               etiqueta="Enviar recordatorios a pendientes"
               accion={recordar}
               variante="outline"
               testid="recordatorios"
+              confirmacion={{
+                titulo: '¿Enviar recordatorios?',
+                descripcion: `Se enviarán ${pendientes} correos a quienes aún no responden. Los enlaces anteriores dejarán de funcionar: cada recordatorio trae un enlace nuevo que sustituye al que el empleado ya tenía.`,
+                etiquetaConfirmar: `Enviar ${pendientes} recordatorios`,
+              }}
             />
           </div>
           {acceso.membresia.rol === 'consultor' && (

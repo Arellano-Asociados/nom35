@@ -110,36 +110,25 @@ describe('armarDatosInforme79', () => {
     const informe = armarDatosInforme79(entrada);
 
     expect(informe.participacion).toEqual({ asignados: 5, completados: 5 });
-    expect(informe.resultados.global.total).toBe(5);
-    // alto y medio tienen n=1 cada uno: se suprimen por la regla base (0 < n < 3),
-    // k=2 celdas suprimidas. S = total(5) - visibles(nulo=3) = 2 = k → única
-    // descomposición posible sobre 2 celdas ∈{1,2}: AMBAS valen 1 (alto=1, medio=1),
-    // que es justo su valor real. Con la regla anterior de esta tarea (actuar solo
-    // si exactamente 1 celda estaba suprimida) esto no se detectaba y 'nulo' quedaba
-    // visible con n:3, revelando ambos valores por resta. Con la regla extendida
-    // (descomposición única con k>=1, ver `aplicarSupresionComplementaria`), 'nulo'
-    // (la única celda visible positiva) también se suprime; el total permanece
-    // visible porque ahora hay 3 celdas suprimidas y la resta solo revelaría su suma.
-    // (Expectativa actualizada conscientemente por esta tarea: antes 'nulo' quedaba
-    // visible con n:3, porcentaje:60.)
-    expect(informe.resultados.global.celdas.nulo).toEqual({
-      n: null,
-      porcentaje: null,
-      suprimida: true,
-    });
-    expect(informe.resultados.global.celdas.alto).toEqual({
-      n: null,
-      porcentaje: null,
-      suprimida: true,
-    });
-    expect(informe.resultados.global.celdas.medio).toEqual({
-      n: null,
-      porcentaje: null,
-      suprimida: true,
-    });
+    // 3 nulo + 1 alto + 1 medio. Las celdas de alto y medio caen en 0 < n < 3, así que
+    // (corrección de la auditoría v0) se enmascara la FILA COMPLETA: ni conteos, ni
+    // ceros, ni total. Publicar 'nulo: 3' junto a las dos celdas enmascaradas revelaba
+    // por resta que alto y medio valían 1 cada uno — y, peor, que existía exactamente
+    // una persona en cada uno de esos niveles.
+    // (Expectativa actualizada conscientemente: antes el total y 'nulo' se publicaban.)
+    expect(informe.resultados.global.total).toBeNull();
+    expect(informe.resultados.global.totalSuprimido).toBe(true);
+    for (const nivel of ['nulo', 'bajo', 'medio', 'alto', 'muy_alto'] as const) {
+      expect(informe.resultados.global.celdas[nivel]).toEqual({
+        n: null,
+        porcentaje: null,
+        suprimida: true,
+      });
+    }
     const carga = informe.resultados.categorias.get('Carga de trabajo');
-    expect(carga?.total).toBe(5);
-    expect(informe.motorVersion).toBe('0.1.0');
+    expect(carga?.total).toBeNull();
+    expect(carga?.totalSuprimido).toBe(true);
+    expect(informe.motorVersion).toBe('0.1.0'); // viene de engineVersion de las filas, no del paquete
     expect(informe.generadoEl).toBe('2026-07-11T12:00:00.000Z');
   });
 

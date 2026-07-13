@@ -11,10 +11,39 @@ import { clienteAdmin } from './supabase-admin';
 //   (regla inviolable 5, acceso individual del Responsable Designado): el caller debe poder
 //   bloquear el render si el INSERT falló.
 
+/**
+ * Catálogo cerrado de eventos de auditoría (auditoría v0: antes eran 14 literales sueltos
+ * y `eventType: string` aceptaba cualquier cosa). Un typo no fallaba en compilación ni en
+ * tests y FRAGMENTABA la evidencia: el resumen del expediente cuenta por `event_type`
+ * textual, así que un `individual_result_acess` desaparecía del conteo sin que nadie lo
+ * notara hasta una inspección. Con el union type, ese typo ya no compila.
+ */
+export const EVENTOS_AUDITORIA = {
+  empresaCreada: 'empresa_creada',
+  empleadosImportados: 'empleados_importados',
+  rdDesignado: 'rd_designado',
+  consultorAsignado: 'consultor_asignado',
+  cicloCreado: 'ciclo_creado',
+  cicloDistribuido: 'ciclo_distribuido',
+  recordatoriosEnviados: 'recordatorios_enviados',
+  canalizacionActualizada: 'canalizacion_actualizada',
+  politicaPublicada: 'politica_publicada',
+  informeGenerado: 'informe_generado',
+  informeDescargado: 'informe_descargado',
+  expedienteGenerado: 'expediente_generado',
+  gr1NotificacionDr: 'gr1_notificacion_dr',
+  /** Regla 5: consulta de un resultado individual por el Responsable Designado. */
+  accesoResultadoIndividual: 'individual_result_access',
+  /** El titular consulta su propio resultado con su enlace. */
+  resultadoPropioConsultado: 'resultado_propio_consultado',
+} as const;
+
+export type EventoAuditoria = (typeof EVENTOS_AUDITORIA)[keyof typeof EVENTOS_AUDITORIA];
+
 async function insertarAuditoria(
   companyId: string,
   actorUserId: string,
-  eventType: string,
+  eventType: EventoAuditoria,
   entity?: string,
   entityId?: string,
   details?: Record<string, unknown>,
@@ -35,7 +64,7 @@ async function insertarAuditoria(
 export async function registrarAuditoria(
   companyId: string,
   actorUserId: string,
-  eventType: string,
+  eventType: EventoAuditoria,
   entity?: string,
   entityId?: string,
   details?: Record<string, unknown>,
@@ -65,7 +94,7 @@ export async function registrarAuditoria(
 export async function registrarAuditoriaEstricta(
   companyId: string,
   actorUserId: string,
-  eventType: string,
+  eventType: EventoAuditoria,
   entity?: string,
   entityId?: string,
   details?: Record<string, unknown>,

@@ -499,18 +499,32 @@ describe('seeds normativos', () => {
     ]);
   });
 
-  it('item_structure: 118 ítems; el 29 de GR-III es grupo B; 18-19 de GR-II sin categoría', async () => {
+  it('item_structure: 118 ítems; el 29 de GR-III es grupo B; TODOS los de GR-II tienen categoría', async () => {
     expect(Number((await pool.query('select count(*) n from item_structure')).rows[0].n)).toBe(118);
     const g29 = await pool.query(`
       select scoring_group from item_structure i join questionnaires q on q.id = i.questionnaire_id
       where q.code = 'GR-III' and i.item_number = 29
     `);
     expect(g29.rows[0].scoring_group).toBe('B');
+    // Corrección normativa (auditoría v0): antes este test afirmaba que los ítems 18 y 19
+    // de la GR-II "no puntúan en ninguna categoría". Es falso: la Tabla 3 del DOF los
+    // ubica en la dimensión "Limitada o nula posibilidad de desarrollo", dominio "Falta
+    // de control sobre el trabajo", categoría "Factores propios de la actividad". Ningún
+    // ítem de la GR-II queda fuera de su categoría.
     const sinCat = await pool.query(`
       select i.item_number from item_structure i join questionnaires q on q.id = i.questionnaire_id
       where q.code = 'GR-II' and i.category is null order by 1
     `);
-    expect(sinCat.rows.map((f: { item_number: number }) => f.item_number)).toEqual([18, 19]);
+    expect(sinCat.rows.map((f: { item_number: number }) => f.item_number)).toEqual([]);
+
+    const factoresPropios = await pool.query(`
+      select i.item_number from item_structure i join questionnaires q on q.id = i.questionnaire_id
+      where q.code = 'GR-II' and i.category = 'Factores propios de la actividad'
+      and i.item_number in (18, 19) order by 1
+    `);
+    expect(factoresPropios.rows.map((f: { item_number: number }) => f.item_number)).toEqual([
+      18, 19,
+    ]);
     const cond = await pool.query(`
       select i.item_number from item_structure i join questionnaires q on q.id = i.questionnaire_id
       where q.code = 'GR-III' and i.conditional = 'atiende_clientes' order by 1

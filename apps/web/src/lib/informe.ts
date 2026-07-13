@@ -16,7 +16,7 @@ import {
 
 export type NomCategory = 'solo_gr1' | 'gr1_gr2' | 'gr1_gr3';
 
-const GUIAS_POR_CATEGORIA: Record<NomCategory, string[]> = {
+export const GUIAS_POR_CATEGORIA: Record<NomCategory, string[]> = {
   solo_gr1: ['GR-I'],
   gr1_gr2: ['GR-I', 'GR-II'],
   gr1_gr3: ['GR-I', 'GR-III'],

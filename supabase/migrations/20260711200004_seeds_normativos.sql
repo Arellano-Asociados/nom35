@@ -25,8 +25,9 @@ where q.code in ('GR-II', 'GR-III')
 on conflict do nothing;
 
 -- GR-I: numeración por sección.
--- PENDIENTE_CONFIRMAR: el número de preguntas por sección (6/2/7/5) debe confirmarse contra
--- el texto oficial del DOF al cargar el seed de textos; el motor es agnóstico a la longitud.
+-- CONFIRMADO (2026-07-12): el conteo por sección (I=6, II=2, III=7, IV=5) coincide con el
+-- texto oficial del DOF 23-oct-2018 y con el PDF de la STPS (ver migración
+-- 20260713010000_textos_oficiales_items.sql y scripts/textos-oficiales.json).
 insert into questions (questionnaire_id, section, item_number, text)
 select q.id, s.seccion, i, 'ITEM_TEXT_PENDIENTE_GR1_' || s.seccion || '_' || i
 from questionnaires q,

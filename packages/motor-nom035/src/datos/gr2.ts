@@ -48,9 +48,10 @@ const DOMINIOS: readonly DominioDef[] = [
   },
 ];
 
-// A diferencia de la GR-III, en la GR-II las categorías listan sus ítems de forma explícita:
-// la categoría "Factores propios de la actividad" NO puntúa los ítems 18 y 19, aunque
-// pertenecen a su dominio "Falta de control sobre el trabajo" (así lo define el DOF).
+// Tabla 3 del DOF 23-oct-2018: cada categoría se califica con la SUMA de todos los ítems
+// que la integran (numeral II.3 b) 2), es decir, la unión de los ítems de sus dominios.
+// Los ítems 18 y 19 (dimensión "Limitada o nula posibilidad de desarrollo", dominio
+// "Falta de control sobre el trabajo") SÍ puntúan en "Factores propios de la actividad".
 const CATEGORIAS: readonly CategoriaDef[] = [
   {
     nombre: 'Ambiente de trabajo',
@@ -61,7 +62,7 @@ const CATEGORIAS: readonly CategoriaDef[] = [
   {
     nombre: 'Factores propios de la actividad',
     dominios: ['Carga de trabajo', 'Falta de control sobre el trabajo'],
-    items: [...serie(4, 13), ...serie(20, 22), 26, 27, ...serie(41, 43)],
+    items: [...serie(4, 13), ...serie(18, 22), 26, 27, ...serie(41, 43)],
     rango: { nuloMax: 10, bajoMax: 20, medioMax: 30, altoMax: 40 },
   },
   {

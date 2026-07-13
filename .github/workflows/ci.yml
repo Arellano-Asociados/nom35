@@ -85,6 +85,9 @@ jobs:
             echo "SUPABASE_DB_URL=$DB_URL"
           } >> "$GITHUB_ENV"
 
+      - name: Gate de textos oficiales (sin placeholders, coincidencia exacta)
+        run: node scripts/verificar-textos-items.mjs
+
       - name: Build de la app
         run: pnpm --filter @nom35/web build
 

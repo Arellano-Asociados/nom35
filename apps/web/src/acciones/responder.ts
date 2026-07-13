@@ -3,6 +3,8 @@
 import { GR2, GR3 } from '@nom35/motor-nom035';
 import { headers } from 'next/headers';
 import { enviarCuestionario, obtenerContexto, type Contexto } from '@/lib/flujo';
+import { avisoVigenteDe } from '@/lib/aviso-privacidad';
+import { escrituraOk } from '@/lib/escrituras';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
 // Acciones del flujo del empleado. El token del enlace es la capacidad: se re-valida en
@@ -31,14 +33,22 @@ export async function accionRegistrarConsentimiento(token: string): Promise<Resu
   const encabezados = await headers();
   const ip = encabezados.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
 
-  const { error } = await clienteAdmin().from('consents').insert({
-    company_id: ctx.companyId,
-    assignment_id: ctx.asignacionId,
-    employee_id: ctx.employeeId,
-    privacy_text_version: ctx.empresa.versionAvisoPrivacidad,
-    ip,
-  });
-  if (error) return { ok: false, error: 'No se pudo registrar el consentimiento' };
+  // El consentimiento apunta a la FILA del aviso archivado, no solo a su etiqueta: es lo
+  // que permite exhibir años después el texto exacto que el titular aceptó.
+  const aviso = await avisoVigenteDe(ctx.companyId, ctx.empresa.razonSocial);
+
+  const guardado = await escrituraOk(
+    'registrar consentimiento',
+    clienteAdmin().from('consents').insert({
+      company_id: ctx.companyId,
+      assignment_id: ctx.asignacionId,
+      employee_id: ctx.employeeId,
+      privacy_text_version: aviso.version,
+      privacy_notice_id: aviso.id,
+      ip,
+    }),
+  );
+  if (!guardado.ok) return { ok: false, error: 'No se pudo registrar el consentimiento' };
   return { ok: true };
 }
 
@@ -134,8 +144,11 @@ export async function accionAcusarPolitica(
   token: string,
   policyId: string,
 ): Promise<ResultadoAccion> {
+  // No usa contextoActivo porque el acuse SÍ puede ocurrir con el cuestionario ya
+  // enviado; pero un enlace vencido no debe poder escribir evidencia (auditoría v0).
   const ctx = await obtenerContexto(token);
   if (!ctx) return { ok: false, error: 'Enlace inválido' };
+  if (ctx.expirado) return { ok: false, error: 'Este enlace ha expirado' };
   if (!ctx.consentido) return { ok: false, error: 'Falta el consentimiento' };
 
   const supabase = clienteAdmin();
@@ -147,10 +160,18 @@ export async function accionAcusarPolitica(
     .maybeSingle();
   if (!politica) return { ok: false, error: 'Política no encontrada' };
 
-  await supabase.from('policy_acknowledgments').insert({
-    company_id: ctx.companyId,
-    policy_id: policyId,
-    employee_id: ctx.employeeId,
-  });
+  // El acuse es EVIDENCIA DE DIFUSIÓN exhibible ante la STPS: si el insert falla, el
+  // trabajador debe ver un error, jamás un "listo" sobre una fila que no existe.
+  const guardado = await escrituraOk(
+    'acuse de política',
+    supabase.from('policy_acknowledgments').insert({
+      company_id: ctx.companyId,
+      policy_id: policyId,
+      employee_id: ctx.employeeId,
+    }),
+  );
+  if (!guardado.ok) {
+    return { ok: false, error: 'No se pudo registrar tu acuse. Intenta de nuevo.' };
+  }
   return { ok: true };
 }

@@ -6,6 +6,7 @@ import {
   MOTOR_NOM035_VERSION,
   type DefinicionGuia,
 } from '@nom35/motor-nom035';
+import { EVENTOS_AUDITORIA, registrarAuditoria } from './auditoria';
 import { proveedorCorreo } from './correo';
 import {
   construirEntradaGR1,
@@ -97,12 +98,14 @@ export interface Pregunta {
   section: string | null;
   item_number: number;
   text: string;
+  /** Encabezado de bloque del DOF que precede a este ítem (solo primer ítem del bloque). */
+  instruccion_previa: string | null;
 }
 
 export async function obtenerPreguntas(questionnaireId: string): Promise<Pregunta[]> {
   const { data, error } = await clienteAdmin()
     .from('questions')
-    .select('section, item_number, text')
+    .select('section, item_number, text, instruccion_previa')
     .eq('questionnaire_id', questionnaireId)
     .order('section', { ascending: true, nullsFirst: true })
     .order('item_number', { ascending: true });
@@ -289,11 +292,33 @@ async function notificarResponsableDesignado(companyId: string): Promise<void> {
     });
   }
 
-  await supabase.from('audit_log').insert({
-    company_id: companyId,
-    actor_user_id: ACTOR_SISTEMA,
-    event_type: 'gr1_notificacion_dr',
-    entity: 'gr1_results',
-    details: { destinatarios: correos.length },
-  });
+  // Último insert directo a audit_log que quedaba: ahora pasa por el helper compartido,
+  // que revisa el error y usa el catálogo tipado de eventos (pendiente post-M6, cerrado).
+  await registrarAuditoria(
+    companyId,
+    ACTOR_SISTEMA,
+    EVENTOS_AUDITORIA.gr1NotificacionDr,
+    'gr1_results',
+    undefined,
+    { destinatarios: correos.length },
+  );
+}
+
+/**
+ * Deja rastro de que el titular consultó su propio resultado (regla inviolable 5: el
+ * acceso a un resultado individual procesado SIEMPRE se audita). El actor es el sistema
+ * —el trabajador no tiene cuenta de auth, su capacidad es el token— y no se registra
+ * ningún dato del resultado, solo que hubo consulta y sobre qué asignación.
+ * Fire-and-forget deliberado: a diferencia del acceso del RD (fail-closed), aquí el
+ * titular tiene derecho a ver SU dato aunque la bitácora falle; el fallo se loggea.
+ */
+export async function registrarConsultaResultadoPropio(ctx: Contexto): Promise<void> {
+  await registrarAuditoria(
+    ctx.companyId,
+    ACTOR_SISTEMA,
+    EVENTOS_AUDITORIA.resultadoPropioConsultado,
+    'questionnaire_assignments',
+    ctx.asignacionId,
+    { guia: ctx.guia },
+  );
 }

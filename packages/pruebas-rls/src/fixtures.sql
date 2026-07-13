@@ -83,17 +83,20 @@ insert into responses (id, company_id, assignment_id, item_number, answer) value
    'bbbbbbbb-0000-4000-8000-000000000061', 1, 'nunca')
 on conflict do nothing;
 
+-- engine_version deliberadamente sintética: estas filas prueban AISLAMIENTO, no cálculo.
+-- No usar una versión real del motor: al auditar residuos de un motor viejo (p. ej. el
+-- recálculo GR-II de la Fase 1.5) estas filas aparecerían como falsos positivos.
 insert into risk_results
   (id, company_id, assignment_id, employee_id, cycle_id, questionnaire_id,
    cfinal, nivel_final, categorias, dominios, engine_version) values
   ('aaaaaaaa-0000-4000-8000-000000000091', 'aaaaaaaa-0000-4000-8000-000000000001',
    'aaaaaaaa-0000-4000-8000-000000000061', 'aaaaaaaa-0000-4000-8000-000000000021',
    'aaaaaaaa-0000-4000-8000-000000000051',
-   (select id from questionnaires where code = 'GR-III'), 42, 'nulo', '[]', '[]', '0.1.0'),
+   (select id from questionnaires where code = 'GR-III'), 42, 'nulo', '[]', '[]', '0.0.0-fixture-rls'),
   ('bbbbbbbb-0000-4000-8000-000000000091', 'bbbbbbbb-0000-4000-8000-000000000001',
    'bbbbbbbb-0000-4000-8000-000000000061', 'bbbbbbbb-0000-4000-8000-000000000021',
    'bbbbbbbb-0000-4000-8000-000000000051',
-   (select id from questionnaires where code = 'GR-II'), 25, 'bajo', '[]', '[]', '0.1.0')
+   (select id from questionnaires where code = 'GR-II'), 25, 'bajo', '[]', '[]', '0.0.0-fixture-rls')
 on conflict do nothing;
 
 insert into gr1_results

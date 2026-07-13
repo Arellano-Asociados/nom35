@@ -1,9 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { avisoVigenteDe } from '@/lib/aviso-privacidad';
 import {
   obtenerContexto,
   obtenerEstructura,
   obtenerPreguntas,
   politicaPendienteDe,
+  registrarConsultaResultadoPropio,
   respuestasVigentes,
 } from '@/lib/flujo';
 import { PoliticaPendiente } from '@/components/responder/politica';
@@ -14,11 +16,12 @@ import { Resultado } from '@/components/responder/resultado';
 
 export const dynamic = 'force-dynamic';
 
+// Títulos de sección literales del DOF 23-oct-2018 (Guía de Referencia I).
 const TITULOS_GR1: Record<string, string> = {
-  I: 'Sección I. Acontecimiento traumático severo',
-  II: 'Sección II. Recuerdos persistentes sobre el acontecimiento (último mes)',
-  III: 'Sección III. Esfuerzo por evitar circunstancias parecidas o asociadas (último mes)',
-  IV: 'Sección IV. Afectación (último mes)',
+  I: 'I.- Acontecimiento traumático severo',
+  II: 'II.- Recuerdos persistentes sobre el acontecimiento (durante el último mes)',
+  III: 'III.- Esfuerzo por evitar circunstancias parecidas o asociadas al acontecimiento (durante el último mes)',
+  IV: 'IV.- Afectación (durante el último mes)',
 };
 
 function Mensaje({ titulo, children }: { titulo: string; children: React.ReactNode }) {
@@ -45,16 +48,34 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
     );
   }
 
+  // La expiración se evalúa ANTES que "completado" (corrección de la auditoría v0):
+  // antes, un enlace ya usado seguía mostrando el resultado de salud del trabajador
+  // PARA SIEMPRE, incluso vencido — y el enlace vive en un correo que el patrón
+  // administra (buzón compartido, TI, historial de una máquina compartida). El dato
+  // es sensible y su consulta no quedaba auditada, a diferencia del acceso del RD.
+  if (ctx.expirado) {
+    return (
+      <Mensaje titulo="Enlace expirado">
+        <span data-testid="expirado">
+          Este enlace ya no está vigente. Solicita uno nuevo al responsable de tu centro de trabajo.
+        </span>
+      </Mensaje>
+    );
+  }
+
   if (ctx.completado) {
     const politica = await politicaPendienteDe(ctx);
+    // Cada consulta del propio resultado deja rastro en la bitácora (regla 5: el acceso
+    // a un resultado individual procesado siempre se audita, aunque sea el titular).
+    await registrarConsultaResultadoPropio(ctx);
     return (
       <div className="flex flex-col gap-4">
         <div
           data-testid="confirmacion"
           className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-900 shadow-sm"
         >
-          Tu cuestionario fue enviado. Gracias por tu participación. Puedes volver a esta página con
-          tu mismo enlace para consultar tu resultado.
+          Tu cuestionario fue enviado. Gracias por tu participación. Mientras tu enlace siga vigente
+          puedes volver a esta página para consultar tu resultado.
         </div>
         {politica && (
           <PoliticaPendiente
@@ -70,22 +91,16 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
     );
   }
 
-  if (ctx.expirado) {
-    return (
-      <Mensaje titulo="Enlace expirado">
-        <span data-testid="expirado">
-          Este enlace ya no está vigente. Solicita uno nuevo al responsable de tu centro de trabajo.
-        </span>
-      </Mensaje>
-    );
-  }
-
   if (!ctx.consentido) {
+    // El aviso se lee ARCHIVADO de privacy_notices (se publica la plantilla base la
+    // primera vez): así el consentimiento apunta a un texto verificable años después.
+    const aviso = await avisoVigenteDe(ctx.companyId, ctx.empresa.razonSocial);
     return (
       <Consentimiento
         token={token}
         razonSocial={ctx.empresa.razonSocial}
-        version={ctx.empresa.versionAvisoPrivacidad}
+        version={aviso.version}
+        textoAviso={aviso.texto}
       />
     );
   }
@@ -112,6 +127,7 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
           seccion: s,
           numero: p.item_number,
           texto: p.text,
+          instruccion: p.instruccion_previa,
         })),
     }));
   } else {
@@ -139,6 +155,7 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
         seccion: null,
         numero: p.item_number,
         texto: p.text,
+        instruccion: p.instruccion_previa,
       });
     }
     secciones = [...porDominio.values()];
@@ -151,6 +168,12 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
         <p className="text-sm text-slate-600">
           {ctx.empresa.razonSocial} · Tus respuestas se guardan automáticamente.
         </p>
+        {ctx.guia !== 'GR-I' && (
+          <p className="mt-1 text-sm text-slate-600">
+            Al responder, considera las condiciones de tu trabajo durante los dos últimos meses. No
+            hay respuestas correctas ni incorrectas.
+          </p>
+        )}
       </header>
       <Cuestionario
         token={token}

@@ -42,7 +42,7 @@ export function BadgeNivel({ nivel, className }: { nivel: string; className?: st
 export function BadgeSuprimido({ texto }: { texto: string }) {
   return (
     <span
-      className={`${CLASE_BASE_BADGE} border-slate-200 bg-slate-100 text-slate-500`}
+      className={`${CLASE_BASE_BADGE} border-slate-200 bg-slate-100 text-slate-700`}
       title="Menos de 3 personas: se oculta para proteger el anonimato"
     >
       {texto}

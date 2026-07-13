@@ -37,7 +37,7 @@ export function TablaDistribucion({
                     ) : (
                       <>
                         {celda.n}
-                        <span className="text-slate-400"> ({celda.porcentaje}%)</span>
+                        <span className="text-slate-600"> ({celda.porcentaje}%)</span>
                       </>
                     )}
                   </td>
