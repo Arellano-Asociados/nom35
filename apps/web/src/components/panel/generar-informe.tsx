@@ -174,7 +174,12 @@ export function GenerarInforme({
               <tr className="border-b border-slate-200 text-left text-xs tracking-wide text-slate-500 uppercase">
                 <th className="py-2 font-medium">Tipo</th>
                 <th className="py-2 font-medium">Fecha</th>
-                <th className="py-2 font-medium">SHA-256</th>
+                <th
+                  className="py-2 font-medium"
+                  title="Código que permite demostrar que el archivo no fue alterado (SHA-256)"
+                >
+                  Huella de integridad
+                </th>
                 <th className="py-2 font-medium">Descarga</th>
               </tr>
             </thead>

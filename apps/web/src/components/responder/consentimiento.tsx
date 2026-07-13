@@ -79,7 +79,10 @@ export function Consentimiento({
             startTransition(async () => {
               const r = await accionRegistrarConsentimiento(token);
               if (!r.ok) {
-                setError(r.error ?? 'Ocurrió un error');
+                setError(
+                  r.error ??
+                    'No pudimos guardar tu consentimiento. Revisa tu conexión e intenta de nuevo.',
+                );
                 return;
               }
               router.refresh();

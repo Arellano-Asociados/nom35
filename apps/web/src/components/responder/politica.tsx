@@ -39,7 +39,11 @@ export function PoliticaPendiente({
           </>
         )}
       </p>
-      {error && <p className="text-peligro">{error}</p>}
+      {error && (
+        <p role="alert" className="text-peligro">
+          {error}
+        </p>
+      )}
       <Button
         variant="secondary"
         disabled={pendiente}
@@ -47,7 +51,7 @@ export function PoliticaPendiente({
         onClick={() =>
           startTransition(async () => {
             const r = await accionAcusarPolitica(token, policyId);
-            if (!r.ok) setError(r.error ?? 'Error');
+            if (!r.ok) setError(r.error ?? 'No se pudo registrar tu acuse. Intenta de nuevo.');
             else router.refresh();
           })
         }

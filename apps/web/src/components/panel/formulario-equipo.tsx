@@ -39,7 +39,7 @@ export function DesignarmeRD({
           })
         }
       >
-        Designarme Responsable Designado
+        Asumir el rol de Responsable Designado
       </Button>
       {resultado?.error && (
         <p role="alert" className="text-peligro">
@@ -63,7 +63,7 @@ export function AgregarConsultor({
   return (
     <div className="flex flex-col gap-2 text-sm">
       <label className="flex flex-col gap-1 font-medium text-slate-800">
-        Correo del consultor (debe tener cuenta)
+        Correo del consultor (con cuenta ya confirmada)
         <input
           type="email"
           value={email}

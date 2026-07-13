@@ -9,6 +9,7 @@ import { claseControl } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const SECCIONES_EMPRESA = [
+  ['', 'Inicio'],
   ['centros', 'Centros'],
   ['empleados', 'Empleados'],
   ['ciclos', 'Ciclos'],
@@ -96,8 +97,11 @@ export function Sidebar({ email, membresias }: { email: string; membresias: Memb
       {empresa && (
         <nav aria-label="Secciones de la empresa" className="flex flex-col gap-1 px-3 py-4">
           {SECCIONES_EMPRESA.map(([ruta, etiqueta]) => {
-            const href = `/panel/${empresa}/${ruta}`;
-            const activo = pathname === href || pathname.startsWith(`${href}/`);
+            const href = ruta ? `/panel/${empresa}/${ruta}` : `/panel/${empresa}`;
+            // "Inicio" (ruta vacía) solo con coincidencia exacta: su href es prefijo de todos.
+            const activo = ruta
+              ? pathname === href || pathname.startsWith(`${href}/`)
+              : pathname === href;
             return (
               <Link
                 key={ruta}

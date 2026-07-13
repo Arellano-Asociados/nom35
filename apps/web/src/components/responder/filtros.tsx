@@ -90,7 +90,10 @@ export function Filtros({ token }: { token: string }) {
             startTransition(async () => {
               const r = await accionGuardarFiltros(token, atiende === true, supervisa === true);
               if (!r.ok) {
-                setError(r.error ?? 'Ocurrió un error');
+                setError(
+                  r.error ??
+                    'No pudimos guardar tu respuesta. Revisa tu conexión e intenta de nuevo.',
+                );
                 return;
               }
               router.refresh();

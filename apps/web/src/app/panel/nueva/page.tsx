@@ -12,7 +12,7 @@ export default async function PaginaNuevaEmpresa({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Registrar empresa</CardTitle>
+        <CardTitle>Registrar una empresa nueva</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={accionCrearEmpresa} className="flex flex-col gap-4">
@@ -29,7 +29,7 @@ export default async function PaginaNuevaEmpresa({
               No se pudo registrar la empresa. Revisa los datos.
             </p>
           )}
-          <Button type="submit">Crear empresa</Button>
+          <Button type="submit">Registrar empresa</Button>
         </form>
       </CardContent>
     </Card>

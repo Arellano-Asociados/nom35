@@ -1,9 +1,10 @@
 import { accionRegistrarCapacitacion, accionSubirCapacitacion } from '@/acciones/panel';
 import { ErrorFormulario } from '@/components/panel/error-formulario';
-import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { RegistroCapacitacion } from '@/components/panel/registro-capacitacion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { claseControl, CampoTexto } from '@/components/ui/input';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 import { clienteAdmin } from '@/lib/supabase-admin';
 import { cn } from '@/lib/utils';
@@ -57,7 +58,7 @@ export default async function PaginaCapacitacion({
               <CardHeader>
                 <CardTitle>
                   {contenido.title}{' '}
-                  <span className="text-sm font-normal text-slate-500 tabular-nums">
+                  <span className="text-sm font-normal text-texto-terciario tabular-nums">
                     ({hechos}/{total} completados)
                   </span>
                 </CardTitle>
@@ -73,9 +74,10 @@ export default async function PaginaCapacitacion({
           );
         })}
         {(contenidos ?? []).length === 0 && (
-          <p className={claseEstadoVacio}>
-            Aún no hay contenidos de capacitación. Sube el primero con el formulario.
-          </p>
+          <EmptyState
+            titulo="Aún no hay contenidos de capacitación"
+            descripcion="La capacitación sobre riesgos psicosociales deja evidencia de qué empleados la recibieron — parte del expediente que revisa un inspector. Sube el primer material con el formulario."
+          />
         )}
       </div>
 
@@ -86,23 +88,21 @@ export default async function PaginaCapacitacion({
         <CardContent>
           <form action={subir} className="flex flex-col gap-3 text-sm">
             <ErrorFormulario codigo={errorFormulario} />
-            <label className="flex flex-col gap-1 font-medium text-slate-800">
-              Título
-              <input name="titulo" required className={claseCampo} />
-            </label>
-            <label className="flex flex-col gap-1 font-medium text-slate-800">
-              Archivo
+            <CampoTexto etiqueta="Título" nombre="titulo" required />
+            <label className="flex flex-col gap-1 text-sm font-medium text-slate-800">
+              Archivo (PDF)
               <input
                 name="archivo"
                 type="file"
                 required
                 accept="application/pdf"
                 className={cn(
-                  claseCampo,
+                  claseControl,
                   'file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700',
                 )}
               />
             </label>
+            <p className="text-xs text-texto-terciario">Solo PDF, máximo 10 MB.</p>
             <Button type="submit">Subir</Button>
           </form>
         </CardContent>

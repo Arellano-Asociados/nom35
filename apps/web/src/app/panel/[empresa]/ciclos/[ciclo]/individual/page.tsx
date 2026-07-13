@@ -16,9 +16,24 @@ export default async function PaginaIndividual({
   if (!acceso.membresia.esResponsableDesignado) {
     return (
       <Card>
-        <CardContent className="p-6 text-sm text-slate-700" data-testid="individual-restringido">
-          Los resultados individuales solo puede consultarlos el{' '}
-          <strong>Responsable Designado</strong>.
+        <CardContent
+          className="flex flex-col gap-2 p-6 text-sm text-slate-700"
+          data-testid="individual-restringido"
+        >
+          <p>
+            Los resultados individuales solo puede consultarlos el{' '}
+            <strong>Responsable Designado</strong>.
+          </p>
+          {acceso.membresia.rol === 'admin_org' && (
+            <p>
+              <Link
+                href={`/panel/${empresa}/equipo`}
+                className="font-medium text-marca-700 underline hover:text-marca-800"
+              >
+                Designa al Responsable en Equipo
+              </Link>
+            </p>
+          )}
         </CardContent>
       </Card>
     );

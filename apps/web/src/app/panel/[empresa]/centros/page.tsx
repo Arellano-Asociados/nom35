@@ -1,8 +1,9 @@
 import { accionCrearCentro } from '@/acciones/panel';
 import { ErrorFormulario } from '@/components/panel/error-formulario';
-import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { CampoTexto } from '@/components/ui/input';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
@@ -41,17 +42,18 @@ export default async function PaginaCentros({
         </CardHeader>
         <CardContent>
           {(centros ?? []).length === 0 ? (
-            <p className={claseEstadoVacio}>
-              Aún no hay centros de trabajo. Crea el primero con el formulario.
-            </p>
+            <EmptyState
+              titulo="Aún no hay centros de trabajo"
+              descripcion="El centro de trabajo es la unidad que evalúa la norma: su número de trabajadores decide qué cuestionarios aplican. Crea el primero con el formulario de al lado."
+            />
           ) : (
             <ul className="flex flex-col gap-2" data-testid="lista-centros">
               {(centros ?? []).map((c) => (
-                <li key={c.id} className="rounded-md border border-slate-200 px-4 py-3 text-sm">
-                  <p className="font-medium text-slate-900">{c.name}</p>
-                  <p className="text-slate-600">
+                <li key={c.id} className="rounded-md border border-borde px-4 py-3 text-sm">
+                  <p className="font-medium text-texto">{c.name}</p>
+                  <p className="text-texto-secundario">
                     <span className="tabular-nums">{c.headcount}</span> trabajadores ·{' '}
-                    {ETIQUETA_CATEGORIA[c.nom_category] ?? c.nom_category}
+                    {ETIQUETA_CATEGORIA[c.nom_category] ?? 'Categoría no determinada'}
                   </p>
                 </li>
               ))}
@@ -67,25 +69,19 @@ export default async function PaginaCentros({
         <CardContent>
           <form action={crear} className="flex flex-col gap-3 text-sm">
             <ErrorFormulario codigo={errorFormulario} />
-            <label className="flex flex-col gap-1 font-medium text-slate-800">
-              Nombre
-              <input name="nombre" required className={claseCampo} />
-            </label>
-            <label className="flex flex-col gap-1 font-medium text-slate-800">
-              Número de trabajadores
-              <input name="headcount" type="number" min={1} required className={claseCampo} />
-            </label>
-            <label className="flex flex-col gap-1 font-medium text-slate-800">
-              Domicilio
-              <input name="direccion" className={claseCampo} />
-            </label>
-            <label className="flex flex-col gap-1 font-medium text-slate-800">
-              Actividad principal
-              <input name="actividad" className={claseCampo} />
-            </label>
-            <p className="text-xs text-slate-500">
-              La categoría normativa (guías a aplicar) se deriva automáticamente del número de
-              trabajadores: ≤15 solo GR-I · 16–50 GR-I+GR-II · &gt;50 GR-I+GR-III.
+            <CampoTexto etiqueta="Nombre" nombre="nombre" required />
+            <CampoTexto
+              etiqueta="Número de trabajadores"
+              nombre="headcount"
+              type="number"
+              min={1}
+              required
+            />
+            <CampoTexto etiqueta="Domicilio" nombre="direccion" />
+            <CampoTexto etiqueta="Actividad principal" nombre="actividad" />
+            <p className="text-xs text-texto-terciario">
+              Los cuestionarios a aplicar se eligen solos según el tamaño del centro: hasta 15
+              trabajadores, solo la Guía I; de 16 a 50, Guías I y II; más de 50, Guías I y III.
             </p>
             <Button type="submit">Crear centro</Button>
           </form>

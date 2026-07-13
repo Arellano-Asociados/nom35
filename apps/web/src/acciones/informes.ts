@@ -164,7 +164,12 @@ export async function accionGenerarInforme79(
   cycleId: string,
 ): Promise<ResultadoGenerarInforme> {
   const acceso = await autorizarEmpresa(companyId);
-  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
+  if (!puedeGestionar(acceso.membresia))
+    return {
+      ok: false,
+      error:
+        'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
+    };
 
   const supabase = clienteAdmin();
 
@@ -217,7 +222,12 @@ export async function accionUrlDescargaInforme(
   reporteId: string,
 ): Promise<ResultadoUrlDescarga> {
   const acceso = await autorizarEmpresa(companyId);
-  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
+  if (!puedeGestionar(acceso.membresia))
+    return {
+      ok: false,
+      error:
+        'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
+    };
 
   const supabase = clienteAdmin();
   // reporteId se verifica SIEMPRE contra companyId: nunca se confía en el id solo.
@@ -291,7 +301,12 @@ export async function accionGenerarExpediente(
   cycleId: string,
 ): Promise<ResultadoGenerarInforme> {
   const acceso = await autorizarEmpresa(companyId);
-  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
+  if (!puedeGestionar(acceso.membresia))
+    return {
+      ok: false,
+      error:
+        'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
+    };
 
   const supabase = clienteAdmin();
 
