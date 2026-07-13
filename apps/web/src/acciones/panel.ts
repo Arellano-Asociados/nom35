@@ -7,6 +7,7 @@ import { registrarAuditoria } from '@/lib/auditoria';
 import { proveedorCorreo } from '@/lib/correo';
 import { parsearCsvEmpleados } from '@/lib/csv-empleados';
 import { escrituraOk } from '@/lib/escrituras';
+import { rutaDeObjeto, validarPdf } from '@/lib/subidas';
 import { clienteAdmin } from '@/lib/supabase-admin';
 import { usuarioActual } from '@/lib/supabase-servidor';
 import { generarToken, hashDeToken } from '@/lib/tokens';
@@ -544,11 +545,19 @@ export async function accionSubirPolitica(companyId: string, formData: FormData)
   const version = String(formData.get('version') ?? '').trim();
   if (!archivo || archivo.size === 0 || !titulo || !version) redirect(`${ruta}?error=datos`);
 
+  // El archivo se valida por sus BYTES (magic bytes de PDF), no por lo que declare el
+  // cliente, y el nombre del objeto lo genera el servidor: antes se podía subir un .html
+  // declarándolo text/html y servírselo a los trabajadores por URL firmada (XSS/phishing).
+  const validado = await validarPdf(archivo);
+  if (!validado.ok) redirect(`${ruta}?error=archivo`);
+
   const supabase = clienteAdmin();
-  const rutaArchivo = `${companyId}/${Date.now()}-${archivo.name}`;
+  const rutaArchivo = rutaDeObjeto(companyId, validado.archivo.extension);
   const { error: errorSubida } = await supabase.storage
     .from('politicas')
-    .upload(rutaArchivo, archivo, { contentType: archivo.type || 'application/octet-stream' });
+    .upload(rutaArchivo, validado.archivo.bytes, {
+      contentType: validado.archivo.contentType,
+    });
   if (errorSubida) redirect(`${ruta}?error=subida`);
 
   // Sin esta guarda, un insert fallido dejaba el PDF huérfano en Storage y la política
@@ -580,11 +589,18 @@ export async function accionSubirCapacitacion(
   const titulo = String(formData.get('titulo') ?? '').trim();
   if (!archivo || archivo.size === 0 || !titulo) redirect(`${ruta}?error=datos`);
 
+  // Mismas reglas que la política: la capacitación también se entrega a los empleados
+  // por URL firmada, así que un archivo no-PDF aquí es el mismo vector de XSS/phishing.
+  const validado = await validarPdf(archivo);
+  if (!validado.ok) redirect(`${ruta}?error=archivo`);
+
   const supabase = clienteAdmin();
-  const rutaArchivo = `${companyId}/${Date.now()}-${archivo.name}`;
+  const rutaArchivo = rutaDeObjeto(companyId, validado.archivo.extension);
   const { error } = await supabase.storage
     .from('capacitacion')
-    .upload(rutaArchivo, archivo, { contentType: archivo.type || 'application/octet-stream' });
+    .upload(rutaArchivo, validado.archivo.bytes, {
+      contentType: validado.archivo.contentType,
+    });
   if (error) redirect(`${ruta}?error=subida`);
 
   const capacitacionCreada = await escrituraOk(
