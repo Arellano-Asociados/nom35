@@ -12,7 +12,7 @@ test('flujo completo GR-II sin condicionales', async ({ page }) => {
   await aceptarConsentimiento(page);
   await responderFiltros(page, 'No', 'No');
 
-  await expect(page.getByText('Cuestionario GR-II')).toBeVisible();
+  await expect(page.getByText('Cuestionario sobre tu entorno de trabajo')).toBeVisible();
   await expect(page.getByTestId('progreso')).toHaveText('0 / 40 respondidas');
 
   await completarYEnviar(page, 'Nunca');

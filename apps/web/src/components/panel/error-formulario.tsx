@@ -22,7 +22,7 @@ export function ErrorFormulario({ codigo }: { codigo?: string }) {
     <p
       role="alert"
       data-testid="error-formulario"
-      className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+      className="rounded-md border border-peligro-borde bg-peligro-fondo p-3 text-sm text-peligro-texto"
     >
       {mensaje}
     </p>

@@ -25,7 +25,7 @@ export function PoliticaPendiente({
   return (
     <div
       data-testid="politica-pendiente"
-      className="flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 p-5 text-sm text-slate-800 shadow-sm"
+      className="flex flex-col gap-3 rounded-xl border border-marca-200 bg-marca-50 p-5 text-sm text-slate-800 shadow-sm"
     >
       <p className="leading-relaxed">
         Tu empresa publicó la <strong>política de prevención de riesgos psicosociales</strong>:{' '}
@@ -33,13 +33,17 @@ export function PoliticaPendiente({
         {url && (
           <>
             {' '}
-            <a href={url} target="_blank" rel="noreferrer" className="text-blue-700 underline">
+            <a href={url} target="_blank" rel="noreferrer" className="text-marca-700 underline">
               Consultar documento
             </a>
           </>
         )}
       </p>
-      {error && <p className="text-red-700">{error}</p>}
+      {error && (
+        <p role="alert" className="text-peligro">
+          {error}
+        </p>
+      )}
       <Button
         variant="secondary"
         disabled={pendiente}
@@ -47,7 +51,7 @@ export function PoliticaPendiente({
         onClick={() =>
           startTransition(async () => {
             const r = await accionAcusarPolitica(token, policyId);
-            if (!r.ok) setError(r.error ?? 'Error');
+            if (!r.ok) setError(r.error ?? 'No se pudo registrar tu acuse. Intenta de nuevo.');
             else router.refresh();
           })
         }

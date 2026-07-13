@@ -13,12 +13,13 @@ const ETIQUETA_NIVEL: Record<string, string> = {
   muy_alto: 'Muy alto',
 };
 
+// Tokens del semáforo (globals.css / docs/BRAND.md): un triple por nivel.
 const CLASE_NIVEL: Record<string, string> = {
-  nulo: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  bajo: 'bg-lime-100 text-lime-800 border-lime-200',
-  medio: 'bg-amber-100 text-amber-800 border-amber-200',
-  alto: 'bg-orange-100 text-orange-800 border-orange-200',
-  muy_alto: 'bg-red-100 text-red-800 border-red-200',
+  nulo: 'bg-nivel-nulo-fondo text-nivel-nulo-texto border-nivel-nulo-borde',
+  bajo: 'bg-nivel-bajo-fondo text-nivel-bajo-texto border-nivel-bajo-borde',
+  medio: 'bg-nivel-medio-fondo text-nivel-medio-texto border-nivel-medio-borde',
+  alto: 'bg-nivel-alto-fondo text-nivel-alto-texto border-nivel-alto-borde',
+  muy_alto: 'bg-nivel-muy-alto-fondo text-nivel-muy-alto-texto border-nivel-muy-alto-borde',
 };
 
 const CLASE_BASE_BADGE =
@@ -59,7 +60,7 @@ const ETIQUETA_ESTATUS_CANALIZACION: Record<string, string> = {
 const CLASE_ESTATUS_CANALIZACION: Record<string, string> = {
   pendiente: 'bg-amber-100 text-amber-800 border-amber-200',
   canalizado: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  atendido: 'bg-blue-100 text-blue-800 border-blue-200',
+  atendido: 'bg-marca-100 text-marca-800 border-marca-200',
 };
 
 /** Badge de estatus de canalización GR-I: pendiente=amber, canalizado=emerald, atendido=blue. */

@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { accionCrearCiclo } from '@/acciones/panel';
 import { ErrorFormulario } from '@/components/panel/error-formulario';
-import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { CampoSelect, CampoTexto } from '@/components/ui/input';
 import { autorizarEmpresa } from '@/lib/autorizacion';
+import { fechaEsMx } from '@/lib/fechas';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
@@ -36,6 +38,7 @@ export default async function PaginaCiclos({
 
   const crear = accionCrearCiclo.bind(null, empresa);
   const vencidos = (alertas ?? []).filter((a) => a.requiere_nueva_evaluacion);
+  const sinCentros = (centros ?? []).length === 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -45,8 +48,8 @@ export default async function PaginaCiclos({
           data-testid="alerta-24-meses"
           className="rounded-md bg-amber-50 p-3 text-sm font-medium text-amber-900"
         >
-          Atención (numeral 7.9): {vencidos.map((v) => v.name).join(', ')} sin evaluación en los
-          últimos 24 meses.
+          {vencidos.map((v) => v.name).join(', ')}: más de 24 meses sin evaluación. La NOM-035 exige
+          una nueva evaluación (numeral 7.9).
         </p>
       )}
 
@@ -57,21 +60,22 @@ export default async function PaginaCiclos({
           </CardHeader>
           <CardContent>
             {(ciclos ?? []).length === 0 && (
-              <p className={claseEstadoVacio}>
-                Aún no hay ciclos de evaluación. Crea el primero con el formulario.
-              </p>
+              <EmptyState
+                titulo="Aún no hay ciclos de evaluación"
+                descripcion="El ciclo agrupa la aplicación de cuestionarios de un centro y toda su evidencia: resultados, informe y expediente de inspección. Crea el primero con el formulario."
+              />
             )}
             <ul className="flex flex-col gap-2" data-testid="lista-ciclos">
               {(ciclos ?? []).map((c) => (
                 <li key={c.id}>
                   <Link
                     href={`/panel/${empresa}/ciclos/${c.id}`}
-                    className="block rounded-md border border-slate-200 px-4 py-3 text-sm hover:bg-slate-50"
+                    className="block rounded-md border border-borde px-4 py-3 text-sm hover:bg-slate-50"
                   >
-                    <span className="font-medium text-slate-900">{c.name}</span>{' '}
-                    <span className="text-slate-500">
+                    <span className="font-medium text-texto">{c.name}</span>{' '}
+                    <span className="text-texto-secundario">
                       · {(c.work_centers as unknown as { name: string }).name} · inicia{' '}
-                      {c.date_start}
+                      {fechaEsMx(c.date_start)}
                     </span>
                   </Link>
                 </li>
@@ -85,46 +89,43 @@ export default async function PaginaCiclos({
             <CardTitle>Nuevo ciclo</CardTitle>
           </CardHeader>
           <CardContent>
-            <form action={crear} className="flex flex-col gap-3 text-sm">
-              <ErrorFormulario codigo={errorFormulario} />
-              <label className="flex flex-col gap-1 font-medium text-slate-800">
-                Nombre del ciclo
-                <input name="nombre" required className={claseCampo} />
-              </label>
-              <label className="flex flex-col gap-1 font-medium text-slate-800">
-                Centro de trabajo
-                <select name="centro" required className={claseCampo}>
+            {sinCentros ? (
+              <EmptyState
+                titulo="Primero crea un centro de trabajo"
+                descripcion="Cada ciclo evalúa un centro; sin centros no hay qué evaluar."
+                cta={
+                  <Link
+                    href={`/panel/${empresa}/centros`}
+                    className="text-sm font-medium text-marca-700 underline hover:text-marca-800"
+                  >
+                    Ir a Centros
+                  </Link>
+                }
+              />
+            ) : (
+              <form action={crear} className="flex flex-col gap-3 text-sm">
+                <ErrorFormulario codigo={errorFormulario} />
+                <CampoTexto etiqueta="Nombre del ciclo" nombre="nombre" required />
+                <CampoSelect etiqueta="Centro de trabajo" nombre="centro" required>
                   {(centros ?? []).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
-                </select>
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex flex-col gap-1 font-medium text-slate-800">
-                  Fecha de inicio
-                  <input name="inicio" type="date" required className={claseCampo} />
-                </label>
-                <label className="flex flex-col gap-1 font-medium text-slate-800">
-                  Fecha de fin
-                  <input name="fin" type="date" className={claseCampo} />
-                </label>
-              </div>
-              <label className="flex flex-col gap-1 font-medium text-slate-800">
-                Nombre del evaluador
-                <input name="evaluador" required className={claseCampo} />
-              </label>
-              <label className="flex flex-col gap-1 font-medium text-slate-800">
-                Cédula profesional del evaluador
-                <input name="cedula" required className={claseCampo} />
-              </label>
-              <p className="text-xs text-slate-500">
-                Las guías a aplicar se seleccionan automáticamente según la categoría normativa del
-                centro.
-              </p>
-              <Button type="submit">Crear ciclo</Button>
-            </form>
+                </CampoSelect>
+                <div className="grid grid-cols-2 gap-3">
+                  <CampoTexto etiqueta="Fecha de inicio" nombre="inicio" type="date" required />
+                  <CampoTexto etiqueta="Fecha de fin" nombre="fin" type="date" />
+                </div>
+                <CampoTexto etiqueta="Nombre del evaluador" nombre="evaluador" required />
+                <CampoTexto etiqueta="Cédula profesional del evaluador" nombre="cedula" required />
+                <p className="text-xs text-texto-terciario">
+                  Los cuestionarios a aplicar se seleccionan automáticamente según el tamaño del
+                  centro.
+                </p>
+                <Button type="submit">Crear ciclo</Button>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -5,12 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { distribucionPorNombre } from '@/lib/agregados';
 import { autorizarEmpresa } from '@/lib/autorizacion';
+import { fechaEsMx } from '@/lib/fechas';
 import { resultadosVigentesPorAsignacion } from '@/lib/informe';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
 const NIVELES_ACCION = ['medio', 'alto', 'muy_alto'] as const;
+
+// Estatus de BD traducido (fila 11 del copy de la auditoría v0: "en_progreso" crudo).
+const ETIQUETA_ESTATUS: Record<string, string> = {
+  pendiente: 'Pendiente',
+  en_progreso: 'En progreso',
+  completada: 'Completada',
+};
 
 interface PuntuadoJson {
   nombre: string;
@@ -77,7 +85,8 @@ export default async function PaginaAcciones({
       <div className="flex flex-col gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Acciones registradas (Capítulo 8)</CardTitle>
+            <CardTitle>Acciones correctivas</CardTitle>
+            <p className="text-xs text-texto-secundario">Capítulo 8 de la NOM-035</p>
           </CardHeader>
           <CardContent>
             {(acciones ?? []).length === 0 ? (
@@ -93,8 +102,8 @@ export default async function PaginaAcciones({
                       <span>Nivel de origen:</span>
                       <BadgeNivel nivel={a.origin_level} />
                       <span>· Responsable: {a.responsible} ·</span>
-                      <span>{a.due_date ?? 'sin fecha'}</span>
-                      <span>· {a.status}</span>
+                      <span>{a.due_date ? fechaEsMx(a.due_date) : 'sin fecha'}</span>
+                      <span>· {ETIQUETA_ESTATUS[a.status] ?? a.status}</span>
                     </p>
                   </li>
                 ))}
@@ -143,11 +152,11 @@ export default async function PaginaAcciones({
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Nivel de riesgo de origen
               <select name="nivel" required className={claseCampo}>
+                <option value="nulo">Nulo</option>
+                <option value="bajo">Bajo</option>
                 <option value="medio">Medio</option>
                 <option value="alto">Alto</option>
                 <option value="muy_alto">Muy alto</option>
-                <option value="bajo">Bajo</option>
-                <option value="nulo">Nulo</option>
               </select>
             </label>
             <label className="flex flex-col gap-1 font-medium text-slate-800">

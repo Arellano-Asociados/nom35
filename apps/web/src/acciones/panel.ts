@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
 import { registrarAuditoria } from '@/lib/auditoria';
-import { proveedorCorreo } from '@/lib/correo';
+import { plantillaCorreo, proveedorCorreo } from '@/lib/correo';
+import { fechaEsMx } from '@/lib/fechas';
 import { parsearCsvEmpleados } from '@/lib/csv-empleados';
 import { escrituraOk } from '@/lib/escrituras';
 import { rutaDeObjeto, validarPdf } from '@/lib/subidas';
@@ -121,7 +122,12 @@ export async function accionImportarCsv(
   contenido: string,
 ): Promise<ResultadoPanel> {
   const acceso = await autorizarEmpresa(companyId);
-  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
+  if (!puedeGestionar(acceso.membresia))
+    return {
+      ok: false,
+      error:
+        'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
+    };
 
   const { validos, errores } = parsearCsvEmpleados(contenido);
   const detalle = errores.map((e) => `Línea ${e.linea}: ${e.error}`);
@@ -149,7 +155,9 @@ export async function accionImportarCsv(
       supervises_others: empleado.supervisaPersonal,
     });
     if (error) {
-      detalle.push(`${empleado.email}: ${error.message}`);
+      detalle.push(
+        `${empleado.email}: no se pudo registrar (revisa el correo y el formato de la fila)`,
+      );
     } else {
       insertados++;
     }
@@ -300,7 +308,12 @@ export async function accionDistribuir(
   cicloId: string,
 ): Promise<ResultadoPanel> {
   const acceso = await autorizarEmpresa(companyId);
-  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
+  if (!puedeGestionar(acceso.membresia))
+    return {
+      ok: false,
+      error:
+        'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
+    };
 
   const supabase = clienteAdmin();
   const { data: ciclo } = await supabase
@@ -341,24 +354,33 @@ export async function accionDistribuir(
     for (const guia of guias ?? []) {
       if (yaAsignados.has(`${empleado.id}:${guia.id}`)) continue;
       const token = generarToken();
+      const vencimiento = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
       const { error } = await supabase.from('questionnaire_assignments').insert({
         company_id: companyId,
         cycle_id: cicloId,
         employee_id: empleado.id,
         questionnaire_id: guia.id,
         token_hash: hashDeToken(token),
-        expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        expires_at: vencimiento.toISOString(),
       });
       if (error) continue;
       creadas++;
       try {
         await correo.enviar({
           para: [empleado.email],
-          asunto: `Cuestionario NOM-035 (${guia.code})`,
-          html: `<p>Hola ${empleado.full_name}:</p>
-                 <p>Te invitamos a responder el cuestionario ${guia.code} de la NOM-035.
-                 Tus respuestas son confidenciales: nadie de tu empresa puede verlas.</p>
-                 <p><a href="${base}/responder/${token}">Responder cuestionario</a></p>`,
+          // Sin código interno (GR-*) en el asunto; el cuerpo dice duración,
+          // confidencialidad y vencimiento (tabla de copy de la auditoría v0, filas
+          // 6 y 21). La plantilla escapa full_name (inyección desde CSV, hallazgo Bajo).
+          asunto: 'Te invitamos a responder tu cuestionario NOM-035',
+          html: plantillaCorreo({
+            saludo: `Hola ${empleado.full_name}:`,
+            parrafos: [
+              'Tu empresa está evaluando el entorno de trabajo conforme a la NOM-035. Responder toma entre 10 y 25 minutos, y puedes pausar cuando quieras: tus avances se guardan solos.',
+              'Tus respuestas son confidenciales: nadie de tu empresa puede verlas.',
+              `Tu enlace es personal y vence el ${fechaEsMx(vencimiento.toISOString())}.`,
+            ],
+            cta: { url: `${base}/responder/${token}`, etiqueta: 'Responder cuestionario' },
+          }),
         });
         correosEnviados++;
       } catch {
@@ -391,7 +413,12 @@ export async function accionRecordatorios(
   cicloId: string,
 ): Promise<ResultadoPanel> {
   const acceso = await autorizarEmpresa(companyId);
-  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
+  if (!puedeGestionar(acceso.membresia))
+    return {
+      ok: false,
+      error:
+        'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
+    };
 
   const supabase = clienteAdmin();
   const { data: pendientes } = await supabase
@@ -407,23 +434,29 @@ export async function accionRecordatorios(
 
   for (const asignacion of pendientes ?? []) {
     const token = generarToken();
+    const vencimiento = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
     const { error } = await supabase
       .from('questionnaire_assignments')
       .update({
         token_hash: hashDeToken(token),
-        expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        expires_at: vencimiento.toISOString(),
       })
       .eq('id', asignacion.id);
     if (error) continue;
     const empleado = asignacion.employees as unknown as { email: string; full_name: string };
-    const guia = asignacion.questionnaires as unknown as { code: string };
     try {
       await correo.enviar({
         para: [empleado.email],
-        asunto: `Recordatorio: cuestionario NOM-035 (${guia.code})`,
-        html: `<p>Hola ${empleado.full_name}:</p>
-               <p>Tienes pendiente el cuestionario ${guia.code}. Este enlace sustituye al anterior:</p>
-               <p><a href="${base}/responder/${token}">Responder cuestionario</a></p>`,
+        asunto: 'Aún no has respondido tu cuestionario NOM-035',
+        html: plantillaCorreo({
+          saludo: `Hola ${empleado.full_name}:`,
+          parrafos: [
+            'Aún no has respondido tu cuestionario sobre el entorno de trabajo. Usa este nuevo enlace: los anteriores ya no funcionan.',
+            'Tus respuestas son confidenciales: nadie de tu empresa puede verlas.',
+            `El enlace vence el ${fechaEsMx(vencimiento.toISOString())}.`,
+          ],
+          cta: { url: `${base}/responder/${token}`, etiqueta: 'Responder cuestionario' },
+        }),
       });
       enviados++;
     } catch {
@@ -462,7 +495,8 @@ export async function accionActualizarCanalizacion(
     .update({ canalizacion_estatus: estatus, canalizacion_fecha: fecha })
     .eq('company_id', companyId)
     .eq('id', gr1Id);
-  if (error) return { ok: false, error: 'No se pudo actualizar' };
+  if (error)
+    return { ok: false, error: 'No se pudo guardar el cambio de canalización. Intenta de nuevo.' };
   await registrarAuditoria(
     companyId,
     acceso.userId,
@@ -517,7 +551,12 @@ export async function accionActualizarAccion(
   estatus: 'pendiente' | 'en_progreso' | 'completada',
 ): Promise<ResultadoPanel> {
   const acceso = await autorizarEmpresa(companyId);
-  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
+  if (!puedeGestionar(acceso.membresia))
+    return {
+      ok: false,
+      error:
+        'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
+    };
   const estatusActualizado = await escrituraOk(
     'actualizar estatus de la acción',
     clienteAdmin()
@@ -622,7 +661,12 @@ export async function accionRegistrarCapacitacion(
   employeeIds: string[],
 ): Promise<ResultadoPanel> {
   const acceso = await autorizarEmpresa(companyId);
-  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
+  if (!puedeGestionar(acceso.membresia))
+    return {
+      ok: false,
+      error:
+        'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
+    };
 
   const supabase = clienteAdmin();
   let registrados = 0;

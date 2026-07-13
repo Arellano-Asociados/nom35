@@ -10,7 +10,7 @@ export default function NoEncontrado() {
         Es posible que el enlace esté incompleto o que ya no exista.
       </p>
       <p className="text-sm">
-        <Link href="/panel" className="text-blue-700 underline hover:text-blue-800">
+        <Link href="/panel" className="text-marca-700 underline hover:text-marca-800">
           Volver al panel
         </Link>
       </p>

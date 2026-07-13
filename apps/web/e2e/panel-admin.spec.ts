@@ -76,7 +76,7 @@ test('el Admin de Organización ejecuta el ciclo completo', async ({ page }) => 
   await registrarse(page, ADMIN_A);
   await page.getByText('Registrar una empresa nueva').click();
   await page.getByLabel('Razón social').fill(EMPRESA_A);
-  await page.getByRole('button', { name: 'Crear empresa' }).click();
+  await page.getByRole('button', { name: 'Registrar empresa' }).click();
   await expect(page.getByTestId('nombre-empresa')).toHaveText(EMPRESA_A);
 
   // Centro de trabajo (30 trabajadores → GR-I + GR-II)
@@ -89,7 +89,7 @@ test('el Admin de Organización ejecuta el ciclo completo', async ({ page }) => 
   await page.goto(page.url().replace('/centros', '/empleados'));
   await page.getByLabel('Nombre completo').fill('Empleada Uno');
   await page.getByLabel('Correo electrónico').fill(`emp1-${corrida}@e2e.mx`);
-  await page.getByLabel('Área').fill('Ventas');
+  await page.getByLabel('Área', { exact: true }).fill('Ventas');
   await page.getByRole('button', { name: 'Agregar empleado' }).click();
   await expect(page.getByTestId('lista-empleados')).toContainText('Empleada Uno');
 
@@ -221,7 +221,7 @@ test('un consultor opera solo las empresas asignadas', async ({ browser }) => {
   await registrarse(paginaAdminB, ADMIN_B);
   await paginaAdminB.getByText('Registrar una empresa nueva').click();
   await paginaAdminB.getByLabel('Razón social').fill(EMPRESA_B);
-  await paginaAdminB.getByRole('button', { name: 'Crear empresa' }).click();
+  await paginaAdminB.getByRole('button', { name: 'Registrar empresa' }).click();
   await expect(paginaAdminB.getByTestId('nombre-empresa')).toHaveText(EMPRESA_B);
 
   // El admin de A asigna al consultor

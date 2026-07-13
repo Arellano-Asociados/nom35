@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { LogoConstata } from '@/components/marca/logo';
 import { BotonSalir } from '@/components/panel/boton-salir';
+import { claseControl } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const SECCIONES_EMPRESA = [
+  ['', 'Inicio'],
   ['centros', 'Centros'],
   ['empleados', 'Empleados'],
   ['ciclos', 'Ciclos'],
@@ -15,45 +18,124 @@ const SECCIONES_EMPRESA = [
   ['equipo', 'Equipo'],
 ] as const;
 
-export function Sidebar({ email }: { email: string }) {
+const ETIQUETA_ROL: Record<string, string> = {
+  admin_org: 'Admin de Organización',
+  consultor: 'Consultor',
+  miembro: 'Miembro',
+};
+
+export interface MembresiaSidebar {
+  companyId: string;
+  razonSocial: string;
+  rol: string;
+}
+
+export function Sidebar({ email, membresias }: { email: string; membresias: MembresiaSidebar[] }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [abierto, setAbierto] = useState(false);
+  const refDrawer = useRef<HTMLDivElement>(null);
+  const refBotonMenu = useRef<HTMLButtonElement>(null);
 
   // Detecta si estamos dentro de /panel/[empresa]/... (y no en /panel/nueva)
   const coincidencia = pathname.match(/^\/panel\/([^/]+)/);
   const empresa = coincidencia && coincidencia[1] !== 'nueva' ? coincidencia[1] : null;
+  const activa = empresa ? membresias.find((m) => m.companyId === empresa) : undefined;
 
   useEffect(() => {
     setAbierto(false);
   }, [pathname]);
 
+  // Gestión de foco del drawer (auditoría v0, dimensión 5 [Alto]): al abrir, el foco
+  // entra al diálogo; Tab queda atrapado dentro; Escape cierra; al cerrar, el foco
+  // regresa al botón de menú. Sin esto, Tab recorría el contenido tapado por el overlay.
+  const estabaAbierto = useRef(false);
   useEffect(() => {
-    if (!abierto) return;
-    const alEscape = (evento: KeyboardEvent) => {
-      if (evento.key === 'Escape') setAbierto(false);
+    if (!abierto) {
+      // Restaurar el foco SOLO si el drawer estuvo abierto (no al montar la página).
+      if (estabaAbierto.current) refBotonMenu.current?.focus();
+      estabaAbierto.current = false;
+      return;
+    }
+    estabaAbierto.current = true;
+    const drawer = refDrawer.current;
+    const enfocables = () =>
+      drawer?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), select, input, [tabindex]:not([tabindex="-1"])',
+      ) ?? [];
+    enfocables()[0]?.focus();
+
+    const alTeclear = (evento: KeyboardEvent) => {
+      if (evento.key === 'Escape') {
+        setAbierto(false);
+        return;
+      }
+      if (evento.key !== 'Tab') return;
+      const elementos = [...enfocables()];
+      if (elementos.length === 0) return;
+      const primero = elementos[0];
+      const ultimo = elementos[elementos.length - 1];
+      if (evento.shiftKey && document.activeElement === primero) {
+        evento.preventDefault();
+        ultimo.focus();
+      } else if (!evento.shiftKey && document.activeElement === ultimo) {
+        evento.preventDefault();
+        primero.focus();
+      }
     };
-    document.addEventListener('keydown', alEscape);
-    return () => document.removeEventListener('keydown', alEscape);
+    document.addEventListener('keydown', alTeclear);
+    return () => document.removeEventListener('keydown', alTeclear);
   }, [abierto]);
 
   const marca = (
-    <Link
-      href="/panel"
-      className="text-base font-semibold tracking-tight text-slate-900 hover:text-slate-700"
-    >
-      Plataforma NOM-035
+    <Link href="/panel" className="inline-flex items-center hover:opacity-85">
+      <LogoConstata />
+      <span className="sr-only">Ir al inicio del panel</span>
     </Link>
   );
 
   const contenido = (
     <div className="flex h-full flex-col">
-      <div className="border-b border-slate-200 px-4 py-4">{marca}</div>
+      <div className="border-b border-borde px-4 py-4">{marca}</div>
+
+      {/* Empresa activa: confirmación persistente del tenant sobre el que se actúa
+          (auditoría v0, dimensión 4 [Alto]) + selector cuando hay más de una. */}
+      {activa && (
+        <div className="flex flex-col gap-2 border-b border-borde px-4 py-3">
+          <p className="text-xs font-medium tracking-wide text-texto-terciario uppercase">
+            Empresa activa
+          </p>
+          <p className="text-sm font-semibold text-texto" data-testid="empresa-activa">
+            {activa.razonSocial}
+          </p>
+          <p className="text-xs text-texto-secundario">{ETIQUETA_ROL[activa.rol] ?? activa.rol}</p>
+          {membresias.length > 1 && (
+            <label className="flex flex-col gap-1 text-xs text-texto-secundario">
+              <span className="sr-only">Cambiar de empresa</span>
+              <select
+                value={activa.companyId}
+                onChange={(evento) => router.push(`/panel/${evento.target.value}/centros`)}
+                className={cn(claseControl, 'h-9 py-1 text-xs')}
+              >
+                {membresias.map((m) => (
+                  <option key={m.companyId} value={m.companyId}>
+                    {m.razonSocial}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      )}
 
       {empresa && (
         <nav aria-label="Secciones de la empresa" className="flex flex-col gap-1 px-3 py-4">
           {SECCIONES_EMPRESA.map(([ruta, etiqueta]) => {
-            const href = `/panel/${empresa}/${ruta}`;
-            const activo = pathname === href || pathname.startsWith(`${href}/`);
+            const href = ruta ? `/panel/${empresa}/${ruta}` : `/panel/${empresa}`;
+            // "Inicio" (ruta vacía) solo con coincidencia exacta: su href es prefijo de todos.
+            const activo = ruta
+              ? pathname === href || pathname.startsWith(`${href}/`)
+              : pathname === href;
             return (
               <Link
                 key={ruta}
@@ -62,7 +144,7 @@ export function Sidebar({ email }: { email: string }) {
                 className={cn(
                   'rounded-md px-3 py-2 text-sm font-medium transition-colors',
                   activo
-                    ? 'bg-blue-50 text-blue-700'
+                    ? 'bg-marca-50 text-marca-700'
                     : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900',
                 )}
               >
@@ -73,8 +155,8 @@ export function Sidebar({ email }: { email: string }) {
         </nav>
       )}
 
-      <div className="mt-auto flex flex-col gap-2 border-t border-slate-200 px-4 py-4">
-        <span data-testid="usuario-email" className="truncate text-xs text-slate-500">
+      <div className="mt-auto flex flex-col gap-2 border-t border-borde px-4 py-4">
+        <span data-testid="usuario-email" className="truncate text-xs text-texto-terciario">
           {email}
         </span>
         <BotonSalir />
@@ -85,15 +167,16 @@ export function Sidebar({ email }: { email: string }) {
   return (
     <>
       {/* Sidebar fija de escritorio */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-slate-200 lg:bg-white">
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-borde lg:bg-superficie">
         {contenido}
       </aside>
 
       {/* Encabezado móvil con botón de menú */}
-      <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+      <div className="flex items-center justify-between border-b border-borde bg-superficie px-4 py-3 lg:hidden">
         {marca}
         <button
           type="button"
+          ref={refBotonMenu}
           aria-expanded={abierto}
           aria-controls="sidebar-movil"
           onClick={() => setAbierto((valor) => !valor)}
@@ -128,7 +211,11 @@ export function Sidebar({ email }: { email: string }) {
           />
           <div
             id="sidebar-movil"
-            className="fixed inset-y-0 left-0 z-50 w-72 max-w-[80vw] border-r border-slate-200 bg-white shadow-lg"
+            ref={refDrawer}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú de navegación"
+            className="fixed inset-y-0 left-0 z-50 w-72 max-w-[80vw] border-r border-borde bg-superficie shadow-lg"
           >
             {contenido}
           </div>

@@ -83,5 +83,5 @@ export async function middleware(request: NextRequest) {
 export const config = {
   // La CSP debe cubrir TODA la app (incluido el flujo del empleado), así que el matcher
   // ya no se limita a /panel. Se excluyen los estáticos, que no ejecutan scripts.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg).*)'],
 };

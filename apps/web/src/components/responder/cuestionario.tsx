@@ -99,27 +99,44 @@ export function Cuestionario({
       <div className="pointer-events-none sticky top-0 z-10 -mx-4 flex flex-col gap-2 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur sm:-mx-0 sm:rounded-t-xl">
         <div
           aria-live="polite"
-          className="flex items-center justify-between text-sm text-slate-600"
+          className="flex items-center justify-between gap-2 text-sm text-slate-600"
         >
           <span className="font-medium text-slate-800">
             Sección {indiceSeguro + 1} de {seccionesVisibles.length}
           </span>
+          {/* Señal VISIBLE del guardado automático (auditoría v0, dimensión 7 [Medio]:
+              la promesa "se guarda solo" no tenía ninguna señal en pantalla). */}
+          {contestadas > 0 && (
+            <span className="text-xs text-texto-secundario">
+              {guardando > 0 ? 'Guardando…' : 'Guardado ✓'}
+            </span>
+          )}
           <span data-testid="progreso" data-guardando={guardando} className="tabular-nums">
             {contestadas} / {totalPreguntas} respondidas
           </span>
         </div>
         <div
           role="progressbar"
+          aria-label="Avance del cuestionario"
           aria-valuenow={contestadas}
           aria-valuemin={0}
           aria-valuemax={totalPreguntas}
           className="h-2 overflow-hidden rounded-full bg-slate-200"
         >
           <div
-            className="h-full rounded-full bg-blue-700 transition-all duration-300"
+            className="h-full rounded-full bg-marca-700 transition-all duration-300"
             style={{ width: totalPreguntas ? `${(contestadas / totalPreguntas) * 100}%` : '0%' }}
           />
         </div>
+        {/* El estado del guardado también se ANUNCIA (WCAG 4.1.3): un trabajador ciego
+            debe saber si su respuesta persistió — la promesa central del flujo. */}
+        <p role="status" className="sr-only">
+          {contestadas === 0
+            ? ''
+            : guardando > 0
+              ? 'Guardando tu respuesta…'
+              : 'Respuestas guardadas'}
+        </p>
       </div>
 
       <Card key={seccionActual.id} className="animate-seccion">
@@ -152,11 +169,11 @@ export function Cuestionario({
                         // por teclado recorría hasta 360 opciones SIN VER NUNCA dónde estaba el
                         // foco — en la práctica no podía responder (WCAG 2.4.7). `has-focus-visible`
                         // sube el indicador al label, que es lo que se ve.
-                        className={`flex min-h-11 cursor-pointer items-center justify-center rounded-lg border-2 text-center transition-colors duration-150 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-blue-600 ${
+                        className={`flex min-h-11 cursor-pointer items-center justify-center rounded-lg border-2 text-center transition-colors duration-150 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-marca-500 ${
                           esGR1 ? 'flex-1 px-4 py-4 text-base font-medium' : 'px-3 py-2.5 text-sm'
                         } ${
                           marcada
-                            ? 'border-blue-700 bg-blue-50 font-semibold text-blue-900 shadow-sm'
+                            ? 'border-marca-700 bg-marca-50 font-semibold text-marca-900 shadow-sm'
                             : 'border-slate-400 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
@@ -180,7 +197,7 @@ export function Cuestionario({
       </Card>
 
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800">
+        <p role="alert" className="rounded-md bg-peligro-fondo p-3 text-sm text-peligro-texto">
           {error}
         </p>
       )}

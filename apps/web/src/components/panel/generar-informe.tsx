@@ -132,7 +132,7 @@ export function GenerarInforme({
             {pendiente79 ? 'Generando…' : 'Generar informe 7.9'}
           </Button>
           {error79 && (
-            <p role="alert" className="text-sm text-red-700">
+            <p role="alert" className="text-sm text-peligro">
               {error79}
             </p>
           )}
@@ -156,7 +156,7 @@ export function GenerarInforme({
             {pendienteExpediente ? 'Generando…' : 'Generar expediente de inspección'}
           </Button>
           {errorExpediente && (
-            <p role="alert" className="text-sm text-red-700">
+            <p role="alert" className="text-sm text-peligro">
               {errorExpediente}
             </p>
           )}
@@ -174,7 +174,12 @@ export function GenerarInforme({
               <tr className="border-b border-slate-200 text-left text-xs tracking-wide text-slate-500 uppercase">
                 <th className="py-2 font-medium">Tipo</th>
                 <th className="py-2 font-medium">Fecha</th>
-                <th className="py-2 font-medium">SHA-256</th>
+                <th
+                  className="py-2 font-medium"
+                  title="Código que permite demostrar que el archivo no fue alterado (SHA-256)"
+                >
+                  Huella de integridad
+                </th>
                 <th className="py-2 font-medium">Descarga</th>
               </tr>
             </thead>
@@ -213,7 +218,7 @@ export function GenerarInforme({
                           {enCurso ? 'Preparando…' : 'Descargar'}
                         </Button>
                         {errorFila && (
-                          <p role="alert" className="text-sm text-red-700">
+                          <p role="alert" className="text-sm text-peligro">
                             {errorFila}
                           </p>
                         )}
@@ -222,7 +227,7 @@ export function GenerarInforme({
                             href={urlRespaldo}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-blue-700 underline"
+                            className="text-sm text-marca-700 underline"
                           >
                             Descargar manualmente
                           </a>

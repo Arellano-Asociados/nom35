@@ -18,7 +18,7 @@ test('flujo completo GR-III con condicionales y guardado incremental', async ({ 
   await aceptarConsentimiento(page);
   await responderFiltros(page, 'Sí', 'No');
 
-  await expect(page.getByText('Cuestionario GR-III')).toBeVisible();
+  await expect(page.getByText('Cuestionario sobre tu entorno de trabajo')).toBeVisible();
   await expect(page.getByTestId('progreso')).toHaveText('0 / 68 respondidas');
 
   // Guardado incremental: responde la primera sección, espera a que no queden guardados

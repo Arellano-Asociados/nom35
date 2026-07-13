@@ -14,7 +14,7 @@ test('GR-I sin acontecimiento: termina en la Sección I y no requiere valoració
   await page.goto(`/responder/${tokens.gr1SinEvento}`);
 
   await aceptarConsentimiento(page);
-  await expect(page.getByText('Cuestionario GR-I')).toBeVisible();
+  await expect(page.getByText('Cuestionario sobre tu entorno de trabajo')).toBeVisible();
 
   // Con todas "No" en la Sección I, no aparecen las secciones II–IV
   await responderSeccionActual(page, 'No');
@@ -32,7 +32,7 @@ test('GR-I con acontecimiento y afectación: requiere valoración y notifica al 
   await page.goto(`/responder/${tokens.gr1ConEvento}`);
 
   await aceptarConsentimiento(page);
-  await expect(page.getByText('Cuestionario GR-I')).toBeVisible();
+  await expect(page.getByText('Cuestionario sobre tu entorno de trabajo')).toBeVisible();
 
   // Sección I: un "Sí" habilita las secciones II–IV
   const preguntasI = page.locator('fieldset');

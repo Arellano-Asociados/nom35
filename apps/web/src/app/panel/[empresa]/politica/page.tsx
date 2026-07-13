@@ -1,8 +1,9 @@
 import { accionSubirPolitica } from '@/acciones/panel';
 import { ErrorFormulario } from '@/components/panel/error-formulario';
-import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { claseControl, CampoTexto } from '@/components/ui/input';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 import { clienteAdmin } from '@/lib/supabase-admin';
 import { cn } from '@/lib/utils';
@@ -44,17 +45,18 @@ export default async function PaginaPolitica({
         </CardHeader>
         <CardContent>
           {(politicas ?? []).length === 0 ? (
-            <p className={claseEstadoVacio}>
-              Aún no se publica una política. Publica la primera con el formulario.
-            </p>
+            <EmptyState
+              titulo="Aún no se publica una política"
+              descripcion="La política de prevención es obligatoria para todos los centros, y su difusión genera evidencia: cada empleado registra su acuse de recibo al responder su cuestionario. Publica la primera con el formulario."
+            />
           ) : (
             <ul className="flex flex-col gap-2 text-sm" data-testid="lista-politicas">
               {(politicas ?? []).map((p) => (
-                <li key={p.id} className="rounded-md border border-slate-200 px-4 py-3">
-                  <p className="font-medium text-slate-900">
+                <li key={p.id} className="rounded-md border border-borde px-4 py-3">
+                  <p className="font-medium text-texto">
                     {p.title} (versión {p.version})
                   </p>
-                  <p className="text-slate-600 tabular-nums">
+                  <p className="text-texto-secundario tabular-nums">
                     Acuses:{' '}
                     <span data-testid={`acuses-${p.id}`}>
                       {(p.policy_acknowledgments as unknown as unknown[]).length}
@@ -75,15 +77,9 @@ export default async function PaginaPolitica({
         <CardContent>
           <form action={subir} className="flex flex-col gap-3 text-sm">
             <ErrorFormulario codigo={errorFormulario} />
-            <label className="flex flex-col gap-1 font-medium text-slate-800">
-              Título
-              <input name="titulo" required className={claseCampo} />
-            </label>
-            <label className="flex flex-col gap-1 font-medium text-slate-800">
-              Versión
-              <input name="version" required className={claseCampo} />
-            </label>
-            <label className="flex flex-col gap-1 font-medium text-slate-800">
+            <CampoTexto etiqueta="Título" nombre="titulo" required />
+            <CampoTexto etiqueta="Versión" nombre="version" required />
+            <label className="flex flex-col gap-1 text-sm font-medium text-slate-800">
               Archivo (PDF)
               <input
                 name="archivo"
@@ -91,14 +87,14 @@ export default async function PaginaPolitica({
                 accept="application/pdf"
                 required
                 className={cn(
-                  claseCampo,
+                  claseControl,
                   'file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700',
                 )}
               />
             </label>
-            <p className="text-xs text-slate-500">
-              Los empleados verán la política en la página de su cuestionario y registrarán su acuse
-              de recibo (evidencia de difusión).
+            <p className="text-xs text-texto-terciario">
+              Solo PDF, máximo 10 MB. Los empleados verán la política en la página de su
+              cuestionario y registrarán su acuse de recibo (evidencia de difusión).
             </p>
             <Button type="submit">Publicar</Button>
           </form>

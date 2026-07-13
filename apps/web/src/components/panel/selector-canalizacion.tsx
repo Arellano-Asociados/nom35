@@ -53,7 +53,11 @@ export function SelectorCanalizacion({
           <option value="atendido">Atendido</option>
         </select>
       </div>
-      {error && <p className="text-xs text-red-700">{error}</p>}
+      {error && (
+        <p role="alert" className="text-xs text-peligro">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

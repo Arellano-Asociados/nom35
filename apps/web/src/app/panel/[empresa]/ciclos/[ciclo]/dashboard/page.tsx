@@ -3,10 +3,12 @@ import type { ReactNode } from 'react';
 import { BadgeNivel } from '@/components/panel/badges';
 import { TablaDistribucion } from '@/components/panel/tabla-distribucion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { distribucionNiveles, distribucionPorNombre, NIVELES } from '@/lib/agregados';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 import { resultadosVigentesPorAsignacion } from '@/lib/informe';
 import { clienteAdmin } from '@/lib/supabase-admin';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,8 +22,8 @@ function TileResumen({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }
   return (
     <Card>
       <CardContent className="flex flex-col gap-1 p-4">
-        <p className="text-xs text-slate-500">{etiqueta}</p>
-        <p className="text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">{valor}</p>
+        <p className="text-xs text-texto-secundario">{etiqueta}</p>
+        <p className="text-2xl font-semibold tracking-tight text-texto tabular-nums">{valor}</p>
       </CardContent>
     </Card>
   );
@@ -41,13 +43,20 @@ export default async function PaginaDashboard({
   // Agregación en el servidor (el rol patronal no tiene SELECT sobre risk_results):
   // solo distribuciones y conteos llegan a la UI, jamás resultados individuales.
   const supabase = clienteAdmin();
-  const { data: resultados } = await supabase
-    .from('risk_results')
-    .select(
-      'id, assignment_id, supersedes_id, created_at, nivel_final, categorias, dominios, employees (area)',
-    )
-    .eq('company_id', empresa)
-    .eq('cycle_id', ciclo);
+  const [{ data: resultados }, { count: totalAsignaciones }] = await Promise.all([
+    supabase
+      .from('risk_results')
+      .select(
+        'id, assignment_id, supersedes_id, created_at, nivel_final, categorias, dominios, employees (area)',
+      )
+      .eq('company_id', empresa)
+      .eq('cycle_id', ciclo),
+    supabase
+      .from('questionnaire_assignments')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', empresa)
+      .eq('cycle_id', ciclo),
+  ]);
 
   // Mismo criterio que el informe 7.9 (regla inviolable 1): con cualquier recálculo,
   // el dashboard y el informe deben coincidir en la distribución del mismo ciclo.
@@ -97,9 +106,36 @@ export default async function PaginaDashboard({
     return mejor;
   }, null);
 
+  // Participación del CICLO completo (no del filtro): respondidos vigentes / asignados.
+  const participacion =
+    totalAsignaciones && totalAsignaciones > 0
+      ? Math.round((vigentes.length / totalAsignaciones) * 100)
+      : null;
+
+  if (vigentes.length === 0) {
+    return (
+      <EmptyState
+        titulo="Aún no hay resultados en este ciclo"
+        descripcion="El dashboard agregado se llena conforme los empleados responden su cuestionario; nunca muestra respuestas individuales, solo distribuciones y conteos. Distribuye los cuestionarios o envía recordatorios desde el Resumen."
+        cta={
+          <Link
+            href={`/panel/${empresa}/ciclos/${ciclo}`}
+            className="text-sm font-medium text-marca-700 underline hover:text-marca-800"
+          >
+            Ir al Resumen del ciclo
+          </Link>
+        }
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <TileResumen
+          etiqueta="Participación del ciclo"
+          valor={participacion === null ? '—' : `${participacion}%`}
+        />
         <TileResumen etiqueta="Completados" valor={filtrados.length} />
         <TileResumen
           etiqueta="Áreas cubiertas"
@@ -117,17 +153,25 @@ export default async function PaginaDashboard({
             nivelPredominante ? (
               <BadgeNivel nivel={nivelPredominante.nivel} />
             ) : (
-              <span className="text-base font-normal text-slate-600">Sin datos suficientes</span>
+              <span className="text-base font-normal text-texto-secundario">
+                Sin datos suficientes
+              </span>
             )
           }
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-slate-600">Filtrar por área:</span>
+      <nav aria-label="Filtrar por área" className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-texto-secundario">Filtrar por área:</span>
         <Link
           href={`/panel/${empresa}/ciclos/${ciclo}/dashboard`}
-          className={`rounded px-2 py-1 ${!area ? 'bg-blue-100 font-medium text-blue-900' : 'text-blue-700 underline'}`}
+          aria-current={!area ? 'true' : undefined}
+          className={cn(
+            'rounded-full px-3 py-1 transition-colors',
+            !area
+              ? 'bg-marca-100 font-medium text-marca-900'
+              : 'text-marca-700 underline hover:text-marca-800',
+          )}
         >
           Todas
         </Link>
@@ -135,12 +179,18 @@ export default async function PaginaDashboard({
           <Link
             key={a}
             href={`/panel/${empresa}/ciclos/${ciclo}/dashboard?area=${encodeURIComponent(a)}`}
-            className={`rounded px-2 py-1 ${area === a ? 'bg-blue-100 font-medium text-blue-900' : 'text-blue-700 underline'}`}
+            aria-current={area === a ? 'true' : undefined}
+            className={cn(
+              'rounded-full px-3 py-1 transition-colors',
+              area === a
+                ? 'bg-marca-100 font-medium text-marca-900'
+                : 'text-marca-700 underline hover:text-marca-800',
+            )}
           >
             {a}
           </Link>
         ))}
-      </div>
+      </nav>
 
       <Card>
         <CardHeader>
@@ -149,7 +199,7 @@ export default async function PaginaDashboard({
         <CardContent>
           <TablaDistribucion
             testid="dist-cfinal"
-            filas={[{ nombre: 'Cfinal', distribucion: cfinal }]}
+            filas={[{ nombre: 'Calificación final', distribucion: cfinal }]}
           />
         </CardContent>
       </Card>
@@ -183,6 +233,11 @@ export default async function PaginaDashboard({
           />
         </CardContent>
       </Card>
+
+      <p className="text-xs text-texto-secundario">
+        Las celdas con menos de 3 personas se ocultan (y con ellas su fila completa) para proteger
+        el anonimato. Este panel nunca muestra resultados individuales.
+      </p>
     </div>
   );
 }

@@ -90,7 +90,7 @@ test('el Admin de Organización genera informe 7.9 y expediente con auditoría',
   await registrarse(page, ADMIN_A);
   await page.getByText('Registrar una empresa nueva').click();
   await page.getByLabel('Razón social').fill(EMPRESA_A);
-  await page.getByRole('button', { name: 'Crear empresa' }).click();
+  await page.getByRole('button', { name: 'Registrar empresa' }).click();
   await expect(page.getByTestId('nombre-empresa')).toHaveText(EMPRESA_A);
 
   await page.getByLabel('Nombre', { exact: true }).fill('Centro Informes');
@@ -101,7 +101,7 @@ test('el Admin de Organización genera informe 7.9 y expediente con auditoría',
   await page.goto(page.url().replace('/centros', '/empleados'));
   await page.getByLabel('Nombre completo').fill('Empleada Informes');
   await page.getByLabel('Correo electrónico').fill(`emp-informes-${corrida}@e2e.mx`);
-  await page.getByLabel('Área').fill('Ventas');
+  await page.getByLabel('Área', { exact: true }).fill('Ventas');
   await page.getByRole('button', { name: 'Agregar empleado' }).click();
   await expect(page.getByTestId('lista-empleados')).toContainText('Empleada Informes');
 
@@ -251,7 +251,7 @@ test('un consultor de otra empresa no ve los informes de esta empresa', async ({
   await registrarse(paginaAdminB, ADMIN_B);
   await paginaAdminB.getByText('Registrar una empresa nueva').click();
   await paginaAdminB.getByLabel('Razón social').fill(EMPRESA_B);
-  await paginaAdminB.getByRole('button', { name: 'Crear empresa' }).click();
+  await paginaAdminB.getByRole('button', { name: 'Registrar empresa' }).click();
   await expect(paginaAdminB.getByTestId('nombre-empresa')).toHaveText(EMPRESA_B);
 
   // El consultor SÍ opera la empresa B (control), para distinguir "no tiene sesión" de

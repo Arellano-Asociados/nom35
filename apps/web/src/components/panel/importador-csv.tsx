@@ -23,9 +23,11 @@ export function ImportadorCsv({
 
   return (
     <div className="flex flex-col gap-3 text-sm">
-      <p className="text-slate-600">
-        Formato: <code>nombre,email,area,atiende_clientes,supervisa_personal</code> (banderas
-        si/no). Pega el contenido del CSV:
+      <p className="text-texto-secundario">
+        Copia desde Excel las columnas <strong>Nombre, Correo, Área, ¿Atiende clientes?</strong> y{' '}
+        <strong>¿Supervisa personal?</strong> (sí/no, separadas por comas), con una fila por
+        persona, y pégalas abajo. Primera fila:{' '}
+        <code>nombre,email,area,atiende_clientes,supervisa_personal</code>.
       </p>
       <select
         aria-label="Centro de trabajo destino"
@@ -63,10 +65,10 @@ export function ImportadorCsv({
           })
         }
       >
-        {pendiente ? 'Importando…' : 'Importar CSV'}
+        {pendiente ? 'Procesando…' : 'Importar empleados'}
       </Button>
       {resultado?.error && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="text-peligro">
           {resultado.error}
         </p>
       )}

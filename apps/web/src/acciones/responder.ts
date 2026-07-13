@@ -111,7 +111,7 @@ export async function accionGuardarRespuesta(
       ...(ctx.empleado.supervisaPersonal ? [] : guia.itemsCondicionales.supervisaPersonal),
     ]);
     if (noAplican.has(numeroItem)) {
-      return { ok: false, error: 'Este ítem no aplica según tus preguntas filtro' };
+      return { ok: false, error: 'Esta pregunta no aplica para tu puesto.' };
     }
   }
 

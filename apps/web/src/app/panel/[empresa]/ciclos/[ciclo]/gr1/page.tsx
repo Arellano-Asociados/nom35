@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { accionActualizarCanalizacion } from '@/acciones/panel';
 import { claseEstadoVacio } from '@/components/panel/campos';
 import { SelectorCanalizacion } from '@/components/panel/selector-canalizacion';
@@ -18,9 +19,24 @@ export default async function PaginaGR1({
   if (!acceso.membresia.esResponsableDesignado) {
     return (
       <Card>
-        <CardContent className="p-6 text-sm text-slate-700" data-testid="gr1-restringido">
-          Esta vista es exclusiva del <strong>Responsable Designado</strong>. Las canalizaciones
-          GR-I contienen datos personales sensibles.
+        <CardContent
+          className="flex flex-col gap-2 p-6 text-sm text-slate-700"
+          data-testid="gr1-restringido"
+        >
+          <p>
+            Esta vista es exclusiva del <strong>Responsable Designado</strong>: contiene datos
+            personales sensibles de salud.
+          </p>
+          {acceso.membresia.rol === 'admin_org' && (
+            <p>
+              <Link
+                href={`/panel/${empresa}/equipo`}
+                className="font-medium text-marca-700 underline hover:text-marca-800"
+              >
+                Designa al Responsable en Equipo
+              </Link>
+            </p>
+          )}
         </CardContent>
       </Card>
     );
@@ -41,7 +57,10 @@ export default async function PaginaGR1({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Canalizaciones GR-I (valoración clínica requerida)</CardTitle>
+        <CardTitle>Trabajadores que requieren valoración clínica</CardTitle>
+        <p className="text-xs text-texto-secundario">
+          Guía de Referencia I: acontecimientos traumáticos severos
+        </p>
       </CardHeader>
       <CardContent>
         {(canalizaciones ?? []).length === 0 ? (

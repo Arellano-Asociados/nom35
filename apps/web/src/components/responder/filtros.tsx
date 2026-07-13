@@ -27,9 +27,9 @@ function PreguntaSiNo({
         ].map(({ etiqueta, v }) => (
           <label
             key={etiqueta}
-            className={`flex has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-blue-600 min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg border-2 px-4 py-4 text-center text-base font-medium transition-colors duration-150 ${
+            className={`flex has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-marca-500 min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg border-2 px-4 py-4 text-center text-base font-medium transition-colors duration-150 ${
               valor === v
-                ? 'border-blue-700 bg-blue-50 text-blue-900 shadow-sm'
+                ? 'border-marca-700 bg-marca-50 text-marca-900 shadow-sm'
                 : 'border-slate-400 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
             }`}
           >
@@ -78,7 +78,7 @@ export function Filtros({ token }: { token: string }) {
           onCambio={setSupervisa}
         />
         {error && (
-          <p role="alert" className="text-sm text-red-700">
+          <p role="alert" className="text-sm text-peligro">
             {error}
           </p>
         )}
@@ -90,7 +90,10 @@ export function Filtros({ token }: { token: string }) {
             startTransition(async () => {
               const r = await accionGuardarFiltros(token, atiende === true, supervisa === true);
               if (!r.ok) {
-                setError(r.error ?? 'Ocurrió un error');
+                setError(
+                  r.error ??
+                    'No pudimos guardar tu respuesta. Revisa tu conexión e intenta de nuevo.',
+                );
                 return;
               }
               router.refresh();
