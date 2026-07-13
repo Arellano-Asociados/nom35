@@ -71,11 +71,14 @@ Estas reglas no admiten excepciones, flags de configuración ni "casos especiale
    modificaciones.
 2. **Sin promedios:** los resultados NUNCA se promedian entre empleados. Agregados =
    distribuciones y conteos.
-3. **Anti-reidentificación:** toda vista agregada suprime celdas con **n < 3**. La
-   supresión incluye complementaria (evita recuperación por resta, incluso con ≥2
-   celdas suprimidas cuando su suma forzada tiene una única descomposición); esto
-   protege cada tabla en aislado, no inferencia cruzada entre tablas ligadas (p. ej.
-   total oculto vs. conteo de participación publicado aparte).
+3. **Anti-reidentificación:** toda vista agregada suprime celdas con **n < 3** y, si
+   alguna celda se suprime, **se enmascara la FILA COMPLETA**: todas las celdas
+   (incluidos los ceros) y el total. Razón (auditoría v0): suprimir solo la celda con
+   datos oculta el CONTEO pero no el ATRIBUTO — publicar ceros a su lado revela el
+   nivel del individuo. Aplica igual al informe exportable. Limitación abierta: el
+   dashboard se recalcula en vivo, así que la inferencia por diferencia temporal
+   (consultar antes y después de cada respuesta) sigue siendo posible; cerrarla exige
+   publicar instantáneas en vez de agregados en vivo.
 4. **Respuestas crudas: nadie patronal.** Ningún rol patronal (Admin Org, Consultor,
    Responsable Designado, Admin Plataforma) puede leer respuestas crudas ítem por ítem.
    Sin excepciones, sin flags.

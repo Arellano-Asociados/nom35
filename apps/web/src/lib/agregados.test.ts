@@ -1,11 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { distribucionNiveles, distribucionPorNombre } from './agregados';
+import {
+  distribucionNiveles,
+  distribucionPorNombre,
+  NIVELES,
+  type Distribucion,
+} from './agregados';
 
 // Reglas inviolables 2 y 3: agregados = distribuciones y conteos (JAMÁS promedios);
-// toda celda con 0 < n < 3 se suprime (anti-reidentificación).
+// toda celda con 0 < n < 3 se suprime Y, desde la corrección de la auditoría v0, se
+// enmascara la FILA COMPLETA (todas las celdas, incluidos los ceros, y el total):
+// publicar ceros junto a una celda enmascarada revela el NIVEL del individuo aunque
+// oculte su conteo.
+
+/** Una fila está bien protegida si no publica NADA: ni conteos, ni ceros, ni total. */
+function filaTotalmenteEnmascarada(d: Distribucion): boolean {
+  return (
+    d.totalSuprimido &&
+    d.total === null &&
+    NIVELES.every((nivel) => {
+      const c = d.celdas[nivel];
+      return c.suprimida && c.n === null && c.porcentaje === null;
+    })
+  );
+}
 
 describe('distribucionNiveles', () => {
-  it('cuenta y calcula porcentajes por nivel', () => {
+  it('cuenta y calcula porcentajes por nivel cuando ninguna celda cae en 0 < n < 3', () => {
     const niveles = [
       'nulo',
       'nulo',
@@ -23,165 +43,125 @@ describe('distribucionNiveles', () => {
     expect(d.celdas.nulo).toEqual({ n: 3, porcentaje: 30, suprimida: false });
     expect(d.celdas.alto).toEqual({ n: 4, porcentaje: 40, suprimida: false });
     expect(d.celdas.medio).toEqual({ n: 3, porcentaje: 30, suprimida: false });
+    expect(d.celdas.bajo).toEqual({ n: 0, porcentaje: 0, suprimida: false });
   });
 
-  it('suprime celdas con 0 < n < 3 (sin conteo ni porcentaje)', () => {
-    const d = distribucionNiveles(['bajo', 'bajo', 'muy_alto', 'nulo', 'nulo', 'nulo']);
-    expect(d.celdas.bajo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.celdas.muy_alto).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.celdas.nulo.n).toBe(3);
-  });
-
-  it('celdas con n = 0 no se suprimen (cero no reidentifica)', () => {
-    const d = distribucionNiveles(['nulo', 'nulo', 'nulo']);
-    expect(d.celdas.alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-  });
-
-  it('lista vacía produce total 0', () => {
+  it('lista vacía: total 0 y nada que proteger (nadie respondió)', () => {
     const d = distribucionNiveles([]);
     expect(d.total).toBe(0);
-    expect(d.celdas.nulo.n).toBe(0);
+    expect(d.totalSuprimido).toBe(false);
+    expect(d.celdas.nulo).toEqual({ n: 0, porcentaje: 0, suprimida: false });
+  });
+
+  it('grupo de exactamente 3 en un solo nivel: se publica (3 es el umbral aceptado)', () => {
+    const d = distribucionNiveles(['nulo', 'nulo', 'nulo']);
+    expect(d.total).toBe(3);
+    expect(d.totalSuprimido).toBe(false);
+    expect(d.celdas.nulo).toEqual({ n: 3, porcentaje: 100, suprimida: false });
+    expect(d.celdas.alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
+  });
+});
+
+describe('anti-reidentificación: enmascarado de fila completa', () => {
+  // Estos son los casos que la auditoría v0 encontró abiertos: la supresión por celda
+  // ocultaba el conteo pero NO el nivel del individuo.
+
+  it('UN respondiente: ninguna celda revela su nivel (fila completa enmascarada)', () => {
+    const d = distribucionNiveles(['medio']);
+    expect(filaTotalmenteEnmascarada(d)).toBe(true);
+    // El defecto original: 'medio' quedaba como [<3] y las otras cuatro como 0 (0%),
+    // de modo que el único nivel no-cero delataba el resultado de esa persona.
+    for (const nivel of NIVELES) {
+      expect(d.celdas[nivel].n).toBeNull();
+    }
+    expect(d.total).toBeNull();
+  });
+
+  it('UN respondiente en cada nivel posible: en ningún caso se filtra el nivel', () => {
+    for (const nivel of NIVELES) {
+      const d = distribucionNiveles([nivel]);
+      expect(filaTotalmenteEnmascarada(d)).toBe(true);
+    }
+  });
+
+  it('DOS respondientes del mismo nivel: fila completa enmascarada', () => {
+    const d = distribucionNiveles(['alto', 'alto']);
+    expect(filaTotalmenteEnmascarada(d)).toBe(true);
+  });
+
+  it('DOS respondientes de niveles distintos: fila completa enmascarada', () => {
+    const d = distribucionNiveles(['nulo', 'muy_alto']);
+    expect(filaTotalmenteEnmascarada(d)).toBe(true);
+  });
+
+  it('una celda pequeña dentro de un grupo grande enmascara toda la fila', () => {
+    // 3 nulo + 1 alto: antes 'alto' se enmascaraba y 'nulo' se suprimía por la regla
+    // complementaria, pero bajo/medio/muy_alto seguían publicándose en 0 — y el total
+    // (4) seguía visible. Ahora no se publica nada de la fila.
+    const d = distribucionNiveles(['nulo', 'nulo', 'nulo', 'alto']);
+    expect(filaTotalmenteEnmascarada(d)).toBe(true);
+  });
+
+  it('dos celdas pequeñas y una grande: también se enmascara toda la fila', () => {
+    // nulo=1, bajo=2, medio=5. Antes se publicaba medio=5 y los ceros de alto/muy_alto.
+    const d = distribucionNiveles([
+      'nulo',
+      'bajo',
+      'bajo',
+      'medio',
+      'medio',
+      'medio',
+      'medio',
+      'medio',
+    ]);
+    expect(filaTotalmenteEnmascarada(d)).toBe(true);
+  });
+
+  it('propiedad: si alguna celda está suprimida, TODAS lo están y el total también', () => {
+    // Barrido exhaustivo de composiciones pequeñas (hasta 6 personas en 5 niveles):
+    // ninguna combinación debe dejar una celda publicada junto a otra suprimida.
+    const combinaciones: string[][] = [];
+    const generar = (acc: string[], restantes: number) => {
+      combinaciones.push([...acc]);
+      if (restantes === 0) return;
+      for (const nivel of NIVELES) generar([...acc, nivel], restantes - 1);
+    };
+    generar([], 5);
+
+    for (const muestra of combinaciones) {
+      const d = distribucionNiveles(muestra);
+      const alguna = NIVELES.some((nivel) => d.celdas[nivel].suprimida);
+      if (alguna) {
+        expect(filaTotalmenteEnmascarada(d)).toBe(true);
+      } else {
+        // Sin celdas suprimidas, nada se oculta: el total se publica.
+        expect(d.totalSuprimido).toBe(false);
+        expect(d.total).toBe(muestra.length);
+      }
+    }
   });
 });
 
 describe('distribucionPorNombre', () => {
-  it('agrupa por nombre (categoría o dominio) aplicando la supresión por celda', () => {
+  it('agrupa por categoría o dominio y enmascara por fila de forma independiente', () => {
     const filas = [
+      // Carga de trabajo: 3 alto + 1 nulo → la celda de 1 enmascara toda su fila.
       { nombre: 'Carga de trabajo', nivel: 'alto' },
       { nombre: 'Carga de trabajo', nivel: 'alto' },
       { nombre: 'Carga de trabajo', nivel: 'alto' },
       { nombre: 'Carga de trabajo', nivel: 'nulo' },
+      // Violencia: 3 nulo → sin celdas pequeñas, se publica.
       { nombre: 'Violencia', nivel: 'nulo' },
       { nombre: 'Violencia', nivel: 'nulo' },
       { nombre: 'Violencia', nivel: 'nulo' },
     ];
     const porNombre = distribucionPorNombre(filas);
+
     const carga = porNombre.get('Carga de trabajo');
-    expect(carga?.total).toBe(4);
-    // 'nulo' (n=1) se suprime por la regla base (0<n<3). Es la ÚNICA celda suprimida
-    // del grupo y la única celda visible positiva es 'alto' (n=3): sin supresión
-    // complementaria, total(4) - alto(3) = 1 recuperaría exactamente el valor de
-    // 'nulo'. Por eso 'alto', al ser la celda visible de menor n positivo (aquí la
-    // única), también se suprime. El total permanece visible porque ahora hay DOS
-    // celdas suprimidas: la resta solo revela su suma (4), no cada valor individual.
-    // (Expectativa actualizada conscientemente por la regla de supresión
-    // complementaria de esta tarea; antes 'alto' quedaba visible con n:3.)
-    expect(carga?.celdas.alto).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(carga?.celdas.nulo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(carga?.total).toBe(4);
-    expect(carga?.totalSuprimido).toBe(false);
-    expect(porNombre.get('Violencia')?.celdas.nulo.n).toBe(3);
-  });
-});
+    expect(carga && filaTotalmenteEnmascarada(carga)).toBe(true);
 
-describe('supresión complementaria (evita recuperación por resta)', () => {
-  it('(a) una sola celda suprimida con una celda visible positiva: también se suprime la de menor n', () => {
-    // 3 nulo + 1 alto (total 4): la base suprime 'alto' (n=1); sin regla
-    // complementaria, total(4) - nulo(3) = 1 recuperaría 'alto'. La única celda
-    // visible positiva es 'nulo' (n=3): se suprime también.
-    const d = distribucionNiveles(['nulo', 'nulo', 'nulo', 'alto']);
-    expect(d.total).toBe(4);
-    expect(d.totalSuprimido).toBe(false);
-    expect(d.celdas.alto).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.celdas.nulo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    // Las celdas en 0 no revelan nada por resta (no se tocan).
-    expect(d.celdas.bajo).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-    expect(d.celdas.medio).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-    expect(d.celdas.muy_alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-  });
-
-  it('(b)/(g) dos celdas suprimidas (n=1 y n=2) con descomposición NO única: no se suprime nada adicional', () => {
-    // nulo=1 (suprimida), bajo=2 (suprimida), medio=5 (visible), alto=0, muy_alto=0.
-    // k=2 celdas suprimidas, S = total(8) - visibles(5) = 3. Descomposición sobre 2
-    // celdas ∈{1,2}: S===k sería 3===2 (falso), S===2k sería 3===4 (falso) → NO es
-    // única: (nulo=1,bajo=2) y (nulo=2,bajo=1) son ambas consistentes con S=3, así
-    // que la resta no aísla ningún valor y no hace falta supresión complementaria.
-    const niveles = ['nulo', 'bajo', 'bajo', 'medio', 'medio', 'medio', 'medio', 'medio'];
-    const d = distribucionNiveles(niveles);
-    expect(d.total).toBe(8);
-    expect(d.totalSuprimido).toBe(false);
-    expect(d.celdas.nulo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.celdas.bajo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    // La resta solo revela la SUMA de las dos suprimidas (3), no cada valor: medio
-    // (la única celda visible positiva) permanece visible, sin tocar.
-    expect(d.celdas.medio).toEqual({ n: 5, porcentaje: 63, suprimida: false });
-    expect(d.celdas.alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-    expect(d.celdas.muy_alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-  });
-
-  it('(c) ninguna celda suprimida: la distribución no cambia', () => {
-    const d = distribucionNiveles(['nulo', 'nulo', 'nulo', 'nulo', 'nulo', 'alto', 'alto', 'alto']);
-    expect(d.total).toBe(8);
-    expect(d.totalSuprimido).toBe(false);
-    expect(d.celdas.nulo).toEqual({ n: 5, porcentaje: 63, suprimida: false });
-    expect(d.celdas.alto).toEqual({ n: 3, porcentaje: 38, suprimida: false });
-    expect(d.celdas.bajo).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-  });
-
-  it('(d) una celda suprimida y el resto en 0: no hay celda complementaria positiva, se suprime el TOTAL', () => {
-    // total 1, 'nulo' n=1 suprimida, todas las demás en 0: total(1) - 0 - 0 - 0 - 0 = 1
-    // recuperaría exactamente el valor de la celda suprimida. No existe ninguna celda
-    // visible positiva que suprimir en su lugar, así que se oculta el total del grupo.
-    const d = distribucionNiveles(['nulo']);
-    expect(d.totalSuprimido).toBe(true);
-    expect(d.total).toBeNull();
-    expect(d.celdas.nulo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    // Las celdas en 0 se conservan visibles (no reidentifican por sí solas).
-    expect(d.celdas.bajo).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-    expect(d.celdas.medio).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-    expect(d.celdas.alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-    expect(d.celdas.muy_alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-  });
-
-  it('(e) dos celdas suprimidas con descomposición forzada (S=k=2, ambas valen 1): sin celda visible positiva, se oculta el total', () => {
-    // Hallazgo del revisor: distribucionNiveles(['nulo','bajo']) — total 2, nulo=1 y
-    // bajo=1 (ambas suprimidas por la regla base, k=2). S = total(2) - visibles(0) = 2
-    // = k → única descomposición posible: AMBAS valen 1 (la única forma de sumar 2
-    // con 2 celdas ∈{1,2} es 1+1). Antes de esta tarea la regla base (suprimidasCount
-    // !== 1) no hacía nada aquí, dejando el total(2) visible y revelando ambos
-    // valores por resta. No hay ninguna celda visible positiva (medio/alto/muy_alto
-    // están en 0) para aplicar la supresión complementaria de celda, así que se oculta
-    // el TOTAL del grupo completo.
-    const d = distribucionNiveles(['nulo', 'bajo']);
-    expect(d.celdas.nulo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.celdas.bajo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.totalSuprimido).toBe(true);
-    expect(d.total).toBeNull();
-    expect(d.celdas.medio).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-    expect(d.celdas.alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-    expect(d.celdas.muy_alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-  });
-
-  it('(f) tres celdas suprimidas con descomposición forzada (S=k=3, las tres valen 1): se oculta el total', () => {
-    // Hallazgo del revisor: distribucionNiveles(['nulo','bajo','medio']) — total 3,
-    // las tres celdas =1 (suprimidas por la regla base, k=3). S = total(3) -
-    // visibles(0) = 3 = k → única descomposición: las tres valen 1 (única forma de
-    // sumar 3 con 3 celdas ∈{1,2}). Sin celda visible positiva → se oculta el total.
-    const d = distribucionNiveles(['nulo', 'bajo', 'medio']);
-    expect(d.celdas.nulo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.celdas.bajo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.celdas.medio).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.totalSuprimido).toBe(true);
-    expect(d.total).toBeNull();
-    expect(d.celdas.alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-    expect(d.celdas.muy_alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-  });
-
-  it('(h) dos celdas suprimidas ambas =2 (S=2k=4, forzada) con una celda visible positiva: también se suprime la visible', () => {
-    // nulo=2, bajo=2 (ambas suprimidas por la regla base, k=2), medio=3 (visible,
-    // no suprimida por la regla base porque 3 no es < 3), alto=0, muy_alto=0.
-    // total=7. S = total(7) - visibles(medio=3) = 4 = 2k (2*2) → única
-    // descomposición: AMBAS suprimidas valen 2 (única forma de sumar 4 con 2 celdas
-    // ∈{1,2} es 2+2). Existe una celda visible positiva (medio=3): se suprime
-    // también para que la resta ya no aísle los valores de nulo/bajo.
-    const niveles = ['nulo', 'nulo', 'bajo', 'bajo', 'medio', 'medio', 'medio'];
-    const d = distribucionNiveles(niveles);
-    expect(d.total).toBe(7);
-    expect(d.totalSuprimido).toBe(false);
-    expect(d.celdas.nulo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.celdas.bajo).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.celdas.medio).toEqual({ n: null, porcentaje: null, suprimida: true });
-    expect(d.celdas.alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
-    expect(d.celdas.muy_alto).toEqual({ n: 0, porcentaje: 0, suprimida: false });
+    const violencia = porNombre.get('Violencia');
+    expect(violencia?.totalSuprimido).toBe(false);
+    expect(violencia?.celdas.nulo.n).toBe(3);
   });
 });
