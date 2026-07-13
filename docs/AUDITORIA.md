@@ -48,9 +48,43 @@ La buena noticia: **los tres tienen remediación acotada** y ninguno exige rearq
 
 ---
 
+## Remediación — Fase 1.5 «críticos» (2026-07-13, rama `fase-1.5-criticos`)
+
+Esta sección se añadió al cerrar la Fase 1.5; el resto del documento conserva el texto
+original de la auditoría como registro histórico. Validación al cierre de la fase:
+lint + typecheck sin warnings, motor 59/59, web 59/59 (unit), suite RLS 38/38, E2E
+Playwright 10/10, migraciones 12/12 reproducibles desde cero.
+
+| Hallazgo                                                                 | Commit    | Estado                                                                                                        |
+| ------------------------------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------- |
+| C-01 · Textos oficiales de los 138 ítems + gate de CI                    | `15ab189` | ✅ Cerrado (firma del consultor pendiente → deuda abierta)                                                    |
+| C-02 · GR-II ítems 18–19 puntúan en su categoría (motor 0.2.0)           | `c447f87` | ✅ Corregido motor+seed+tests (validación externa pendiente → deuda abierta)                                  |
+| C-02 · Recálculo de resultados 0.1.0                                     | `37fc798` | ✅ Verificado: NO aplica (no hay ningún resultado real 0.1.0; solo eran fixtures RLS)                         |
+| C-03 · Fuga del atributo: se enmascara la fila completa                  | `b24ab29` | ✅ Cerrado (inferencia temporal → deuda abierta)                                                              |
+| C-04 · Escrituras que tragaban el error (9 mutaciones, `lib/escrituras`) | `5839791` | ✅ Escrituras cerradas (lecturas de página fail-silent → deuda abierta)                                       |
+| C-05 · Errores de formulario visibles (`?error=` + `<ErrorFormulario>`)  | `d530eea` | ✅ Cerrado                                                                                                    |
+| C-05 · `error.tsx` y `not-found.tsx` en es-MX                            | `4f81300` | ✅ Cerrado (`loading.tsx` pendiente → deuda abierta)                                                          |
+| C-06 · Foco visible en las opciones del cuestionario                     | `a03e7f8` | ✅ Cerrado (incluye contrastes AA: quick wins 1 y 12)                                                         |
+| C-07 · Aviso de privacidad real, versionado en BD con sha256             | `7c03a15` | ✅ Base técnica cerrada (texto = plantilla; revisión de abogado + DPA → deuda abierta)                        |
+| C-08 · Canal ARCO público + `arco_requests` (plazo 20 días hábiles)      | `7c03a15` | ✅ Canal cerrado (retención/bloqueo/disociación → deuda abierta)                                              |
+| C-09 · Marca (favicon, logo, plantilla de correo)                        | —         | ❌ Abierto deliberadamente: es trabajo de identidad (Fase 2), no de seguridad                                 |
+| [Alto] Resultado del empleado visible para siempre + sin auditar         | `51ee5f1` | ✅ Cerrado (expiración primero + evento `resultado_propio_consultado`; quick win 3)                           |
+| [Alto] Email squatting del consultor + contraseñas de 6                  | `58ae94b` | ✅ Cerrado (confirmación obligatoria, `email_confirmed_at`, 12+composición, autocomplete; quick wins 6 y 13a) |
+| [Alto] Cero validación de archivos subidos                               | `e75ee43` | ✅ Cerrado (magic bytes, 10 MB, nombre del servidor, en política y capacitación; quick win 10)                |
+| [Alto] Distribuir/recordatorios sin confirmación previa                  | `4c26946` | ✅ Cerrado (diálogo accesible con «Se enviarán N correos» y aviso de rotación de enlaces; quick win 11)       |
+| [Alto] `event_type` sin tipar (bitácora fragmentable)                    | `774dc1b` | ✅ Cerrado (catálogo `as const` + union; también migra `gr1_notificacion_dr` al helper; quick win 14)         |
+| [Medio] Sin cabeceras de seguridad                                       | `176d377` | ✅ Cerrado (CSP con nonce + strict-dynamic, HSTS, X-Frame-Options, nosniff, Referrer-Policy; quick win 7)     |
+| [Medio] `accionAcusarPolitica` aceptaba tokens vencidos                  | `5839791` | ✅ Cerrado                                                                                                    |
+| [Medio] Capacitación sin `accept` en el input                            | `d530eea` | ✅ Cerrado                                                                                                    |
+
+Quick wins cerrados: 1, 2, 3, 4, 5, 6 (sin captcha), 7, 8 (sin `loading.tsx`), 9, 10,
+11, 12, 13 (autocomplete; los 2 `role="alert"` siguen pendientes), 14. Abierto: 15 (marca).
+
 ## Los 9 hallazgos críticos
 
 ### C-01 · Los cuestionarios no contienen las preguntas oficiales (NOM-035 · Código)
+
+> ✅ **Remediado** en `15ab189` (Fase 1.5): 138 textos del DOF + gate de CI. Firma del consultor pendiente — ver «Deuda abierta reconocida».
 
 `supabase/migrations/20260711200004_seeds_normativos.sql:20-36` · Los textos de los 138 ítems (GR-I 20, GR-II 46, GR-III 72) son literales generados: `'ITEM_TEXT_PENDIENTE_' || i`. La UI del empleado renderiza `questions.text` tal cual (`lib/flujo.ts:102-111` → `components/responder/cuestionario.tsx:131`), de modo que el trabajador ve `23. ITEM_TEXT_PENDIENTE_23`.
 
@@ -61,6 +95,8 @@ La buena noticia: **los tres tienen remediación acotada** y ninguno exige rearq
 **Remediación:** migración con los textos literales del DOF (incluidos los encabezados de los ítems condicionales y la instrucción de responder pensando en los dos últimos meses) + **gate de CI que falle si existe `questions.text LIKE 'ITEM_TEXT_PENDIENTE%'`**. Esfuerzo: M (transcripción cuidadosa + revisión del consultor).
 
 ### C-02 · Discrepancia de cálculo en la GR-II: ítems 18 y 19 — **requiere verificación inmediata**
+
+> ✅ **Remediado** en `c447f87` (Fase 1.5): la Tabla 3 del DOF confirma que 18–19 SÍ puntúan; motor 0.2.0 + migración. Recálculo de resultados 0.1.0 verificado NO aplicable (`37fc798`). Validación externa del consultor pendiente — ver «Deuda abierta reconocida».
 
 `packages/motor-nom035/src/datos/gr2.ts:51-65` · `supabase/migrations/20260711200004_seeds_normativos.sql:116-124` · `packages/motor-nom035/src/datos.test.ts:188-193`
 
@@ -75,6 +111,8 @@ El código excluye deliberadamente los ítems 18 y 19 de la categoría _Factores
 **Remediación:** esto es exactamente lo que zanja la **validación cruzada pendiente desde M1** (casos resueltos por consultor certificado + verificación contra Evalúa035, hoy con `reference-cases/` vacío y el test en modo `todo`). Ejecutarla es ahora la prioridad número uno del motor. Si se confirma el error: corregir motor + seed + test, subir versión del motor y **recalcular con `supersedes_id`** (el mecanismo de recálculo inmutable ya existe y funciona).
 
 ### C-03 · Fuga del nivel de riesgo individual: la supresión oculta el conteo, no el atributo (Seguridad · NOM-035)
+
+> ✅ **Remediado** en `b24ab29` (Fase 1.5): si alguna celda se suprime, se enmascara la fila completa (ceros y total incluidos). La inferencia temporal sigue abierta — ver «Deuda abierta reconocida».
 
 `apps/web/src/lib/agregados.ts:35-44, 85-117` · `components/panel/tabla-distribucion.tsx:31-45` · `informes/informe-79-pdf.tsx:148-158` — **verificado a mano contra el código.**
 
@@ -101,6 +139,8 @@ Ni siquiera hace falta un área pequeña: basta consultar el dashboard sin filtr
 
 ### C-04 · Pérdida silenciosa de evidencia: ~63 de 92 consultas descartan el error (Código)
 
+> ✅ **Remediado (escrituras)** en `5839791` (Fase 1.5): `lib/escrituras.ts` aplicado a las 9 mutaciones. Las lecturas de página fail-silent siguen abiertas (Fase 4).
+
 El patrón `const { data } = await supabase.from(...)` —sin revisar `{ error }`— aparece en **~63 de las ~92 llamadas de producción**. Cuatro casos comprometen directamente la evidencia legal:
 
 | Acción                 | Línea                           | Qué pasa                                                                                                                                                                                                                        |
@@ -116,6 +156,8 @@ Además, **15 páginas del panel renderizan "vacío" ante un fallo de base de da
 
 ### C-05 · Los errores de 6 formularios nunca se muestran al usuario (UX)
 
+> ✅ **Remediado** en `d530eea` (`<ErrorFormulario>` + `searchParams`) y `4f81300` (`error.tsx`/`not-found.tsx` es-MX). `loading.tsx` pendiente (Fase 2).
+
 Las acciones redirigen con `?error=datos|crear|subida` (`acciones/panel.ts:61, 229, 254, 461, 503, 510, 533, 540`) pero **las páginas destino no leen `searchParams`**: `centros`, `ciclos`, `politica`, `capacitacion`, `acciones` no lo hacen, y `empleados/page.tsx:106` solo contempla `duplicado`.
 
 **Consecuencia concreta:** si falla la subida del PDF de la política —una tarea normativa clave— la página se recarga sin decir absolutamente nada y **el admin cree que publicó**. Combinado con C-04, el fallo es doblemente invisible.
@@ -126,6 +168,8 @@ Agravante: **no existe ni un solo `loading.tsx`, `error.tsx` ni `not-found.tsx`*
 
 ### C-06 · El foco de teclado es invisible en las respuestas del cuestionario (Accesibilidad)
 
+> ✅ **Remediado** en `a03e7f8` (Fase 1.5): `has-focus-visible:` en los labels de cuestionario y filtros, más contrastes AA.
+
 `components/responder/cuestionario.tsx:147-154` y `filtros.tsx:36-43` · **WCAG 2.4.7 Foco visible (AA)**
 
 El `<input type="radio">` real lleva `className="sr-only"`: el anillo de foco global se dibuja sobre un elemento recortado de 1×1 px, es decir, **no se ve nada**. El `<label>` tipo tarjeta no tiene ningún estilo de foco. Las flechas mueven el foco (los radios siguen siendo nativos), pero sin indicador visual alguno.
@@ -135,6 +179,8 @@ El `<input type="radio">` real lleva `className="sr-only"`: el anillo de foco gl
 **Remediación:** una clase por label: `has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-blue-600`. Esfuerzo: XS. **Es el arreglo con mejor relación impacto/esfuerzo de toda la auditoría.**
 
 ### C-07 · El aviso de privacidad es un texto de relleno, y su contenido no se archiva (LFPDPPP)
+
+> ✅ **Remediado (base técnica)** en `7c03a15` (Fase 1.5): `privacy_notices` append-only con sha256, `consents` apunta a la fila exacta, render desde BD. El texto es plantilla base: requiere abogado + DPA — ver «Deuda abierta reconocida».
 
 `components/responder/consentimiento.tsx:33-47` · `acciones/panel.ts:36` · `supabase/migrations/20260711200002_tablas_tenant.sql:174-185`
 
@@ -148,6 +194,8 @@ Dos fallos encadenados sobre el mismo punto:
 
 ### C-08 · Ausencia total de derechos ARCO (LFPDPPP)
 
+> ✅ **Remediado (canal)** en `7c03a15` (Fase 1.5): página pública `/privacidad` + `arco_requests` con plazo de 20 días hábiles. Retención/bloqueo/disociación abiertos — ver «Deuda abierta reconocida».
+
 Búsqueda exhaustiva en `apps/web/src`: **no existe nada**. Ni pantalla, ni endpoint, ni correo de contacto, ni proceso documentado para que el trabajador ejerza Acceso, Rectificación, Cancelación u Oposición (arts. 22–34 LFPDPPP). Lo único que el titular puede ver es su propio resultado, y solo mientras conserve su enlace.
 
 La ley obliga al responsable a designar persona/departamento de datos personales y a atender solicitudes en **20 días hábiles**. La ausencia total es un incumplimiento directo y sancionable, independiente de cualquier vulnerabilidad técnica.
@@ -157,6 +205,8 @@ La ley obliga al responsable a designar persona/departamento de datos personales
 **Remediación:** canal ARCO con registro auditado; periodo de retención definido con asesoría legal; **bloqueo** (marcar fila como bloqueada y negar su lectura, sin romper el append-only) y **disociación** posterior (romper el vínculo `employee_id` conservando el agregado y el hash). La inmutabilidad del _contenido_ y la supresión del _vínculo con la persona_ son perfectamente compatibles; simplemente no se ha diseñado esa salida. Esfuerzo: M–L.
 
 ### C-09 · El nombre del producto no es marca, y la app se ve de fábrica (Identidad)
+
+> ❌ **Abierto deliberadamente** al cierre de la Fase 1.5: es trabajo de identidad (Fase 2), no de corrección normativa ni privacidad — ver «Deuda abierta reconocida».
 
 `apps/web/src/app/favicon.ico` (el ícono default de Next.js, 25 KB sin tocar) · `apps/web/public/{next,vercel,globe,file,window}.svg` (los assets de `create-next-app`, intactos) · sin logo en ningún punto: la marca es el string "Plataforma NOM-035" (`sidebar.tsx:44`).
 
@@ -510,6 +560,23 @@ Sin esto, el producto no puede aplicarse a ningún trabajador real.
 | 4 · Escala y deuda técnica            | 4–6 sem  | Operar 200 organizaciones             |
 
 **Camino crítico:** la validación del motor con el consultor certificado (fase 0) es la única tarea con dependencia externa y sin ella no se puede cerrar C-02. **Debe arrancarse hoy, en paralelo con todo lo demás.**
+
+---
+
+## Deuda abierta reconocida (al cierre de la Fase 1.5, 2026-07-13)
+
+Lo que se deja abierto **a propósito**, con su porqué y su plan. Todo lo demás abierto
+de la auditoría sigue el plan de fases de la sección anterior (fases 2–4).
+
+| Deuda                                                                                                                                                              | Por qué queda abierta                                                                                                                         | Plan                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Validación del motor por consultor certificado** (cierra C-02 de forma definitiva y la validación de lanzamiento de M1)                                          | Dependencia externa: los 3–5 casos resueltos siguen en gestión                                                                                | Camino crítico del proyecto. Al recibirlos: cargarlos en `reference-cases/` (el test `todo` ya falla en modo release si está vacío); criterio 100%          |
+| **Texto del aviso de privacidad** (C-07) — hoy es plantilla base con campos `{{...}}`                                                                              | Redactarlo es trabajo de abogado, no de ingeniería; cada empresa cliente es la responsable                                                    | Revisión legal + contrato de encargo (DPA) por cliente **antes de cualquier piloto con datos reales**                                                       |
+| **Retención, bloqueo y disociación** (C-08) — el canal ARCO existe; la salida del dato, no                                                                         | El periodo de retención requiere criterio legal (art. 11 vs. obligación NOM-035); el diseño bloqueo+disociación es compatible con append-only | Fase 1 restante: definir retención con asesoría legal; implementar bloqueo (negar lectura) y disociación (romper `employee_id` conservando agregado y hash) |
+| **Panel con `service_role`: RLS no protege sus rutas** — la defensa es que cada página llame `autorizarEmpresa()` (hoy: 100%, verificado)                          | Rearquitectura de lecturas; excede una fase de críticos                                                                                       | Fase 4: helper de consulta autorizada + regla de lint que prohíba `clienteAdmin()` en `app/panel/**`; a medio plazo, lecturas con RLS                       |
+| **Inferencia temporal sobre agregados en vivo** (relacionado con C-03) — consultar el dashboard antes/después de cada respuesta revela el nivel de quien respondió | Cerrarla exige instantáneas (snapshot) en lugar de agregados en vivo: cambio de producto, no un parche                                        | Fase 1 restante; mientras tanto está documentado en `agregados.ts` y CLAUDE.md                                                                              |
+| **Recálculo GR-II 0.1.0: verificado que no aplica** (`37fc798`)                                                                                                    | No es deuda: se documenta para cerrar el ciclo. No existe ningún resultado real calculado con 0.1.0                                           | Si apareciera una BD antigua: filas nuevas con `supersedes_id` y motor ≥0.2.0 (mecanismo ya existente)                                                      |
+| **C-09 · Marca** (favicon de Next, sin logo, correos sin plantilla) + `loading.tsx` + captcha/MFA/rate limiting + 2 `role="alert"`                                 | Quick wins de identidad y endurecimiento incremental que no bloquean la corrección normativa ni la privacidad                                 | Fase 2 (marca, a11y menores) y Fase 1 restante (auth): ver plan de fases                                                                                    |
 
 ---
 
