@@ -101,7 +101,7 @@ test('el Admin de Organización genera informe 7.9 y expediente con auditoría',
   await page.goto(page.url().replace('/centros', '/empleados'));
   await page.getByLabel('Nombre completo').fill('Empleada Informes');
   await page.getByLabel('Correo electrónico').fill(`emp-informes-${corrida}@e2e.mx`);
-  await page.getByLabel('Área').fill('Ventas');
+  await page.getByLabel('Área', { exact: true }).fill('Ventas');
   await page.getByRole('button', { name: 'Agregar empleado' }).click();
   await expect(page.getByTestId('lista-empleados')).toContainText('Empleada Informes');
 

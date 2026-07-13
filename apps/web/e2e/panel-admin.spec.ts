@@ -89,7 +89,7 @@ test('el Admin de Organización ejecuta el ciclo completo', async ({ page }) => 
   await page.goto(page.url().replace('/centros', '/empleados'));
   await page.getByLabel('Nombre completo').fill('Empleada Uno');
   await page.getByLabel('Correo electrónico').fill(`emp1-${corrida}@e2e.mx`);
-  await page.getByLabel('Área').fill('Ventas');
+  await page.getByLabel('Área', { exact: true }).fill('Ventas');
   await page.getByRole('button', { name: 'Agregar empleado' }).click();
   await expect(page.getByTestId('lista-empleados')).toContainText('Empleada Uno');
 

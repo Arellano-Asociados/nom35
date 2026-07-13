@@ -80,6 +80,43 @@ Playwright 10/10, migraciones 12/12 reproducibles desde cero.
 Quick wins cerrados: 1, 2, 3, 4, 5, 6 (sin captcha), 7, 8 (sin `loading.tsx`), 9, 10,
 11, 12, 13 (autocomplete; los 2 `role="alert"` siguen pendientes), 14. Abierto: 15 (marca).
 
+## Remediación — Fase 2 «diseño» (2026-07-13, rama `fase-2-diseno`)
+
+Sistema de diseño e identidad **Constata** (nombre elegido por el propietario;
+manual en `docs/BRAND.md`). Cierra las dimensiones 1–4 y el resto de accesibilidad.
+Validación al cierre: lint + typecheck sin warnings, motor 59/59, web 66/66 (unit),
+RLS 38/38, E2E 10/10.
+
+| Hallazgo                                                                                             | Commit                | Estado                                                                                              |
+| ---------------------------------------------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------- |
+| C-09 · Marca: nombre Constata, logotipo/isotipo, favicon, fuera scaffold                             | `5520bbe`             | ✅ Cerrado (correos con marca en `7cf7072`)                                                         |
+| §3 [Medio] `title` estático → `title.template` por página                                            | `5520bbe`             | ✅ Cerrado                                                                                          |
+| §3 [Medio] Paleta sin sistema → design tokens `@theme` (marca/semáforo/UI)                           | `eb7efc1`             | ✅ Cerrado                                                                                          |
+| §3 [Medio] Correos sin plantilla ni marca · remitente de relleno                                     | `7cf7072`             | ✅ Cerrado (`plantillaCorreo` + `MAIL_FROM` obligatorio en producción + escape de HTML)             |
+| §3 [Bajo] Sin footer, versión ni enlaces legales                                                     | `f836f02`             | ✅ Cerrado                                                                                          |
+| §1 [Alto] Subpáginas del ciclo pierden la navegación · sin estado activo                             | `f836f02`             | ✅ Cerrado (Tabs en `ciclos/[ciclo]/layout.tsx` con `aria-current`)                                 |
+| §1 [Alto] Selects vacíos sin salida (empleados, ciclos)                                              | `e1e5248`             | ✅ Cerrado (EmptyState con CTA a Centros)                                                           |
+| §1 [Medio] Dashboard sin estado vacío                                                                | `e1e5248`             | ✅ Cerrado                                                                                          |
+| §1 [Medio] Lista de empleados sin buscador ni paginación                                             | `cea31fd` + `e1e5248` | ✅ Cerrado (TablaDatos: búsqueda sin acentos, orden, paginación)                                    |
+| §1 [Medio] Fechas ISO crudas                                                                         | `f836f02`             | ✅ Cerrado (`lib/fechas.ts` es-MX con suite)                                                        |
+| §1 [Medio] Capacitación sin tamaño máximo comunicado                                                 | `e1e5248`             | ✅ Cerrado ("solo PDF, máximo 10 MB" visible; validación de servidor desde Fase 1.5)                |
+| §1 [Bajo] Orden ilógico del select de nivel · §1 [Bajo] `CardTitle` h2 fijo                          | `e1e5248` / `cea31fd` | ✅ Cerrados                                                                                         |
+| §2 Copy (las 25 filas)                                                                               | `e1e5248` + `7cf7072` | ✅ Cerrado salvo la plantilla CSV descargable (fila 4, parcial: instrucciones en términos de Excel) |
+| §4 [Alto] Cero onboarding                                                                            | `e1e5248`             | ✅ Cerrado (checklist de primer uso en `/panel/[empresa]` con porqué normativo y CTA)               |
+| §4 [Alto] Sin breadcrumbs · §4 [Medio] pestañas sin estado activo                                    | `f836f02`             | ✅ Cerrado (migas en el ciclo, la profundidad señalada)                                             |
+| §4 [Alto] Sidebar sin empresa activa ni cambio de empresa                                            | `f836f02`             | ✅ Cerrado (bloque "Empresa activa" + selector multi-tenant)                                        |
+| §4 [Bajo] Pestañas restringidas sin enlace a la solución                                             | `e1e5248`             | ✅ Cerrado (enlace a Equipo para designar RD)                                                       |
+| Login: primera pantalla de demo                                                                      | `5827600`             | ✅ Layout dividido con propuesta de valor (elección del propietario)                                |
+| §5 [Alto] Drawer móvil sin gestión de foco                                                           | `d6ffd9c`             | ✅ Cerrado (dialog + trampa de Tab + restauración de foco)                                          |
+| §5 [Medio] Skip link · header pegajoso tapa el foco · guardado no anunciado · progressbar sin nombre | `d6ffd9c`             | ✅ Cerrados (WCAG 2.4.1 / 2.4.11 / 4.1.3 / 4.1.2)                                                   |
+| §5 [Medio] Errores sin `aria-invalid`/`aria-describedby` · 2 sin `role=alert`                        | `cea31fd` + `e1e5248` | ✅ Cerrados (CampoTexto/CampoSelect + quick win 13 completo)                                        |
+| §5 [Bajo] Tablas del resultado sin `overflow-x-auto`                                                 | `d6ffd9c`             | ✅ Cerrado                                                                                          |
+| §2 fila 5 / §9 jerga al trabajador ("Cuestionario GR-III")                                           | `d6ffd9c`             | ✅ Cerrado ("Cuestionario sobre tu entorno de trabajo")                                             |
+
+Sigue abierto de estas dimensiones: plantilla CSV descargable (fila 4), `loading.tsx`,
+`<th scope>` en las tablas de distribución heredadas, y todo lo estructural de las
+fases 3–4 del plan.
+
 ## Los 9 hallazgos críticos
 
 ### C-01 · Los cuestionarios no contienen las preguntas oficiales (NOM-035 · Código)
@@ -206,7 +243,7 @@ La ley obliga al responsable a designar persona/departamento de datos personales
 
 ### C-09 · El nombre del producto no es marca, y la app se ve de fábrica (Identidad)
 
-> ❌ **Abierto deliberadamente** al cierre de la Fase 1.5: es trabajo de identidad (Fase 2), no de corrección normativa ni privacidad — ver «Deuda abierta reconocida».
+> ✅ **Remediado** en la Fase 2 (`5520bbe`, `7cf7072`, `5827600`): marca **Constata** (docs/BRAND.md), logotipo e isotipo propios, favicon, `title.template`, correos con plantilla y remitente obligatorio, y login con propuesta de valor. Quick win 15 cerrado. (El marcador de la tabla de la Fase 1.5 se conserva como registro histórico de aquel corte.)
 
 `apps/web/src/app/favicon.ico` (el ícono default de Next.js, 25 KB sin tocar) · `apps/web/public/{next,vercel,globe,file,window}.svg` (los assets de `create-next-app`, intactos) · sin logo en ningún punto: la marca es el string "Plataforma NOM-035" (`sidebar.tsx:44`).
 
@@ -576,7 +613,7 @@ de la auditoría sigue el plan de fases de la sección anterior (fases 2–4).
 | **Panel con `service_role`: RLS no protege sus rutas** — la defensa es que cada página llame `autorizarEmpresa()` (hoy: 100%, verificado)                          | Rearquitectura de lecturas; excede una fase de críticos                                                                                       | Fase 4: helper de consulta autorizada + regla de lint que prohíba `clienteAdmin()` en `app/panel/**`; a medio plazo, lecturas con RLS                       |
 | **Inferencia temporal sobre agregados en vivo** (relacionado con C-03) — consultar el dashboard antes/después de cada respuesta revela el nivel de quien respondió | Cerrarla exige instantáneas (snapshot) en lugar de agregados en vivo: cambio de producto, no un parche                                        | Fase 1 restante; mientras tanto está documentado en `agregados.ts` y CLAUDE.md                                                                              |
 | **Recálculo GR-II 0.1.0: verificado que no aplica** (`37fc798`)                                                                                                    | No es deuda: se documenta para cerrar el ciclo. No existe ningún resultado real calculado con 0.1.0                                           | Si apareciera una BD antigua: filas nuevas con `supersedes_id` y motor ≥0.2.0 (mecanismo ya existente)                                                      |
-| **C-09 · Marca** (favicon de Next, sin logo, correos sin plantilla) + `loading.tsx` + captcha/MFA/rate limiting + 2 `role="alert"`                                 | Quick wins de identidad y endurecimiento incremental que no bloquean la corrección normativa ni la privacidad                                 | Fase 2 (marca, a11y menores) y Fase 1 restante (auth): ver plan de fases                                                                                    |
+| ~~C-09 · Marca~~ (✅ cerrado en Fase 2: `5520bbe`/`7cf7072`) · quedan `loading.tsx`, plantilla CSV descargable y captcha/MFA/rate limiting                         | Endurecimiento incremental de auth y remates menores que no bloquean la corrección normativa ni la privacidad                                 | Fase 1 restante (auth) y remates en fases 3–4: ver plan de fases                                                                                            |
 
 ---
 
