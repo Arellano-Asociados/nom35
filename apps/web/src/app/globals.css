@@ -68,6 +68,12 @@
   --shadow-superficie: 0 1px 2px 0 rgb(15 23 42 / 0.06), 0 1px 3px 0 rgb(15 23 42 / 0.08);
 }
 
+/* El encabezado pegajoso del cuestionario no debe tapar el elemento enfocado al
+   navegar con teclado (WCAG 2.4.11, hallazgo Medio de la auditoría v0). */
+html {
+  scroll-padding-top: 6rem;
+}
+
 /* Foco de teclado visible en toda la app (WCAG 2.4.7). Los componentes interactivos
    no necesitan estilos de foco propios: este anillo de marca aplica de forma
    consistente. */

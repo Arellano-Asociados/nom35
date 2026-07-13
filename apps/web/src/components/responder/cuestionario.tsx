@@ -99,17 +99,25 @@ export function Cuestionario({
       <div className="pointer-events-none sticky top-0 z-10 -mx-4 flex flex-col gap-2 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur sm:-mx-0 sm:rounded-t-xl">
         <div
           aria-live="polite"
-          className="flex items-center justify-between text-sm text-slate-600"
+          className="flex items-center justify-between gap-2 text-sm text-slate-600"
         >
           <span className="font-medium text-slate-800">
             Sección {indiceSeguro + 1} de {seccionesVisibles.length}
           </span>
+          {/* Señal VISIBLE del guardado automático (auditoría v0, dimensión 7 [Medio]:
+              la promesa "se guarda solo" no tenía ninguna señal en pantalla). */}
+          {contestadas > 0 && (
+            <span className="text-xs text-texto-secundario">
+              {guardando > 0 ? 'Guardando…' : 'Guardado ✓'}
+            </span>
+          )}
           <span data-testid="progreso" data-guardando={guardando} className="tabular-nums">
             {contestadas} / {totalPreguntas} respondidas
           </span>
         </div>
         <div
           role="progressbar"
+          aria-label="Avance del cuestionario"
           aria-valuenow={contestadas}
           aria-valuemin={0}
           aria-valuemax={totalPreguntas}
@@ -120,6 +128,15 @@ export function Cuestionario({
             style={{ width: totalPreguntas ? `${(contestadas / totalPreguntas) * 100}%` : '0%' }}
           />
         </div>
+        {/* El estado del guardado también se ANUNCIA (WCAG 4.1.3): un trabajador ciego
+            debe saber si su respuesta persistió — la promesa central del flujo. */}
+        <p role="status" className="sr-only">
+          {contestadas === 0
+            ? ''
+            : guardando > 0
+              ? 'Guardando tu respuesta…'
+              : 'Respuestas guardadas'}
+        </p>
       </div>
 
       <Card key={seccionActual.id} className="animate-seccion">

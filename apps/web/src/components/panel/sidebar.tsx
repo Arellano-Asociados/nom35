@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LogoConstata } from '@/components/marca/logo';
 import { BotonSalir } from '@/components/panel/boton-salir';
 import { claseControl } from '@/components/ui/input';
@@ -34,6 +34,8 @@ export function Sidebar({ email, membresias }: { email: string; membresias: Memb
   const pathname = usePathname();
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
+  const refDrawer = useRef<HTMLDivElement>(null);
+  const refBotonMenu = useRef<HTMLButtonElement>(null);
 
   // Detecta si estamos dentro de /panel/[empresa]/... (y no en /panel/nueva)
   const coincidencia = pathname.match(/^\/panel\/([^/]+)/);
@@ -44,13 +46,45 @@ export function Sidebar({ email, membresias }: { email: string; membresias: Memb
     setAbierto(false);
   }, [pathname]);
 
+  // Gestión de foco del drawer (auditoría v0, dimensión 5 [Alto]): al abrir, el foco
+  // entra al diálogo; Tab queda atrapado dentro; Escape cierra; al cerrar, el foco
+  // regresa al botón de menú. Sin esto, Tab recorría el contenido tapado por el overlay.
+  const estabaAbierto = useRef(false);
   useEffect(() => {
-    if (!abierto) return;
-    const alEscape = (evento: KeyboardEvent) => {
-      if (evento.key === 'Escape') setAbierto(false);
+    if (!abierto) {
+      // Restaurar el foco SOLO si el drawer estuvo abierto (no al montar la página).
+      if (estabaAbierto.current) refBotonMenu.current?.focus();
+      estabaAbierto.current = false;
+      return;
+    }
+    estabaAbierto.current = true;
+    const drawer = refDrawer.current;
+    const enfocables = () =>
+      drawer?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), select, input, [tabindex]:not([tabindex="-1"])',
+      ) ?? [];
+    enfocables()[0]?.focus();
+
+    const alTeclear = (evento: KeyboardEvent) => {
+      if (evento.key === 'Escape') {
+        setAbierto(false);
+        return;
+      }
+      if (evento.key !== 'Tab') return;
+      const elementos = [...enfocables()];
+      if (elementos.length === 0) return;
+      const primero = elementos[0];
+      const ultimo = elementos[elementos.length - 1];
+      if (evento.shiftKey && document.activeElement === primero) {
+        evento.preventDefault();
+        ultimo.focus();
+      } else if (!evento.shiftKey && document.activeElement === ultimo) {
+        evento.preventDefault();
+        primero.focus();
+      }
     };
-    document.addEventListener('keydown', alEscape);
-    return () => document.removeEventListener('keydown', alEscape);
+    document.addEventListener('keydown', alTeclear);
+    return () => document.removeEventListener('keydown', alTeclear);
   }, [abierto]);
 
   const marca = (
@@ -142,6 +176,7 @@ export function Sidebar({ email, membresias }: { email: string; membresias: Memb
         {marca}
         <button
           type="button"
+          ref={refBotonMenu}
           aria-expanded={abierto}
           aria-controls="sidebar-movil"
           onClick={() => setAbierto((valor) => !valor)}
@@ -176,6 +211,10 @@ export function Sidebar({ email, membresias }: { email: string; membresias: Memb
           />
           <div
             id="sidebar-movil"
+            ref={refDrawer}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú de navegación"
             className="fixed inset-y-0 left-0 z-50 w-72 max-w-[80vw] border-r border-borde bg-superficie shadow-lg"
           >
             {contenido}

@@ -164,9 +164,14 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
   return (
     <div className="flex flex-col gap-4">
       <header>
-        <h1 className="text-xl font-semibold text-slate-900">Cuestionario {ctx.guia}</h1>
+        {/* Sin código interno (GR-*) frente al trabajador: fila 5 del copy de la
+            auditoría v0. El código sigue disponible para soporte vía ctx.guia. */}
+        <h1 className="text-xl font-semibold text-slate-900">
+          Cuestionario sobre tu entorno de trabajo (NOM-035)
+        </h1>
         <p className="text-sm text-slate-600">
-          {ctx.empresa.razonSocial} · Tus respuestas se guardan automáticamente.
+          {ctx.empresa.razonSocial} · Tus respuestas se guardan automáticamente y son
+          confidenciales: nadie de tu empresa puede verlas.
         </p>
         {ctx.guia !== 'GR-I' && (
           <p className="mt-1 text-sm text-slate-600">

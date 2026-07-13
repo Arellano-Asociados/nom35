@@ -16,6 +16,14 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen">
+      {/* Enlace "saltar al contenido" (WCAG 2.4.1): sin él, llegar al contenido del
+          panel exigía 8+ tabulaciones por página (hallazgo Medio de la auditoría v0). */}
+      <a
+        href="#contenido"
+        className="sr-only z-50 rounded-md bg-marca-700 px-4 py-2 text-sm font-medium text-white focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+      >
+        Saltar al contenido
+      </a>
       <Sidebar
         email={usuario.email ?? ''}
         membresias={membresias.map((m) => ({
@@ -24,7 +32,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
           rol: m.rol,
         }))}
       />
-      <main className="lg:pl-64">
+      <main id="contenido" className="lg:pl-64">
         <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <div className="flex-1">{children}</div>
           <footer className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-borde pt-4 text-xs text-texto-secundario">

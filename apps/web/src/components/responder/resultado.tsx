@@ -88,56 +88,62 @@ export async function Resultado({
           <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Por categoría
           </h3>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-xs font-medium uppercase tracking-wide text-slate-500">
-                <th className="py-2 text-left font-medium">Categoría</th>
-                <th className="py-2 pl-4 text-right font-medium">Puntaje</th>
-                <th className="py-2 pl-4 text-right font-medium">Nivel</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categorias.map((c) => (
-                <tr key={c.nombre} className="border-b border-slate-100 last:border-0">
-                  <td className="py-2.5 text-slate-700">{c.nombre}</td>
-                  <td className="py-2.5 pl-4 text-right tabular-nums text-slate-600">
-                    {c.puntaje}
-                  </td>
-                  <td className="py-2.5 pl-4 text-right">
-                    <BadgeNivel nivel={c.nivel} />
-                  </td>
+          {/* overflow-x-auto: en pantallas angostas la tabla se desplaza dentro de su
+              contenedor en vez de romper el layout (WCAG 1.4.10, hallazgo Bajo). */}
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="py-2 text-left font-medium">Categoría</th>
+                  <th className="py-2 pl-4 text-right font-medium">Puntaje</th>
+                  <th className="py-2 pl-4 text-right font-medium">Nivel</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {categorias.map((c) => (
+                  <tr key={c.nombre} className="border-b border-slate-100 last:border-0">
+                    <td className="py-2.5 text-slate-700">{c.nombre}</td>
+                    <td className="py-2.5 pl-4 text-right tabular-nums text-slate-600">
+                      {c.puntaje}
+                    </td>
+                    <td className="py-2.5 pl-4 text-right">
+                      <BadgeNivel nivel={c.nivel} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section aria-label="Resultado por dominio" className="flex flex-col gap-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Por dominio
           </h3>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-xs font-medium uppercase tracking-wide text-slate-500">
-                <th className="py-2 text-left font-medium">Dominio</th>
-                <th className="py-2 pl-4 text-right font-medium">Puntaje</th>
-                <th className="py-2 pl-4 text-right font-medium">Nivel</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dominios.map((d) => (
-                <tr key={d.nombre} className="border-b border-slate-100 last:border-0">
-                  <td className="py-2.5 text-slate-700">{d.nombre}</td>
-                  <td className="py-2.5 pl-4 text-right tabular-nums text-slate-600">
-                    {d.puntaje}
-                  </td>
-                  <td className="py-2.5 pl-4 text-right">
-                    <BadgeNivel nivel={d.nivel} />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="py-2 text-left font-medium">Dominio</th>
+                  <th className="py-2 pl-4 text-right font-medium">Puntaje</th>
+                  <th className="py-2 pl-4 text-right font-medium">Nivel</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {dominios.map((d) => (
+                  <tr key={d.nombre} className="border-b border-slate-100 last:border-0">
+                    <td className="py-2.5 text-slate-700">{d.nombre}</td>
+                    <td className="py-2.5 pl-4 text-right tabular-nums text-slate-600">
+                      {d.puntaje}
+                    </td>
+                    <td className="py-2.5 pl-4 text-right">
+                      <BadgeNivel nivel={d.nivel} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <p className="text-xs leading-relaxed text-slate-500">
