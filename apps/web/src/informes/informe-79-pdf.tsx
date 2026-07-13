@@ -191,7 +191,7 @@ export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
   return (
     <Document
       title={`Informe NOM-035 numeral 7.9 — ${datos.empresa.razonSocial}`}
-      author="Plataforma de Cumplimiento NOM-035-STPS-2018"
+      author="Constata — Cumplimiento NOM-035-STPS-2018"
     >
       <Page size="LETTER" style={styles.page}>
         <View style={styles.encabezado}>

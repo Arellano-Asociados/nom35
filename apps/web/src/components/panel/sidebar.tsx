@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { LogoConstata } from '@/components/marca/logo';
 import { BotonSalir } from '@/components/panel/boton-salir';
 import { cn } from '@/lib/utils';
 
@@ -37,11 +38,9 @@ export function Sidebar({ email }: { email: string }) {
   }, [abierto]);
 
   const marca = (
-    <Link
-      href="/panel"
-      className="text-base font-semibold tracking-tight text-slate-900 hover:text-slate-700"
-    >
-      Plataforma NOM-035
+    <Link href="/panel" className="inline-flex items-center hover:opacity-85">
+      <LogoConstata />
+      <span className="sr-only">Ir al inicio del panel</span>
     </Link>
   );
 
