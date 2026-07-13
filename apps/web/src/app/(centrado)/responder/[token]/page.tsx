@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { avisoVigenteDe } from '@/lib/aviso-privacidad';
 import {
   obtenerContexto,
   obtenerEstructura,
@@ -91,11 +92,15 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
   }
 
   if (!ctx.consentido) {
+    // El aviso se lee ARCHIVADO de privacy_notices (se publica la plantilla base la
+    // primera vez): así el consentimiento apunta a un texto verificable años después.
+    const aviso = await avisoVigenteDe(ctx.companyId, ctx.empresa.razonSocial);
     return (
       <Consentimiento
         token={token}
         razonSocial={ctx.empresa.razonSocial}
-        version={ctx.empresa.versionAvisoPrivacidad}
+        version={aviso.version}
+        textoAviso={aviso.texto}
       />
     );
   }

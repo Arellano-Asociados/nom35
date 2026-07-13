@@ -10,10 +10,12 @@ export function Consentimiento({
   token,
   razonSocial,
   version,
+  textoAviso,
 }: {
   token: string;
   razonSocial: string;
   version: string;
+  textoAviso: string;
 }) {
   const router = useRouter();
   const [aceptado, setAceptado] = useState(false);
@@ -30,21 +32,28 @@ export function Consentimiento({
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
-        <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+        {/* El texto viene de privacy_notices (archivado, con sha256): NO se hardcodea
+            aquí, porque entonces cambiaría con cada despliegue sin que la versión lo
+            refleje y no se podría acreditar QUÉ aceptó el titular. */}
+        <div
+          tabIndex={0}
+          role="region"
+          aria-label="Aviso de privacidad"
+          className="max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed whitespace-pre-line text-slate-700"
+        >
           <p className="mb-2 font-medium text-slate-900">
             Aviso de privacidad de {razonSocial} (versión {version})
           </p>
-          <p className="mb-2">
-            Tus respuestas a este cuestionario son <strong>datos personales sensibles</strong> y se
-            tratan conforme a la Ley Federal de Protección de Datos Personales en Posesión de los
-            Particulares (LFPDPPP) con la única finalidad de cumplir la NOM-035-STPS-2018.
-          </p>
-          <p className="mb-2">
-            Nadie de tu empresa puede ver tus respuestas individuales. Tu resultado procesado solo
-            es visible para el Responsable Designado, y cada consulta queda auditada.
-          </p>
-          <p>Al aceptar, otorgas tu consentimiento expreso para este tratamiento.</p>
+          {textoAviso}
         </div>
+        <p className="text-xs text-slate-600">
+          Puedes ejercer tus derechos de acceso, rectificación, cancelación y oposición, o revocar
+          tu consentimiento, en{' '}
+          <a href="/privacidad" className="text-blue-700 underline hover:text-blue-800">
+            Tus derechos sobre tus datos
+          </a>
+          .
+        </p>
         <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-800 transition-colors hover:bg-slate-50">
           <input
             type="checkbox"

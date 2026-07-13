@@ -3,6 +3,7 @@
 import { GR2, GR3 } from '@nom35/motor-nom035';
 import { headers } from 'next/headers';
 import { enviarCuestionario, obtenerContexto, type Contexto } from '@/lib/flujo';
+import { avisoVigenteDe } from '@/lib/aviso-privacidad';
 import { escrituraOk } from '@/lib/escrituras';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
@@ -32,14 +33,22 @@ export async function accionRegistrarConsentimiento(token: string): Promise<Resu
   const encabezados = await headers();
   const ip = encabezados.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
 
-  const { error } = await clienteAdmin().from('consents').insert({
-    company_id: ctx.companyId,
-    assignment_id: ctx.asignacionId,
-    employee_id: ctx.employeeId,
-    privacy_text_version: ctx.empresa.versionAvisoPrivacidad,
-    ip,
-  });
-  if (error) return { ok: false, error: 'No se pudo registrar el consentimiento' };
+  // El consentimiento apunta a la FILA del aviso archivado, no solo a su etiqueta: es lo
+  // que permite exhibir años después el texto exacto que el titular aceptó.
+  const aviso = await avisoVigenteDe(ctx.companyId, ctx.empresa.razonSocial);
+
+  const guardado = await escrituraOk(
+    'registrar consentimiento',
+    clienteAdmin().from('consents').insert({
+      company_id: ctx.companyId,
+      assignment_id: ctx.asignacionId,
+      employee_id: ctx.employeeId,
+      privacy_text_version: aviso.version,
+      privacy_notice_id: aviso.id,
+      ip,
+    }),
+  );
+  if (!guardado.ok) return { ok: false, error: 'No se pudo registrar el consentimiento' };
   return { ok: true };
 }
 
