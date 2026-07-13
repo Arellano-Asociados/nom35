@@ -6,6 +6,7 @@ import {
   MOTOR_NOM035_VERSION,
   type DefinicionGuia,
 } from '@nom35/motor-nom035';
+import { registrarAuditoria } from './auditoria';
 import { proveedorCorreo } from './correo';
 import {
   construirEntradaGR1,
@@ -298,4 +299,23 @@ async function notificarResponsableDesignado(companyId: string): Promise<void> {
     entity: 'gr1_results',
     details: { destinatarios: correos.length },
   });
+}
+
+/**
+ * Deja rastro de que el titular consultó su propio resultado (regla inviolable 5: el
+ * acceso a un resultado individual procesado SIEMPRE se audita). El actor es el sistema
+ * —el trabajador no tiene cuenta de auth, su capacidad es el token— y no se registra
+ * ningún dato del resultado, solo que hubo consulta y sobre qué asignación.
+ * Fire-and-forget deliberado: a diferencia del acceso del RD (fail-closed), aquí el
+ * titular tiene derecho a ver SU dato aunque la bitácora falle; el fallo se loggea.
+ */
+export async function registrarConsultaResultadoPropio(ctx: Contexto): Promise<void> {
+  await registrarAuditoria(
+    ctx.companyId,
+    ACTOR_SISTEMA,
+    'resultado_propio_consultado',
+    'questionnaire_assignments',
+    ctx.asignacionId,
+    { guia: ctx.guia },
+  );
 }

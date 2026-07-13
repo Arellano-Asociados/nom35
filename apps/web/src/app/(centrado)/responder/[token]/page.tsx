@@ -4,6 +4,7 @@ import {
   obtenerEstructura,
   obtenerPreguntas,
   politicaPendienteDe,
+  registrarConsultaResultadoPropio,
   respuestasVigentes,
 } from '@/lib/flujo';
 import { PoliticaPendiente } from '@/components/responder/politica';
@@ -46,16 +47,34 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
     );
   }
 
+  // La expiración se evalúa ANTES que "completado" (corrección de la auditoría v0):
+  // antes, un enlace ya usado seguía mostrando el resultado de salud del trabajador
+  // PARA SIEMPRE, incluso vencido — y el enlace vive en un correo que el patrón
+  // administra (buzón compartido, TI, historial de una máquina compartida). El dato
+  // es sensible y su consulta no quedaba auditada, a diferencia del acceso del RD.
+  if (ctx.expirado) {
+    return (
+      <Mensaje titulo="Enlace expirado">
+        <span data-testid="expirado">
+          Este enlace ya no está vigente. Solicita uno nuevo al responsable de tu centro de trabajo.
+        </span>
+      </Mensaje>
+    );
+  }
+
   if (ctx.completado) {
     const politica = await politicaPendienteDe(ctx);
+    // Cada consulta del propio resultado deja rastro en la bitácora (regla 5: el acceso
+    // a un resultado individual procesado siempre se audita, aunque sea el titular).
+    await registrarConsultaResultadoPropio(ctx);
     return (
       <div className="flex flex-col gap-4">
         <div
           data-testid="confirmacion"
           className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-900 shadow-sm"
         >
-          Tu cuestionario fue enviado. Gracias por tu participación. Puedes volver a esta página con
-          tu mismo enlace para consultar tu resultado.
+          Tu cuestionario fue enviado. Gracias por tu participación. Mientras tu enlace siga vigente
+          puedes volver a esta página para consultar tu resultado.
         </div>
         {politica && (
           <PoliticaPendiente
@@ -68,16 +87,6 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
         )}
         <Resultado asignacionId={ctx.asignacionId} guia={ctx.guia} />
       </div>
-    );
-  }
-
-  if (ctx.expirado) {
-    return (
-      <Mensaje titulo="Enlace expirado">
-        <span data-testid="expirado">
-          Este enlace ya no está vigente. Solicita uno nuevo al responsable de tu centro de trabajo.
-        </span>
-      </Mensaje>
     );
   }
 
