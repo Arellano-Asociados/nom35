@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { proveedorCorreo } from './correo';
+import { plantillaCorreo, proveedorCorreo } from './correo';
 
 // El proveedor Mailpit envía por el HTTP send API local (POST /api/v1/send) cuando
 // MAILPIT_URL está definido y NO hay RESEND_API_KEY. Resend conserva precedencia
@@ -59,5 +59,35 @@ describe('proveedorCorreo', () => {
 
     await expect(proveedorCorreo().enviar(MENSAJE)).resolves.toBeUndefined();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('con Resend (producción) exige MAIL_FROM: jamás sale un correo desde noreply@example.com', () => {
+    process.env.RESEND_API_KEY = 're_llave_de_prueba';
+    expect(() => proveedorCorreo()).toThrow(/MAIL_FROM/);
+  });
+});
+
+describe('plantillaCorreo', () => {
+  it('envuelve el cuerpo con la marca y un CTA táctil con la URL dada', () => {
+    const html = plantillaCorreo({
+      saludo: 'Hola Ana:',
+      parrafos: ['Te invitamos a responder tu cuestionario.'],
+      cta: { url: 'https://constata.mx/responder/abc', etiqueta: 'Responder cuestionario' },
+    });
+    expect(html).toContain('Constata');
+    expect(html).toContain('https://constata.mx/responder/abc');
+    expect(html).toContain('Responder cuestionario');
+    expect(html).toContain('Hola Ana:');
+  });
+
+  it('escapa el HTML de los textos interpolados (nombre desde un CSV manipulado)', () => {
+    const html = plantillaCorreo({
+      saludo: 'Hola <img src=x onerror=alert(1)>:',
+      parrafos: ['a & b <script>'],
+    });
+    expect(html).not.toContain('<img');
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;img');
+    expect(html).toContain('a &amp; b');
   });
 });

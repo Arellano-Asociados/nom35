@@ -7,7 +7,7 @@ import {
   type DefinicionGuia,
 } from '@nom35/motor-nom035';
 import { EVENTOS_AUDITORIA, registrarAuditoria } from './auditoria';
-import { proveedorCorreo } from './correo';
+import { plantillaCorreo, proveedorCorreo } from './correo';
 import {
   construirEntradaGR1,
   construirEntradaLikert,
@@ -283,12 +283,20 @@ async function notificarResponsableDesignado(companyId: string): Promise<void> {
   }
 
   if (correos.length > 0) {
-    const base = process.env.NEXT_PUBLIC_APP_URL ?? '';
+    // Sin NEXT_PUBLIC_APP_URL no se emite un CTA con href vacío (hallazgo de la
+    // auditoría v0, dimensión 7): el aviso sigue saliendo, solo sin botón.
+    const base = process.env.NEXT_PUBLIC_APP_URL;
     await proveedorCorreo().enviar({
       para: correos,
-      asunto: 'NOM-035: nueva canalización pendiente',
-      html: `<p>Hay una nueva canalización GR-I pendiente de atención.</p>
-             <p>Ingresa a la plataforma para revisarla: <a href="${base}">${base}</a></p>`,
+      asunto: 'Tienes una canalización pendiente de atención',
+      html: plantillaCorreo({
+        saludo: 'Aviso para el Responsable Designado:',
+        parrafos: [
+          'Hay una nueva persona que requiere valoración clínica (Guía I) pendiente de atención.',
+          'Este aviso no incluye ningún dato de la persona; consulta el detalle en la plataforma.',
+        ],
+        cta: base ? { url: base, etiqueta: 'Revisar en Constata' } : undefined,
+      }),
     });
   }
 

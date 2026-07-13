@@ -65,14 +65,80 @@ class ProveedorNulo implements MailProvider {
 }
 
 export function proveedorCorreo(): MailProvider {
-  const remitente = process.env.MAIL_FROM ?? 'noreply@example.com';
   const apiKey = process.env.RESEND_API_KEY;
   if (apiKey) {
+    // En producción el remitente es obligatorio: el fallback anterior
+    // (noreply@example.com) era indistinguible de phishing y destino directo a
+    // spam (auditoría v0, C-09). Mejor fallar ruidoso al arrancar el envío.
+    const remitente = process.env.MAIL_FROM;
+    if (!remitente) {
+      throw new Error(
+        'MAIL_FROM es obligatorio cuando RESEND_API_KEY está configurada (p. ej. "Constata <avisos@dominio.mx>").',
+      );
+    }
     return new ProveedorResend(new Resend(apiKey), remitente);
   }
   const mailpitUrl = process.env.MAILPIT_URL;
   if (mailpitUrl) {
-    return new ProveedorMailpit(mailpitUrl, remitente);
+    return new ProveedorMailpit(mailpitUrl, process.env.MAIL_FROM ?? 'constata@localhost');
   }
   return new ProveedorNulo();
+}
+
+// ─── Plantilla de marca ──────────────────────────────────────────────────────
+
+export function escaparHtml(texto: string): string {
+  return texto
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+/**
+ * Plantilla única de correo con la marca Constata (docs/BRAND.md §6): wordmark,
+ * botón CTA táctil y pie con la promesa de confidencialidad. TODOS los textos se
+ * escapan aquí (el nombre del empleado viene de un CSV importable: inyección de
+ * HTML, hallazgo Bajo de la auditoría v0). Estilos en línea: es correo.
+ */
+export function plantillaCorreo({
+  saludo,
+  parrafos,
+  cta,
+}: {
+  saludo: string;
+  parrafos: readonly string[];
+  cta?: { url: string; etiqueta: string };
+}): string {
+  const cuerpo = parrafos
+    .map(
+      (p) =>
+        `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#334155;">${escaparHtml(p)}</p>`,
+    )
+    .join('');
+  const boton = cta
+    ? `<p style="margin:20px 0;">
+         <a href="${escaparHtml(cta.url)}"
+            style="display:inline-block;min-height:44px;padding:12px 24px;border-radius:8px;background:#2b4193;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;">
+           ${escaparHtml(cta.etiqueta)}
+         </a>
+       </p>`
+    : '';
+  return `<!doctype html>
+<html lang="es-MX">
+  <body style="margin:0;padding:0;background:#f8fafc;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;">
+    <div style="max-width:520px;margin:0 auto;padding:24px 16px;">
+      <p style="margin:0 0 20px;font-size:18px;font-weight:700;letter-spacing:-0.02em;color:#2b4193;">Constata</p>
+      <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;">
+        <p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#0f172a;font-weight:600;">${escaparHtml(saludo)}</p>
+        ${cuerpo}
+        ${boton}
+      </div>
+      <p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#64748b;">
+        Constata — cumplimiento NOM-035-STPS-2018. Este correo nunca incluye tus respuestas ni tus resultados.
+      </p>
+    </div>
+  </body>
+</html>`;
 }
