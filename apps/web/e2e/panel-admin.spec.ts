@@ -114,14 +114,23 @@ test('el Admin de Organización ejecuta el ciclo completo', async ({ page }) => 
   await page.getByRole('button', { name: 'Crear ciclo' }).click();
   await expect(page.getByText('Ciclo 2026 · Centro Principal')).toBeVisible();
 
-  // Distribución: 3 empleados × 2 guías (GR-I y GR-II) = 6 asignaciones
+  // Distribución: 3 empleados × 2 guías (GR-I y GR-II) = 6 asignaciones.
+  // Distribuir es irreversible (correos reales), así que pide confirmación en un
+  // <dialog> propio que anuncia cuántos correos saldrán antes de permitir el envío.
   await page.getByTestId('distribuir').click();
+  await expect(page.getByTestId('distribuir-confirmacion')).toContainText('Se enviarán 6 correos');
+  await page.getByTestId('distribuir-confirmacion-confirmar').click();
   await expect(page.getByTestId('distribuir-detalle')).toContainText('6 asignaciones creadas');
   await expect(page.getByTestId('progreso-areas')).toContainText('Ventas');
   await expect(page.getByTestId('progreso-areas')).toContainText('Producción');
 
-  // Recordatorios a pendientes (rotan token y reenvían)
+  // Recordatorios a pendientes (rotan token y reenvían): la confirmación advierte
+  // que los enlaces anteriores dejarán de funcionar.
   await page.getByTestId('recordatorios').click();
+  await expect(page.getByTestId('recordatorios-confirmacion')).toContainText(
+    'Los enlaces anteriores dejarán de funcionar',
+  );
+  await page.getByTestId('recordatorios-confirmacion-confirmar').click();
   await expect(page.getByTestId('recordatorios-detalle')).toContainText('recordatorios enviados');
 
   // Un empleado completa su GR-II (token conocido inyectado sobre su asignación)

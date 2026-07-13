@@ -113,7 +113,9 @@ test('el Admin de Organización genera informe 7.9 y expediente con auditoría',
   await page.getByRole('button', { name: 'Crear ciclo' }).click();
   await expect(page.getByText('Ciclo Informes 2026 · Centro Informes')).toBeVisible();
 
+  // Distribuir es irreversible (correos reales): confirma en el <dialog> propio.
   await page.getByTestId('distribuir').click();
+  await page.getByTestId('distribuir-confirmacion-confirmar').click();
   await expect(page.getByTestId('distribuir-detalle')).toContainText('2 asignaciones creadas');
 
   // El empleado completa su GR-II para que el ciclo tenga un risk_results real (regla
