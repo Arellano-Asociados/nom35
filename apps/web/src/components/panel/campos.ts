@@ -1,11 +1,10 @@
 /**
- * Clase compartida para inputs/selects/textareas de los formularios del panel: mismo
- * tamaño, borde y transición en toda la app. El anillo de foco visible lo aporta la regla
- * global `:focus-visible` de `globals.css`, así que no hace falta repetirlo aquí.
+ * Alias históricos del panel. La clase canónica de controles vive en
+ * `components/ui/input.tsx` (`claseControl`); se re-exporta aquí para no tocar a
+ * todos los consumidores de golpe. Formularios nuevos: usar CampoTexto/CampoSelect.
  */
-export const claseCampo =
-  'w-full rounded-md border border-slate-400 px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 hover:border-slate-400';
+export { claseControl as claseCampo } from '@/components/ui/input';
 
-/** Contenedor de estado vacío: una línea amable + guía sutil, sin nuevos elementos interactivos. */
+/** Contenedor de estado vacío legado; los rediseños usan `<EmptyState>` (ui/empty-state). */
 export const claseEstadoVacio =
   'rounded-md border border-dashed border-slate-400 bg-slate-50/60 px-4 py-8 text-center text-sm text-slate-500';
