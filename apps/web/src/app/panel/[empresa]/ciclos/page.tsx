@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { accionCrearCiclo } from '@/acciones/panel';
+import { ErrorFormulario } from '@/components/panel/error-formulario';
 import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,14 @@ import { clienteAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PaginaCiclos({ params }: { params: Promise<{ empresa: string }> }) {
+export default async function PaginaCiclos({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ empresa: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error: errorFormulario } = await searchParams;
   const { empresa } = await params;
   await autorizarEmpresa(empresa);
 
@@ -78,6 +86,7 @@ export default async function PaginaCiclos({ params }: { params: Promise<{ empre
           </CardHeader>
           <CardContent>
             <form action={crear} className="flex flex-col gap-3 text-sm">
+              <ErrorFormulario codigo={errorFormulario} />
               <label className="flex flex-col gap-1 font-medium text-slate-800">
                 Nombre del ciclo
                 <input name="nombre" required className={claseCampo} />

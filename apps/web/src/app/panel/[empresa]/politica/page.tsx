@@ -1,4 +1,5 @@
 import { accionSubirPolitica } from '@/acciones/panel';
+import { ErrorFormulario } from '@/components/panel/error-formulario';
 import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,8 +9,15 @@ import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PaginaPolitica({ params }: { params: Promise<{ empresa: string }> }) {
+export default async function PaginaPolitica({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ empresa: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
   const { empresa } = await params;
+  const { error: errorFormulario } = await searchParams;
   await autorizarEmpresa(empresa);
 
   const supabase = clienteAdmin();
@@ -66,6 +74,7 @@ export default async function PaginaPolitica({ params }: { params: Promise<{ emp
         </CardHeader>
         <CardContent>
           <form action={subir} className="flex flex-col gap-3 text-sm">
+            <ErrorFormulario codigo={errorFormulario} />
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Título
               <input name="titulo" required className={claseCampo} />

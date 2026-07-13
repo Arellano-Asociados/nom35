@@ -1,4 +1,5 @@
 import { accionRegistrarCapacitacion, accionSubirCapacitacion } from '@/acciones/panel';
+import { ErrorFormulario } from '@/components/panel/error-formulario';
 import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { RegistroCapacitacion } from '@/components/panel/registro-capacitacion';
 import { Button } from '@/components/ui/button';
@@ -11,9 +12,12 @@ export const dynamic = 'force-dynamic';
 
 export default async function PaginaCapacitacion({
   params,
+  searchParams,
 }: {
   params: Promise<{ empresa: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const { error: errorFormulario } = await searchParams;
   const { empresa } = await params;
   await autorizarEmpresa(empresa);
 
@@ -81,6 +85,7 @@ export default async function PaginaCapacitacion({
         </CardHeader>
         <CardContent>
           <form action={subir} className="flex flex-col gap-3 text-sm">
+            <ErrorFormulario codigo={errorFormulario} />
             <label className="flex flex-col gap-1 font-medium text-slate-800">
               Título
               <input name="titulo" required className={claseCampo} />
@@ -91,6 +96,7 @@ export default async function PaginaCapacitacion({
                 name="archivo"
                 type="file"
                 required
+                accept="application/pdf"
                 className={cn(
                   claseCampo,
                   'file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700',
