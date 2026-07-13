@@ -6,6 +6,7 @@ import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
 import { registrarAuditoria } from '@/lib/auditoria';
 import { proveedorCorreo } from '@/lib/correo';
 import { parsearCsvEmpleados } from '@/lib/csv-empleados';
+import { escrituraOk } from '@/lib/escrituras';
 import { clienteAdmin } from '@/lib/supabase-admin';
 import { usuarioActual } from '@/lib/supabase-servidor';
 import { generarToken, hashDeToken } from '@/lib/tokens';
@@ -38,11 +39,17 @@ export async function accionCrearEmpresa(formData: FormData): Promise<void> {
     .single();
   if (error || !empresa) redirect('/panel/nueva?error=crear');
 
-  await supabase.from('role_assignments').insert({
-    company_id: empresa.id,
-    auth_user_id: usuario.id,
-    role: 'admin_org',
-  });
+  // Si esto falla, la empresa quedaría sin ningún miembro y su creador rebotaría a
+  // /panel sin poder entrar: se aborta en vez de dejar un tenant huérfano.
+  const membresia = await escrituraOk(
+    'asignar admin de la empresa',
+    supabase.from('role_assignments').insert({
+      company_id: empresa.id,
+      auth_user_id: usuario.id,
+      role: 'admin_org',
+    }),
+  );
+  if (!membresia.ok) redirect('/panel/nueva?error=crear');
   await registrarAuditoria(empresa.id, usuario.id, 'empresa_creada', 'companies', empresa.id);
   redirect(`/panel/${empresa.id}/centros`);
 }
@@ -60,15 +67,19 @@ export async function accionCrearCentro(companyId: string, formData: FormData): 
     redirect(`${ruta}?error=datos`);
   }
 
-  await clienteAdmin()
-    .from('work_centers')
-    .insert({
-      company_id: companyId,
-      name: nombre,
-      address: String(formData.get('direccion') ?? '').trim() || null,
-      main_activity: String(formData.get('actividad') ?? '').trim() || null,
-      headcount,
-    });
+  const centroCreado = await escrituraOk(
+    'crear centro de trabajo',
+    clienteAdmin()
+      .from('work_centers')
+      .insert({
+        company_id: companyId,
+        name: nombre,
+        address: String(formData.get('direccion') ?? '').trim() || null,
+        main_activity: String(formData.get('actividad') ?? '').trim() || null,
+        headcount,
+      }),
+  );
+  if (!centroCreado.ok) redirect(`${ruta}?error=crear`);
   revalidatePath(ruta);
   redirect(ruta);
 }
@@ -167,11 +178,18 @@ export async function accionDesignarmeRD(
   if (acceso.membresia.rol !== 'admin_org')
     return { ok: false, error: 'Solo el Admin de Organización' };
 
-  await clienteAdmin()
-    .from('role_assignments')
-    .update({ is_designated_responsible: true })
-    .eq('company_id', companyId)
-    .eq('auth_user_id', acceso.userId);
+  // La bitácora NO debe afirmar que hay RD designado si el UPDATE no ocurrió.
+  const designado = await escrituraOk(
+    'designar Responsable Designado',
+    clienteAdmin()
+      .from('role_assignments')
+      .update({ is_designated_responsible: true })
+      .eq('company_id', companyId)
+      .eq('auth_user_id', acceso.userId),
+  );
+  if (!designado.ok) {
+    return { ok: false, error: 'No se pudo registrar la designación. Intenta de nuevo.' };
+  }
   await registrarAuditoria(
     companyId,
     acceso.userId,
@@ -228,7 +246,7 @@ export async function accionCrearCiclo(companyId: string, formData: FormData): P
   const cedula = String(formData.get('cedula') ?? '').trim();
   if (!centroId || !nombre || !inicio || !evaluador || !cedula) redirect(`${ruta}?error=datos`);
 
-  const { data: ciclo } = await clienteAdmin()
+  const { data: ciclo, error: errorCiclo } = await clienteAdmin()
     .from('compliance_cycles')
     .insert({
       company_id: companyId,
@@ -241,17 +259,12 @@ export async function accionCrearCiclo(companyId: string, formData: FormData): P
     })
     .select('id')
     .single();
-  if (ciclo) {
-    await registrarAuditoria(
-      companyId,
-      acceso.userId,
-      'ciclo_creado',
-      'compliance_cycles',
-      ciclo.id,
-    );
-    redirect(`/panel/${companyId}/ciclos/${ciclo.id}`);
-  }
-  redirect(`${ruta}?error=crear`);
+  // El error del insert ya no se descarta: si falló, se informa en vez de caer en el
+  // redirect genérico sin distinguir "no se creó" de "se creó pero no se leyó".
+  if (errorCiclo || !ciclo) redirect(`${ruta}?error=crear`);
+
+  await registrarAuditoria(companyId, acceso.userId, 'ciclo_creado', 'compliance_cycles', ciclo.id);
+  redirect(`/panel/${companyId}/ciclos/${ciclo.id}`);
 }
 
 const GUIAS_POR_CATEGORIA: Record<string, string[]> = {
@@ -460,16 +473,20 @@ export async function accionCrearAccion(
   const responsable = String(formData.get('responsable') ?? '').trim();
   if (!descripcion || !nivel || !responsable) redirect(`${ruta}?error=datos`);
 
-  await clienteAdmin()
-    .from('action_items')
-    .insert({
-      company_id: companyId,
-      cycle_id: cicloId,
-      description: descripcion,
-      origin_level: nivel,
-      responsible: responsable,
-      due_date: String(formData.get('fecha') ?? '') || null,
-    });
+  const accionCreada = await escrituraOk(
+    'registrar acción del Capítulo 8',
+    clienteAdmin()
+      .from('action_items')
+      .insert({
+        company_id: companyId,
+        cycle_id: cicloId,
+        description: descripcion,
+        origin_level: nivel,
+        responsible: responsable,
+        due_date: String(formData.get('fecha') ?? '') || null,
+      }),
+  );
+  if (!accionCreada.ok) redirect(`${ruta}?error=crear`);
   revalidatePath(ruta);
   redirect(ruta);
 }
@@ -481,11 +498,17 @@ export async function accionActualizarAccion(
 ): Promise<ResultadoPanel> {
   const acceso = await autorizarEmpresa(companyId);
   if (!puedeGestionar(acceso.membresia)) return { ok: false, error: 'Sin permisos' };
-  await clienteAdmin()
-    .from('action_items')
-    .update({ status: estatus })
-    .eq('company_id', companyId)
-    .eq('id', accionId);
+  const estatusActualizado = await escrituraOk(
+    'actualizar estatus de la acción',
+    clienteAdmin()
+      .from('action_items')
+      .update({ status: estatus })
+      .eq('company_id', companyId)
+      .eq('id', accionId),
+  );
+  if (!estatusActualizado.ok) {
+    return { ok: false, error: 'No se pudo actualizar el estatus. Intenta de nuevo.' };
+  }
   revalidatePath(`/panel/${companyId}`);
   return { ok: true };
 }
@@ -509,12 +532,18 @@ export async function accionSubirPolitica(companyId: string, formData: FormData)
     .upload(rutaArchivo, archivo, { contentType: archivo.type || 'application/octet-stream' });
   if (errorSubida) redirect(`${ruta}?error=subida`);
 
-  await supabase.from('policies').insert({
-    company_id: companyId,
-    title: titulo,
-    version,
-    storage_path: rutaArchivo,
-  });
+  // Sin esta guarda, un insert fallido dejaba el PDF huérfano en Storage y la política
+  // "publicada" no existía para acuses ni expediente — con redirect de éxito.
+  const politicaCreada = await escrituraOk(
+    'publicar política de prevención',
+    supabase.from('policies').insert({
+      company_id: companyId,
+      title: titulo,
+      version,
+      storage_path: rutaArchivo,
+    }),
+  );
+  if (!politicaCreada.ok) redirect(`${ruta}?error=subida`);
   await registrarAuditoria(companyId, acceso.userId, 'politica_publicada', 'policies');
   revalidatePath(ruta);
   redirect(ruta);
@@ -539,11 +568,15 @@ export async function accionSubirCapacitacion(
     .upload(rutaArchivo, archivo, { contentType: archivo.type || 'application/octet-stream' });
   if (error) redirect(`${ruta}?error=subida`);
 
-  await supabase.from('training_contents').insert({
-    company_id: companyId,
-    title: titulo,
-    storage_path: rutaArchivo,
-  });
+  const capacitacionCreada = await escrituraOk(
+    'publicar contenido de capacitación',
+    supabase.from('training_contents').insert({
+      company_id: companyId,
+      title: titulo,
+      storage_path: rutaArchivo,
+    }),
+  );
+  if (!capacitacionCreada.ok) redirect(`${ruta}?error=subida`);
   revalidatePath(ruta);
   redirect(ruta);
 }
