@@ -56,8 +56,10 @@ export default async function PaginaBuzonPanel({
       .order('created_at', { ascending: false }),
   ]);
 
-  const base = process.env.NEXT_PUBLIC_APP_URL;
-  const urlBuzon = buzon && base ? `${base}/buzon/${buzon.token}` : null;
+  // Sin NEXT_PUBLIC_APP_URL se muestra la ruta relativa (el enlace del buzón EXISTE
+  // aunque falte la variable; fingir que no hay enlace sería un fallo silencioso).
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const urlBuzon = buzon ? `${base}/buzon/${buzon.token}` : null;
 
   return (
     <div className="flex flex-col gap-4">

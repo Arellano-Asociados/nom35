@@ -83,6 +83,9 @@ jobs:
             echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
             echo "SUPABASE_DB_URL=$DB_URL"
+            # URL base de la app (enlaces absolutos: buzón, CTAs de correo). Debe
+            # existir ANTES del build: las NEXT_PUBLIC_* se inlinen al compilar.
+            echo "NEXT_PUBLIC_APP_URL=http://127.0.0.1:3100"
           } >> "$GITHUB_ENV"
 
       - name: Gate de textos oficiales (sin placeholders, coincidencia exacta)
