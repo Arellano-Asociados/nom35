@@ -220,7 +220,8 @@ describe('aislamiento entre tenants (usuario del tenant A vs. filas del tenant B
       expect(await contar(q, 'select count(*) n from companies')).toBe(0);
       expect(await contar(q, 'select count(*) n from work_centers')).toBe(0);
       expect(await contar(q, 'select count(*) n from employees')).toBe(0);
-      expect(await contar(q, 'select count(*) n from risk_results')).toBe(0);
+      // risk_results ya ni siquiera tiene GRANT de SELECT (Fase 2.5): rechazo duro
+      await esperarRechazo(q, 'select count(*) n from risk_results');
     });
   });
 
@@ -291,55 +292,147 @@ describe('respuestas crudas: NADIE del lado patronal las lee (regla inviolable 4
   });
 });
 
-describe('resultados individuales: solo Responsable Designado y el propio empleado', () => {
-  it('el Responsable Designado de A ve risk_results y gr1_results de A, no de B', async () => {
-    await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
-      expect(
-        await contar(q, 'select count(*) n from risk_results where company_id = $1', [TENANT_A]),
-      ).toBe(1);
-      expect(
-        await contar(q, 'select count(*) n from gr1_results where company_id = $1', [TENANT_A]),
-      ).toBe(1);
-      expect(
-        await contar(q, 'select count(*) n from risk_results where company_id = $1', [TENANT_B]),
-      ).toBe(0);
+describe('resultados individuales: SOLO por la app auditada — ni el RD los lee directo (Fase 2.5)', () => {
+  // Antes el RD tenía SELECT directo vía REST, esquivando la auditoría fail-closed
+  // (regla inviolable 5: sin evento individual_result_access no hay consulta). Ahora
+  // risk_results y gr1_results siguen el patrón de responses: sin GRANT para
+  // authenticated; el único camino es la app (service_role), que audita.
+  it.each([
+    ['admin_org de A', ADMIN_A],
+    ['Responsable Designado de A', DR_A],
+    ['consultor de A', CONSULTOR_A],
+    ['empleado A1 (su resultado se lo muestra la app por token)', EMPLEADO_A1],
+  ])('%s no puede hacer SELECT sobre risk_results ni gr1_results', async (_nombre, uid) => {
+    await como({ sub: uid, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(q, 'select count(*) n from risk_results');
+      await esperarRechazo(q, 'select count(*) n from gr1_results');
     });
   });
 
-  it('el admin_org NO ve resultados individuales; el DR NO administra (no ve work_centers)', async () => {
-    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
-      expect(await contar(q, 'select count(*) n from risk_results')).toBe(0);
-      expect(await contar(q, 'select count(*) n from gr1_results')).toBe(0);
+  it('ni el RD actualiza la canalización directo: solo la acción de la app (auditada)', async () => {
+    await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(
+        q,
+        `update gr1_results set canalizacion_estatus = 'canalizado' where id = $1`,
+        [GR1_A],
+      );
     });
+  });
+
+  it('el DR (rol miembro con flag) NO administra: no ve work_centers', async () => {
     await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
       expect(await contar(q, 'select count(*) n from work_centers')).toBe(0);
     });
   });
+});
 
-  it('el empleado ve únicamente SU resultado procesado y SU fila de employees', async () => {
-    await como({ sub: EMPLEADO_A1, company_id: TENANT_A }, async (q) => {
-      const r = await q('select employee_id from risk_results');
-      expect(r.rows).toEqual([{ employee_id: EMP_A1 }]);
-      const e = await q('select id from employees');
-      expect(e.rows).toEqual([{ id: EMP_A1 }]);
+describe('capacidades del panel con RLS (Fase 2.5: el panel opera como el usuario, no como service_role)', () => {
+  it('admin_org de A ejecuta el ciclo de gestión completo en SU tenant', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const centro = await q(
+        `insert into work_centers (company_id, name, headcount) values ($1, 'Centro RLS', 20)
+         returning id`,
+        [TENANT_A],
+      );
+      expect(centro.rowCount).toBe(1);
+      const centroId = centro.rows[0].id as string;
+
+      const empleado = await q(
+        `insert into employees (company_id, work_center_id, full_name, email)
+         values ($1, $2, 'Empleada RLS', 'rls@e2e.mx') returning id`,
+        [TENANT_A, centroId],
+      );
+      expect(empleado.rowCount).toBe(1);
+
+      const ciclo = await q(
+        `insert into compliance_cycles (company_id, work_center_id, name, date_start, evaluator_name, evaluator_license)
+         values ($1, $2, 'Ciclo RLS', current_date, 'Eval', 'CED-1') returning id`,
+        [TENANT_A, centroId],
+      );
+      expect(ciclo.rowCount).toBe(1);
+
+      const accion = await q(
+        `insert into action_items (company_id, cycle_id, description, origin_level, responsible)
+         values ($1, $2, 'Accion RLS', 'medio', 'RH')`,
+        [TENANT_A, ciclo.rows[0].id],
+      );
+      expect(accion.rowCount).toBe(1);
+
+      // Designarse RD: UPDATE de su propia fila de role_assignments
+      const rd = await q(
+        `update role_assignments set is_designated_responsible = true
+         where company_id = $1 and auth_user_id = $2`,
+        [TENANT_A, ADMIN_A],
+      );
+      expect(rd.rowCount).toBe(1);
+
+      // Lecturas que las páginas del panel necesitan (con joins anidados típicos)
+      expect(
+        await contar(q, 'select count(*) n from questionnaire_assignments where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBeGreaterThan(0);
+      expect(
+        await contar(q, 'select count(*) n from consents where company_id = $1', [TENANT_A]),
+      ).toBeGreaterThanOrEqual(0);
+      expect(
+        await contar(q, 'select count(*) n from compliance_reports where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBeGreaterThanOrEqual(0);
+      expect(
+        await contar(q, 'select count(*) n from work_centers_alerta_ciclo where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBeGreaterThan(0);
     });
   });
 
-  it('solo el Responsable Designado actualiza la canalización GR-I', async () => {
-    await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
-      const u = await q(
-        `update gr1_results set canalizacion_estatus = 'canalizado', canalizacion_fecha = current_date
-         where id = $1`,
-        [GR1_A],
+  it('consultor asignado gestiona el tenant asignado (y solo ese)', async () => {
+    await como({ sub: CONSULTOR_A }, async (q) => {
+      const centro = await q(
+        `insert into work_centers (company_id, name, headcount) values ($1, 'Centro Consultor', 8)
+         returning id`,
+        [TENANT_A],
       );
-      expect(u.rowCount).toBe(1);
+      expect(centro.rowCount).toBe(1);
+      await esperarRechazo(
+        q,
+        `insert into work_centers (company_id, name, headcount) values ($1, 'X', 8)`,
+        [TENANT_B],
+      );
     });
-    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
-      const u = await q(
-        `update gr1_results set canalizacion_estatus = 'canalizado' where id = $1`,
-        [GR1_A],
+  });
+
+  it('el rol miembro (sin gestión) no escribe nada de gestión', async () => {
+    await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into work_centers (company_id, name, headcount) values ($1, 'X', 8)`,
+        [TENANT_A],
       );
-      expect(u.rowCount).toBe(0);
+      await esperarBloqueo(
+        q,
+        `update compliance_cycles set name = 'x' where company_id = $1`,
+        [TENANT_A],
+      );
+    });
+  });
+
+  it('el actor de audit_log con cliente de usuario es auth.uid(): no se puede suplantar', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const propio = await q(
+        `insert into audit_log (company_id, actor_user_id, event_type, entity)
+         values ($1, $2, 'ciclo_creado', 'compliance_cycles')`,
+        [TENANT_A, ADMIN_A],
+      );
+      expect(propio.rowCount).toBe(1);
+      await esperarRechazo(
+        q,
+        `insert into audit_log (company_id, actor_user_id, event_type)
+         values ($1, $2, 'suplantacion')`,
+        [TENANT_A, DR_A],
+      );
     });
   });
 });
