@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Toaster } from 'sonner';
+import { VigiaSesion } from '@/components/acceso/vigia-sesion';
 import { Sidebar } from '@/components/panel/sidebar';
 import { membresiasDe } from '@/lib/autorizacion';
 import { clienteSesion, usuarioActual } from '@/lib/supabase-servidor';
@@ -61,6 +62,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
         offset={{ top: '4.5rem' }}
         mobileOffset={{ top: '4.5rem' }}
       />
+      <VigiaSesion />
     </div>
   );
 }

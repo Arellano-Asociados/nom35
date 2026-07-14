@@ -6,6 +6,7 @@ import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
 import { registrarAuditoria } from '@/lib/auditoria';
 import { plantillaCorreo, proveedorCorreo } from '@/lib/correo';
 import { fechaEsMx } from '@/lib/fechas';
+import { permitido } from '@/lib/limites';
 import { parsearCsvEmpleados } from '@/lib/csv-empleados';
 import { escrituraOk } from '@/lib/escrituras';
 import { rutaDeObjeto, validarPdf } from '@/lib/subidas';
@@ -197,6 +198,41 @@ export async function accionDesignarmeRD(
   if (!designado.ok) {
     return { ok: false, error: 'No se pudo registrar la designación. Intenta de nuevo.' };
   }
+  // Aviso a los DEMÁS admins (mini-fase 3, auditoría v0 §6 [Alto] "auto-designación
+  // sin control"): la designación no se prohíbe —una empresa unipersonal del segmento
+  // necesita poder designarse—, pero deja de ser silenciosa: bitácora (abajo, ya
+  // existía) + correo a cada otro admin de la organización. Fire-and-forget: el
+  // aviso no debe impedir la designación; la evidencia dura es la bitácora.
+  try {
+    const admin = clienteAdmin();
+    const { data: otrosAdmins } = await admin
+      .from('role_assignments')
+      .select('auth_user_id')
+      .eq('company_id', companyId)
+      .eq('role', 'admin_org')
+      .neq('auth_user_id', acceso.userId);
+    const correos: string[] = [];
+    for (const fila of otrosAdmins ?? []) {
+      const { data } = await admin.auth.admin.getUserById(fila.auth_user_id);
+      if (data.user?.email) correos.push(data.user.email);
+    }
+    if (correos.length > 0) {
+      await proveedorCorreo().enviar({
+        para: correos,
+        asunto: 'Se designó un Responsable Designado en tu organización',
+        html: plantillaCorreo({
+          saludo: 'Aviso a los administradores:',
+          parrafos: [
+            `${acceso.email} asumió el rol de Responsable Designado de la organización. Ese rol puede consultar resultados individuales (cada consulta queda auditada).`,
+            'Si no lo reconoces, revísalo en la sección Equipo del panel.',
+          ],
+        }),
+      });
+    }
+  } catch {
+    // El aviso es cortesía; la designación y su bitácora no dependen de él.
+  }
+
   await registrarAuditoria(
     companyId,
     acceso.userId,
@@ -423,6 +459,17 @@ export async function accionRecordatorios(
       error:
         'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
     };
+
+  // Idempotencia práctica (mini-fase 3; auditoría v0 §6 [Medio] "recordatorios sin
+  // límite ni idempotencia"): un doble clic o reintento dentro de la ventana no
+  // vuelve a rotar tokens ni a mandar otra tanda de correos a toda la plantilla.
+  if (!(await permitido(`recordatorios:${cicloId}`, { ventanaSegundos: 600, maximo: 1 }))) {
+    return {
+      ok: false,
+      error:
+        'Ya se enviaron recordatorios de este ciclo hace unos minutos. Espera 10 minutos antes de reenviar.',
+    };
+  }
 
   const supabase = clienteAdmin();
   const { data: pendientes } = await supabase

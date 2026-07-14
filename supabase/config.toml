@@ -273,11 +273,16 @@ max_frequency = "5s"
 # 4152127777 = "123456"
 
 # Configure logged in session timeouts.
-# [auth.sessions]
+# Mini-fase 3 (auditoría v0 §6 [Alto] "sin caducidad de sesión"): las cuentas del
+# panel ven datos agregados de salud; una sesión olvidada en una máquina compartida
+# no debe vivir para siempre. El flujo del empleado NO usa sesión (token) y sus
+# respuestas se guardan de una en una: no pierde nada. En la nube se replica en el
+# dashboard de Auth.
+[auth.sessions]
 # Force log out after the specified duration.
-# timebox = "24h"
+timebox = "7d"
 # Force log out if the user has been inactive longer than the specified duration.
-# inactivity_timeout = "8h"
+inactivity_timeout = "12h"
 
 # This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
 # [auth.hook.before_user_created]

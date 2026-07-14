@@ -1,5 +1,6 @@
 'use server';
 
+import { permitido } from '@/lib/limites';
 import { createHash } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -171,6 +172,16 @@ export async function accionGenerarInforme79(
         'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
     };
 
+  // Idempotencia práctica (mini-fase 3): un doble clic no archiva dos informes
+  // idénticos en compliance_reports (cada uno es evidencia con hash).
+  if (!(await permitido(`informe:${cycleId}`, { ventanaSegundos: 300, maximo: 1 }))) {
+    return {
+      ok: false,
+      error:
+        'Este informe se generó hace unos minutos. Descárgalo del historial o espera 5 minutos.',
+    };
+  }
+
   const supabase = clienteAdmin();
 
   const armado = await armarDatosInforme79DesdeBd(supabase, companyId, cycleId);
@@ -307,6 +318,15 @@ export async function accionGenerarExpediente(
       error:
         'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
     };
+
+  // Idempotencia práctica (mini-fase 3): mismo criterio que el informe 7.9.
+  if (!(await permitido(`expediente:${cycleId}`, { ventanaSegundos: 300, maximo: 1 }))) {
+    return {
+      ok: false,
+      error:
+        'Este expediente se generó hace unos minutos. Descárgalo del historial o espera 5 minutos.',
+    };
+  }
 
   const supabase = clienteAdmin();
 

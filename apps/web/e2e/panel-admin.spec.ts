@@ -168,7 +168,10 @@ test('el Admin de Organización ejecuta el ciclo completo', async ({ page }) => 
   // Designación como Responsable Designado
   await page.goto(`/panel/${empresaId}/equipo`);
   await page.getByLabel('Cédula profesional (evidencia del responsable)').fill('CED-123');
+  // La designación de RD pide confirmación explícita (mini-fase 3): consecuencia
+  // completa + bitácora + aviso a los demás admins.
   await page.getByTestId('designarme-rd').click();
+  await page.getByTestId('designarme-rd-confirmacion-confirmar').click();
   await expect(page.getByTestId('soy-rd')).toBeVisible();
 
   // Acceso individual auditado: interstitial + evento en audit_log
