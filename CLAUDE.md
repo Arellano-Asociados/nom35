@@ -120,21 +120,21 @@ diagramas, tabla de permisos por rol, FAQ): `docs/manual.md`.
 
 Bitácora detallada de lo construido en cada uno: **`docs/historia-milestones.md`**.
 
-| Milestone | Descripción | Estado |
-| --- | --- | --- |
-| M0 | Init repo, monorepo, CI, Supabase local | ✅ |
-| M1 | Motor de cálculo + suite de validación | 🟡 Cerrado *para desarrollo* (ver dependencias abiertas) |
-| M2 | Base de datos, multi-tenancy y auth (RLS) | ✅ |
-| M3 | Flujo del empleado + captura inmutable | ✅ |
-| M4 | Panel administrativo | ✅ |
-| M5 | Informe 7.9 y expediente de inspección | ✅ |
-| M6 | Endurecimiento y demo | ✅ |
-| M7 | Manual de uso y UI premium | ✅ |
-| F1.5 | Remediación de críticos de la auditoría v0 | ✅ (`docs/AUDITORIA.md`) |
-| F2 | Sistema de diseño e identidad **Constata** | ✅ (`docs/BRAND.md`) |
-| F2.5 | Endurecimiento estructural (RLS real en el panel) | ✅ |
-| F3 | Configurabilidad (cuestionarios propios, plantillas, cron) | ✅ |
-| F4 | Ciclo normativo completo (difusión, buzón, programa 8.3–8.5) | ✅ (2026-07-14) |
+| Milestone | Descripción                                                  | Estado                                                   |
+| --------- | ------------------------------------------------------------ | -------------------------------------------------------- |
+| M0        | Init repo, monorepo, CI, Supabase local                      | ✅                                                       |
+| M1        | Motor de cálculo + suite de validación                       | 🟡 Cerrado _para desarrollo_ (ver dependencias abiertas) |
+| M2        | Base de datos, multi-tenancy y auth (RLS)                    | ✅                                                       |
+| M3        | Flujo del empleado + captura inmutable                       | ✅                                                       |
+| M4        | Panel administrativo                                         | ✅                                                       |
+| M5        | Informe 7.9 y expediente de inspección                       | ✅                                                       |
+| M6        | Endurecimiento y demo                                        | ✅                                                       |
+| M7        | Manual de uso y UI premium                                   | ✅                                                       |
+| F1.5      | Remediación de críticos de la auditoría v0                   | ✅ (`docs/AUDITORIA.md`)                                 |
+| F2        | Sistema de diseño e identidad **Constata**                   | ✅ (`docs/BRAND.md`)                                     |
+| F2.5      | Endurecimiento estructural (RLS real en el panel)            | ✅                                                       |
+| F3        | Configurabilidad (cuestionarios propios, plantillas, cron)   | ✅                                                       |
+| F4        | Ciclo normativo completo (difusión, buzón, programa 8.3–8.5) | ✅ (2026-07-14)                                          |
 
 Estado de validación tras F4: motor 59/59, web 120/120, RLS 58/58, E2E 15/15.
 

@@ -45,7 +45,7 @@ completo del Admin de Organización y aislamiento del Consultor entre empresas.
 
 - El hook `app.custom_access_token` corre como `supabase_auth_admin`. El `GRANT EXECUTE`
   sobre la función (migración de M2) no basta: sin `GRANT USAGE ON SCHEMA app TO
-  supabase_auth_admin` (migración `20260711230000_grant_hook_auth.sql`), GoTrue no puede
+supabase_auth_admin` (migración `20260711230000_grant_hook_auth.sql`), GoTrue no puede
   siquiera resolver la función y **todo** signup/login con contraseña falla con 500. El
   flujo del empleado no pasa por GoTrue y la suite RLS corre sin servicio de auth, así que
   nada lo había ejercitado hasta el primer E2E del panel.
@@ -105,8 +105,9 @@ guardas de escritura (`lib/escrituras.ts`), confirmación de correo obligatoria 
 aviso de privacidad versionado en BD + canal ARCO público, CSP con nonce/HSTS/XFO, catálogo
 tipado de `event_type`, errores de formulario visibles + `error.tsx`/`not-found.tsx`, validación
 de subidas por magic bytes, diálogo de confirmación accesible con conteo de correos, foco visible
-+ contrastes AA. Mapa hallazgo→commit y deuda abierta reconocida en `docs/AUDITORIA.md`.
-Validación: motor 59/59, web 59/59, RLS 38/38, E2E 10/10, 12 migraciones desde cero.
+
+- contrastes AA. Mapa hallazgo→commit y deuda abierta reconocida en `docs/AUDITORIA.md`.
+  Validación: motor 59/59, web 59/59, RLS 38/38, E2E 10/10, 12 migraciones desde cero.
 
 ## F2 — Sistema de diseño e identidad **Constata**
 
@@ -148,9 +149,10 @@ con supresión <3, `custom_answers` sin GRANT); configuración de organización 
 magic bytes junto a la marca en el PDF, zona horaria, contacto); plantillas de correo editables
 con {{variables}} + escape obligatorio + restaurar (correo de acuse nuevo); recordatorios
 automáticos cada N días (cron `/api/cron/recordatorios` con CRON_SECRET, idempotente por bitácora
-+ limitador) y fecha límite visible; feature flags por organización (lectura tenant, escritura
-solo plataforma). Suite RLS 46→50, E2E 11/11 (spec nuevo del editor), web 94/94, gate
-`verificar:textos` verde.
+
+- limitador) y fecha límite visible; feature flags por organización (lectura tenant, escritura
+  solo plataforma). Suite RLS 46→50, E2E 11/11 (spec nuevo del editor), web 94/94, gate
+  `verificar:textos` verde.
 
 ## F4 — Ciclo normativo completo
 

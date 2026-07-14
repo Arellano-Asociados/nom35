@@ -997,10 +997,14 @@ describe('eventos traumáticos severos (Fase 4.5): 5.3 / 5.5 / 6.5', () => {
   it('gestión ve y registra los eventos de SU tenant; el otro tenant no existe para ella', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
       expect(
-        await contar(q, 'select count(*) n from traumatic_events where company_id = $1', [TENANT_A]),
+        await contar(q, 'select count(*) n from traumatic_events where company_id = $1', [
+          TENANT_A,
+        ]),
       ).toBe(1);
       expect(
-        await contar(q, 'select count(*) n from traumatic_events where company_id = $1', [TENANT_B]),
+        await contar(q, 'select count(*) n from traumatic_events where company_id = $1', [
+          TENANT_B,
+        ]),
       ).toBe(0);
       const propio = await q(
         `insert into traumatic_events (company_id, work_center_id, occurred_on, description, reported_by)
@@ -1033,7 +1037,9 @@ describe('eventos traumáticos severos (Fase 4.5): 5.3 / 5.5 / 6.5', () => {
   it('el Responsable Designado los lee (atiende la canalización derivada)', async () => {
     await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
       expect(
-        await contar(q, 'select count(*) n from traumatic_events where company_id = $1', [TENANT_A]),
+        await contar(q, 'select count(*) n from traumatic_events where company_id = $1', [
+          TENANT_A,
+        ]),
       ).toBe(1);
     });
   });

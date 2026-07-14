@@ -33,6 +33,9 @@ export default async function PaginaCiclos({
       .from('compliance_cycles')
       .select('id, name, date_start, date_end, evaluator_name, work_centers (name)')
       .eq('company_id', empresa)
+      // Los ciclos ATS (aplicación reactiva de GR-I por un acontecimiento traumático)
+      // son internos y viven en su propia sección: no son evaluaciones del centro.
+      .is('traumatic_event_id', null)
       .order('date_start', { ascending: false }),
     supabase.from('work_centers').select('id, name').eq('company_id', empresa).order('name'),
     supabase
