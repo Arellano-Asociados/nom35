@@ -293,6 +293,21 @@ export async function politicaPendienteDe(ctx: Contexto): Promise<PoliticaPendie
   };
 }
 
+/**
+ * Enlace del buzón de quejas de la empresa (8.1 b), si ya está activo. Se difunde
+ * en el flujo del empleado (5.7 d): el enlace es por EMPRESA y no identifica a nadie.
+ */
+export async function urlBuzonDe(companyId: string): Promise<string | null> {
+  const base = process.env.NEXT_PUBLIC_APP_URL;
+  if (!base) return null;
+  const { data } = await clienteAdmin()
+    .from('complaint_boxes')
+    .select('token')
+    .eq('company_id', companyId)
+    .maybeSingle();
+  return data?.token ? `${base}/buzon/${data.token}` : null;
+}
+
 export interface DifusionVigenteInfo {
   id: string;
   version: number;

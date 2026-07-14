@@ -8,6 +8,7 @@ import {
   politicaPendienteDe,
   registrarConsultaResultadoPropio,
   respuestasVigentes,
+  urlBuzonDe,
 } from '@/lib/flujo';
 import { fechaEsMx } from '@/lib/fechas';
 import { ipCliente, permitido } from '@/lib/limites';
@@ -28,6 +29,21 @@ const TITULOS_GR1: Record<string, string> = {
   III: 'III.- Esfuerzo por evitar circunstancias parecidas o asociadas al acontecimiento (durante el último mes)',
   IV: 'IV.- Afectación (durante el último mes)',
 };
+
+/** Difusión del mecanismo de quejas (5.7 d): visible en el flujo del trabajador. */
+function EnlaceBuzon({ url }: { url: string | null }) {
+  if (!url) return null;
+  return (
+    <p className="text-sm text-slate-600">
+      ¿Viviste o presenciaste malos tratos o violencia laboral? Repórtalo de forma segura y
+      confidencial en el{' '}
+      <a href={url} className="text-marca-700 underline" data-testid="enlace-buzon">
+        buzón de quejas de tu empresa
+      </a>
+      .
+    </p>
+  );
+}
 
 function Mensaje({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
@@ -74,22 +90,28 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
   // administra (buzón compartido, TI, historial de una máquina compartida). El dato
   // es sensible y su consulta no quedaba auditada, a diferencia del acceso del RD.
   if (ctx.expirado) {
+    const urlBuzon = await urlBuzonDe(ctx.companyId);
     return (
-      <Mensaje titulo="Enlace expirado">
-        <span data-testid="expirado">
-          Este enlace ya no está vigente. Solicita uno nuevo al responsable de tu centro de trabajo.
-        </span>
-      </Mensaje>
+      <div className="flex flex-col gap-4">
+        <Mensaje titulo="Enlace expirado">
+          <span data-testid="expirado">
+            Este enlace ya no está vigente. Solicita uno nuevo al responsable de tu centro de
+            trabajo.
+          </span>
+        </Mensaje>
+        <EnlaceBuzon url={urlBuzon} />
+      </div>
     );
   }
 
   if (ctx.completado) {
-    const [politica, difusion] = await Promise.all([
+    const [politica, difusion, urlBuzon] = await Promise.all([
       politicaPendienteDe(ctx),
       // La constancia de difusión (5.7 e / 7.8) se muestra SOLO tras enviar el
       // cuestionario: ver resultados del grupo antes de responder sesgaría las
       // respuestas del instrumento.
       difusionVigenteDe(ctx),
+      urlBuzonDe(ctx.companyId),
     ]);
     // Cada consulta del propio resultado deja rastro en la bitácora (regla 5: el acceso
     // a un resultado individual procesado siempre se audita, aunque sea el titular).
@@ -123,6 +145,7 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
           </div>
         )}
         <Resultado asignacionId={ctx.asignacionId} guia={ctx.guia} />
+        <EnlaceBuzon url={urlBuzon} />
       </div>
     );
   }
