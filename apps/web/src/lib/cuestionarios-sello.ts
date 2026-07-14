@@ -17,9 +17,18 @@ function ordenarClaves(valor: unknown): unknown {
   return valor;
 }
 
+/**
+ * Sello genérico de un valor JSON: serialización canónica (claves ordenadas
+ * recursivamente) → sha256 hex. Mismo criterio para todo lo que se sella en la
+ * plataforma (definiciones publicadas, constancias de difusión, instrumentos del
+ * expediente): el sello es reproducible sin importar el orden de inserción.
+ */
+export function selloCanonico(valor: unknown): { json: string; sha256: string } {
+  const json = JSON.stringify(ordenarClaves(valor));
+  return { json, sha256: createHash('sha256').update(json).digest('hex') };
+}
+
 /** Sello de la definición al publicar: JSON canónico (claves ordenadas) → sha256. */
 export function sha256DeDefinicion(def: DefinicionCuestionario): string {
-  return createHash('sha256')
-    .update(JSON.stringify(ordenarClaves(def)))
-    .digest('hex');
+  return selloCanonico(def).sha256;
 }
