@@ -1,6 +1,7 @@
 import { renderToBuffer } from '@react-pdf/renderer';
 import type { DatosInforme79 } from '../lib/informe';
 import { Informe79Pdf } from './informe-79-pdf';
+import { ProgramaPdf, type DatosProgramaPdf } from './programa-pdf';
 
 // Módulo PURO respecto a I/O: no hace llamadas a Supabase, no calcula fechas
 // (recibe `DatosInforme79` ya armado por `armarDatosInforme79`) y solo
@@ -15,4 +16,9 @@ import { Informe79Pdf } from './informe-79-pdf';
  */
 export async function generarPdfInforme79(datos: DatosInforme79): Promise<Buffer> {
   return renderToBuffer(Informe79Pdf({ datos }));
+}
+
+/** PDF del Programa de intervención (8.4), mismo pipeline puro que el informe. */
+export async function generarPdfPrograma(datos: DatosProgramaPdf): Promise<Buffer> {
+  return renderToBuffer(ProgramaPdf({ datos }));
 }

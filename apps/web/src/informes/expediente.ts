@@ -49,6 +49,54 @@ export interface EntradaResumenAuditoria {
   conteo: number;
 }
 
+// ── Piezas de la Fase 4 (ciclo normativo completo) ───────────────────────────
+
+export interface EntradaDifusionExpediente {
+  version: number;
+  /** Sello publicado en dissemination_records; DEBE ser el sha256 de resumenJson. */
+  sha256: string;
+  publicadaEl: string;
+  /** JSON canónico del resumen tal como se selló: se archiva byte a byte para que el
+   * sha256 del archivo sea verificable contra el registro publicado. */
+  resumenJson: string;
+  acuses: readonly { nombreEmpleado: string; version: number; fechaAcuse: string }[];
+}
+
+export interface EntradaAvancePrograma {
+  descripcion: string;
+  nivelAccion: string | null;
+  areas: string | null;
+  responsable: string;
+  fechaCompromiso: string | null;
+  estatus: string;
+  fechaCompletado: string | null;
+  /** Huella de la evidencia adjunta (el archivo en sí no se embebe: se referencia). */
+  evidenciaSha256: string | null;
+}
+
+export interface EntradaProgramaExpediente {
+  /** PDF del documento Programa (8.4), ya renderizado por el caller. */
+  pdf: Buffer;
+  avances: readonly EntradaAvancePrograma[];
+}
+
+/** SOLO conteos agregados del buzón: jamás folios, contenido ni identidad. */
+export interface EntradaBuzonAgregado {
+  categoria: string;
+  estatus: string;
+  /** yyyy-mm */
+  mes: string;
+  conteo: number;
+}
+
+export interface EntradaCuestionarioAplicado {
+  guia: string;
+  /** Sello del instrumento; DEBE ser el sha256 de itemsJson. */
+  sha256: string;
+  /** JSON canónico de los ítems aplicados (número + texto oficial + estructura). */
+  itemsJson: string;
+}
+
 export interface EntradaExpediente {
   /** Ya armado por armarDatosInforme79: se reutiliza para el contexto empresa/ciclo y Tabla 7. */
   datos: Pick<DatosInforme79, 'empresa' | 'ciclo' | 'acciones'>;
@@ -61,6 +109,14 @@ export interface EntradaExpediente {
   /** Conteo de eventos de audit_log por tipo, SIN detalles sensibles (sin actor_id, sin
    * entity_id, sin el JSON de `details`): solo `event_type` + conteo. */
   resumenAuditoria: readonly EntradaResumenAuditoria[];
+  /** Constancia de difusión vigente del ciclo (5.7 e / 7.8); ausente si no se publicó. */
+  difusion?: EntradaDifusionExpediente | null;
+  /** Programa de intervención (8.4) con su avance; ausente si el ciclo no lo tiene. */
+  programa?: EntradaProgramaExpediente | null;
+  /** Registro agregado del buzón (8.1 b); vacío/ausente si no hay quejas. */
+  buzonAgregado?: readonly EntradaBuzonAgregado[];
+  /** Instrumentos aplicados en el ciclo, sellados por guía. */
+  cuestionariosAplicados?: readonly EntradaCuestionarioAplicado[];
   /** ISO; lo inyecta el caller (este módulo no llama a Date.now/new Date). */
   generadoEl: string;
 }
@@ -172,44 +228,210 @@ function csvResumenAuditoria(filas: readonly EntradaResumenAuditoria[]): Buffer 
   );
 }
 
+function csvAcusesDifusion(filas: EntradaDifusionExpediente['acuses']): Buffer {
+  return construirCsv(
+    ['empleado', 'version', 'fecha_acuse'],
+    filas.map((f) => [f.nombreEmpleado, String(f.version), f.fechaAcuse]),
+  );
+}
+
+function csvAvancesPrograma(filas: readonly EntradaAvancePrograma[]): Buffer {
+  return construirCsv(
+    [
+      'descripcion',
+      'nivel_accion',
+      'areas',
+      'responsable',
+      'fecha_compromiso',
+      'estatus',
+      'fecha_completado',
+      'evidencia_sha256',
+    ],
+    filas.map((f) => [
+      f.descripcion,
+      f.nivelAccion ?? '',
+      f.areas ?? '',
+      f.responsable,
+      f.fechaCompromiso ?? '',
+      f.estatus,
+      f.fechaCompletado ?? '',
+      f.evidenciaSha256 ?? '',
+    ]),
+  );
+}
+
+function csvBuzonAgregado(filas: readonly EntradaBuzonAgregado[]): Buffer {
+  return construirCsv(
+    ['categoria', 'estatus', 'mes', 'conteo'],
+    filas.map((f) => [f.categoria, f.estatus, f.mes, String(f.conteo)]),
+  );
+}
+
+function nombreInstrumento(guia: string): string {
+  return `cuestionario-aplicado-${guia.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
+}
+
+interface ArchivoPendiente {
+  nombre: string;
+  contenido: Buffer;
+  /** Una línea para el índice legible. */
+  descripcion: string;
+}
+
 /**
- * Arma el expediente de inspección: un ZIP con el informe 7.9, evidencia de proceso
- * (acuses de política, participación, capacitación, acciones de la Tabla 7) y un
- * manifiesto con el sha256 de cada archivo. Sin política publicada, el ZIP se genera
- * igual (no truena) y el manifiesto lo marca explícitamente como "ausente".
+ * Arma el expediente de inspección: un ZIP con TODAS las piezas del ciclo — informe
+ * 7.9, política + acuses, instrumentos aplicados sellados, constancia de difusión con
+ * sus acuses, Programa de intervención con avances, registro agregado del buzón,
+ * evidencia de proceso — más un `INDICE.txt` legible (PRIMERA entrada) y el
+ * `manifiesto.json` con el sha256 de cada archivo. Las piezas faltantes se declaran
+ * explícitamente como "ausente" en el índice y el manifiesto: jamás se omiten en
+ * silencio (el expediente nunca miente).
  */
 export async function armarExpediente(
   entrada: EntradaExpediente,
 ): Promise<{ zip: Buffer; manifiesto: ManifiestoExpediente }> {
-  const zip = new JSZip();
-  const archivos: ArchivoManifiesto[] = [];
+  const pendientes: ArchivoPendiente[] = [];
+  const ausentes: string[] = [];
 
-  function agregar(nombre: string, contenido: Buffer): void {
-    zip.file(nombre, contenido);
-    archivos.push({ nombre, sha256: sha256Hex(contenido), bytes: contenido.length });
+  function preparar(nombre: string, contenido: Buffer, descripcion: string): void {
+    pendientes.push({ nombre, contenido, descripcion });
   }
 
-  agregar('informe-7-9.pdf', entrada.pdfInforme);
+  preparar(
+    'informe-7-9.pdf',
+    entrada.pdfInforme,
+    'Informe normativo de resultados (secciones a-g)',
+  );
 
   let politicaPublicada: 'presente' | 'ausente' = 'ausente';
   if (entrada.politica) {
     politicaPublicada = 'presente';
     const extension = extname(entrada.politica.nombreArchivo) || '.bin';
-    agregar(`politica-prevencion${extension}`, entrada.politica.bytes);
+    preparar(
+      `politica-prevencion${extension}`,
+      entrada.politica.bytes,
+      'Política de prevención de riesgos psicosociales publicada',
+    );
+  } else {
+    ausentes.push('Política de prevención de riesgos psicosociales: AUSENTE (no publicada)');
   }
 
-  agregar('acuses-politica.csv', csvAcusesPolitica(entrada.acusesPolitica));
-  agregar('participacion.csv', csvParticipacion(entrada.participacion));
-  agregar('acciones.csv', csvAcciones(entrada.datos.acciones));
-  agregar('capacitacion.csv', csvCapacitacion(entrada.capacitacion));
-  agregar('resumen-auditoria.csv', csvResumenAuditoria(entrada.resumenAuditoria));
+  preparar(
+    'acuses-politica.csv',
+    csvAcusesPolitica(entrada.acusesPolitica),
+    'Acuses de recibo de la política por los trabajadores',
+  );
+  preparar(
+    'participacion.csv',
+    csvParticipacion(entrada.participacion),
+    'Participación por centro de trabajo (cuestionarios asignados y completados)',
+  );
+  preparar(
+    'acciones.csv',
+    csvAcciones(entrada.datos.acciones),
+    'Acciones del Capítulo 8 registradas en el ciclo',
+  );
+  preparar('capacitacion.csv', csvCapacitacion(entrada.capacitacion), 'Registros de capacitación');
+  preparar(
+    'resumen-auditoria.csv',
+    csvResumenAuditoria(entrada.resumenAuditoria),
+    'Resumen de la bitácora de auditoría (conteo de eventos por tipo)',
+  );
+
+  for (const instrumento of entrada.cuestionariosAplicados ?? []) {
+    preparar(
+      nombreInstrumento(instrumento.guia),
+      Buffer.from(instrumento.itemsJson, 'utf-8'),
+      `Instrumento aplicado (${instrumento.guia}), sellado sha256 al aplicarse`,
+    );
+  }
+
+  if (entrada.difusion) {
+    // Byte a byte el JSON canónico sellado: el sha256 del archivo ES el sello
+    // publicado en dissemination_records — verificable por cualquier tercero.
+    preparar(
+      'constancia-difusion.json',
+      Buffer.from(entrada.difusion.resumenJson, 'utf-8'),
+      `Constancia de difusión de resultados a los trabajadores (5.7 e / 7.8), versión ${entrada.difusion.version} publicada el ${entrada.difusion.publicadaEl}`,
+    );
+    preparar(
+      'acuses-difusion.csv',
+      csvAcusesDifusion(entrada.difusion.acuses),
+      'Acuses "Enterado" de los trabajadores sobre la difusión de resultados',
+    );
+  } else {
+    ausentes.push('Constancia de difusión de resultados (5.7 e / 7.8): AUSENTE (no publicada)');
+  }
+
+  if (entrada.programa) {
+    preparar(
+      'programa-intervencion.pdf',
+      entrada.programa.pdf,
+      'Programa de intervención (numeral 8.4) con sus seis elementos',
+    );
+    preparar(
+      'programa-avances.csv',
+      csvAvancesPrograma(entrada.programa.avances),
+      'Control de avances del programa (8.4 d): acciones, estatus y evidencia por huella',
+    );
+  } else {
+    ausentes.push('Programa de intervención (8.3/8.4): AUSENTE (el ciclo no lo tiene)');
+  }
+
+  if ((entrada.buzonAgregado ?? []).length > 0) {
+    preparar(
+      'buzon-registro.csv',
+      csvBuzonAgregado(entrada.buzonAgregado ?? []),
+      'Registro agregado del buzón de quejas (8.1 b): conteos por categoría, estado y mes — sin contenido ni identidad',
+    );
+  } else {
+    ausentes.push('Registro agregado del buzón de quejas: sin quejas registradas');
+  }
+
+  const archivos: ArchivoManifiesto[] = pendientes.map((p) => ({
+    nombre: p.nombre,
+    sha256: sha256Hex(p.contenido),
+    bytes: p.contenido.length,
+  }));
+
+  // Índice legible (es-MX) como PRIMERA entrada del ZIP: qué contiene el expediente,
+  // qué falta y la huella de integridad de cada archivo.
+  const indice = Buffer.from(
+    [
+      'EXPEDIENTE DE INSPECCIÓN — NOM-035-STPS-2018',
+      `Empresa: ${entrada.datos.empresa.razonSocial}`,
+      `Ciclo: ${entrada.datos.ciclo.nombre}`,
+      `Generado: ${entrada.generadoEl}`,
+      '',
+      'CONTENIDO (con huella de integridad SHA-256 por archivo):',
+      ...pendientes.flatMap((p, i) => {
+        const archivo = archivos[i] as ArchivoManifiesto;
+        return [`${i + 1}. ${p.nombre} — ${p.descripcion}`, `   sha256: ${archivo.sha256}`];
+      }),
+      ...(ausentes.length > 0 ? ['', 'PIEZAS NO INCLUIDAS (declaradas, no omitidas):'] : []),
+      ...ausentes.map((a) => `- ${a}`),
+      '',
+      'El manifiesto.json contiene esta misma lista en formato verificable por máquina.',
+      '',
+    ].join('\r\n'),
+    'utf-8',
+  );
+
+  const zip = new JSZip();
+  zip.file('INDICE.txt', indice);
+  for (const p of pendientes) {
+    zip.file(p.nombre, p.contenido);
+  }
 
   const manifiesto: ManifiestoExpediente = {
     empresa: entrada.datos.empresa.razonSocial,
     ciclo: entrada.datos.ciclo.nombre,
     generadoEl: entrada.generadoEl,
     politicaPublicada,
-    archivos,
+    archivos: [
+      { nombre: 'INDICE.txt', sha256: sha256Hex(indice), bytes: indice.length },
+      ...archivos,
+    ],
   };
   zip.file('manifiesto.json', JSON.stringify(manifiesto, null, 2));
 
