@@ -44,6 +44,11 @@ export default tseslint.config(
       'apps/web/src/app/panel/**/individual/*/page.tsx',
       'apps/web/src/app/panel/**/cuestionarios/*/resultados/page.tsx',
       'apps/web/src/app/panel/**/configuracion/page.tsx',
+      // Fase 4: difusión agrega risk_results (vía lib/difusion-datos) igual que el
+      // dashboard; buzón lee complaints (sin GRANT) con auditoría fail-closed.
+      'apps/web/src/app/panel/**/difusion/page.tsx',
+      'apps/web/src/app/panel/**/buzon/page.tsx',
+      'apps/web/src/app/panel/**/buzon/*/page.tsx',
     ],
     rules: {
       'no-restricted-imports': [
@@ -54,6 +59,11 @@ export default tseslint.config(
               name: '@/lib/supabase-admin',
               message:
                 'Las páginas del panel usan clienteSesion() (RLS real). service_role solo en los consumidores de resultados listados en eslint.config.mjs.',
+            },
+            {
+              name: '@/lib/difusion-datos',
+              message:
+                'Este módulo agrega con service_role: solo las páginas exceptuadas en eslint.config.mjs pueden consumirlo.',
             },
           ],
         },

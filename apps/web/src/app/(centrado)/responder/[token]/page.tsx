@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { avisoVigenteDe } from '@/lib/aviso-privacidad';
 import {
+  difusionVigenteDe,
   obtenerContexto,
   obtenerEstructura,
   obtenerPreguntas,
@@ -11,6 +12,8 @@ import {
 import { fechaEsMx } from '@/lib/fechas';
 import { ipCliente, permitido } from '@/lib/limites';
 import { PoliticaPendiente } from '@/components/responder/politica';
+import { AcusarDifusion } from '@/components/responder/difusion';
+import { esResumenDifusion, ResumenDifusionVista } from '@/components/responder/resumen-difusion';
 import { Consentimiento } from '@/components/responder/consentimiento';
 import { Cuestionario, type SeccionUI } from '@/components/responder/cuestionario';
 import { Filtros } from '@/components/responder/filtros';
@@ -81,7 +84,13 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
   }
 
   if (ctx.completado) {
-    const politica = await politicaPendienteDe(ctx);
+    const [politica, difusion] = await Promise.all([
+      politicaPendienteDe(ctx),
+      // La constancia de difusión (5.7 e / 7.8) se muestra SOLO tras enviar el
+      // cuestionario: ver resultados del grupo antes de responder sesgaría las
+      // respuestas del instrumento.
+      difusionVigenteDe(ctx),
+    ]);
     // Cada consulta del propio resultado deja rastro en la bitácora (regla 5: el acceso
     // a un resultado individual procesado siempre se audita, aunque sea el titular).
     await registrarConsultaResultadoPropio(ctx);
@@ -102,6 +111,16 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
             version={politica.version}
             url={politica.url}
           />
+        )}
+        {difusion && esResumenDifusion(difusion.resumen) && (
+          <div className="flex flex-col gap-3">
+            <ResumenDifusionVista resumen={difusion.resumen} />
+            <AcusarDifusion
+              token={token}
+              disseminationId={difusion.id}
+              acusada={difusion.acusada}
+            />
+          </div>
         )}
         <Resultado asignacionId={ctx.asignacionId} guia={ctx.guia} />
       </div>

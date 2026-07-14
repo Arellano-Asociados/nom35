@@ -24,6 +24,7 @@
 ### Task 1: Migración de difusión + tests RLS
 
 **Files:**
+
 - Create: `supabase/migrations/20260713180000_difusion_resultados.sql`
 - Modify: `packages/pruebas-rls/src/aislamiento.test.ts` (+ fixtures si aplica)
 
@@ -36,9 +37,11 @@
 ### Task 2: Instantánea de difusión (lógica pura, TDD)
 
 **Files:**
+
 - Create: `apps/web/src/lib/difusion.ts` + `apps/web/src/lib/difusion.test.ts`
 
 **Interfaces (produce):**
+
 - `armarResumenDifusion(entrada): ResumenDifusion` — entrada: filas vigentes de `risk_results` (reutiliza `resultadosVigentesPorAsignacion` de `lib/informe.ts`), resumen GR-I, participación por centro, conteo de acciones del programa, nombre de empresa/ciclo/fechas, y `urlBuzon?: string`. Salida (`summary` a persistir): distribución global + por categoría vía `distribucionNiveles`/`distribucionPorNombre` (supresión y enmascarado de fila completa YA aplicados), párrafos en lenguaje llano (sin jerga GR-x: "Cuestionario sobre tu entorno de trabajo"), nota fija "los resultados son distribuciones de grupo; nadie puede ver tus respuestas individuales".
 - `sellarResumen(resumen): { json: string; sha256: string }` — serialización **canónica** (claves ordenadas recursivamente) + sha256 hex; determinista para el mismo contenido.
 
@@ -49,6 +52,7 @@
 ### Task 3: Difusión — panel y flujo del empleado
 
 **Files:**
+
 - Create: `apps/web/src/app/panel/[empresa]/ciclos/[ciclo]/difusion/page.tsx`
 - Create: `apps/web/src/components/panel/publicar-difusion.tsx` (cliente: confirmación + toast)
 - Create: `apps/web/src/components/responder/difusion.tsx` (render del summary + botón de acuse)
@@ -61,6 +65,7 @@
 - Modify: `eslint.config.mjs` (allowlist: `difusion/page.tsx` agrega resultados como el dashboard)
 
 **Comportamiento:**
+
 - Panel: vista previa de la instantánea (mismos datos vigentes que el dashboard), publicar con `DialogoConfirmacion` → `accionPublicarDifusion` (autoriza gestión, limitador `difusion:<cicloId>` 1/5 min, arma+sella con Task 2, INSERT append-only versión = max+1, audita `difusion_publicada` con sha256 en details). Historial de versiones con fecha/hash/conteo de acuses.
 - Empleado: si hay difusión publicada y el enlace no expiró, `/responder/[token]` muestra `<Difusion>` (también tras completar); acusar → `accionAcusarDifusion` (guardas de token + limitador `token:` existentes; upsert-idempotente sobre el `unique`; audita `difusion_acusada` actor sistema). El acuse NO exige haber completado el cuestionario.
 - [ ] Implementar; lint/typecheck verdes; unit test de `difusionVigenteDe` si la lógica no es trivial.
@@ -69,10 +74,12 @@
 ### Task 4: Migración del buzón + tests RLS
 
 **Files:**
+
 - Create: `supabase/migrations/20260713190000_buzon_quejas.sql`
 - Modify: `packages/pruebas-rls/src/aislamiento.test.ts`
 
 **Interfaces (produce):**
+
 - `complaint_boxes` — `company_id uuid` PK/FK, `token_hash text not null unique`, `rotated_at timestamptz default now()`. RLS select gestión; GRANT select a `authenticated`; escritura solo `service_role`.
 - `complaints` — `id`, `company_id`, `folio text unique not null`, `folio_key_hash text not null`, `category text check in ('violencia_laboral','practicas_opuestas_eof')`, `body text not null`, `is_identified boolean not null default false`, `contact_name text`, `contact_info text`, `status text not null default 'recibida' check in ('recibida','en_revision','atendida','cerrada')`, `created_at`. Trigger `app.queja_solo_estado()` (patrón `gr1_solo_canalizacion`): UPDATE solo si únicamente cambia `status`; DELETE/TRUNCATE rechazados. **SIN GRANT para `authenticated`** (ni select): solo `service_role`.
 - `complaint_events` — `id`, `company_id`, `complaint_id` (FK compuesta), `from_status`, `to_status`, `note text not null`, `actor_user_id uuid not null`, `created_at`. Append-only. Sin GRANT a `authenticated` (se lee vía app junto con la queja).
@@ -84,6 +91,7 @@
 ### Task 5: Folio y clave (lógica pura, TDD) + flujo del trabajador
 
 **Files:**
+
 - Create: `apps/web/src/lib/buzon.ts` + `apps/web/src/lib/buzon.test.ts`
 - Create: `apps/web/src/acciones/buzon.ts` (`'use server'`)
 - Create: `apps/web/src/app/(centrado)/buzon/[token]/page.tsx`
@@ -93,6 +101,7 @@
 - Modify: `apps/web/src/lib/auditoria.ts` (+`queja_recibida`)
 
 **Interfaces (produce):**
+
 - `generarFolio(): string` — `QJ-` + 8 caracteres de alfabeto sin ambigüedad (`23456789ABCDEFGHJKMNPQRSTUVWXYZ`) desde `crypto.randomBytes`.
 - `generarClave(): string` — 12 caracteres del mismo alfabeto; `hashDeClave(clave)` = sha256 hex (reutiliza `hashDeToken`).
 - `contextoBuzon(token)`: resuelve `complaint_boxes` por `token_hash` → `{ companyId, razonSocial }`; token inválido consume `token-miss:<ip>`.
@@ -100,6 +109,7 @@
 - `accionConsultarFolio(token, folio, clave)`: limitador `buzon-folio:<ip>` 30/10 min; compara `folio_key_hash`; devuelve SOLO `{status, createdAt, transiciones: [{toStatus, at}]}` — jamás el contenido.
 
 **Nota token del buzón:** el token en claro no se puede re-derivar del hash. `complaint_boxes` se crea desde el panel (Task 6) que muestra la URL al crearla/rotarla; para el enlace en `/responder/[token]` la página del panel es la fuente (el flujo del empleado enlaza vía URL absoluta guardada… NO: no guardar el token en claro). Resolución: el enlace del buzón para el empleado se INCLUYE en el `summary` de la difusión (el panel lo pega al publicar, campo `urlBuzon` de Task 2) y en los correos de invitación/recordatorio como línea fija opcional si la empresa ya activó su buzón — se pasa el token en claro SOLO en el momento del envío del correo, leyéndolo de una columna… **Decisión final: `complaint_boxes` guarda ADEMÁS `token text` en claro** (a diferencia de los tokens de asignación, este enlace es DE DIFUSIÓN OBLIGATORIA — 5.7 d — no una capacidad secreta personal; su secreto no protege datos, solo evita spam, y el limitador cubre eso). Sin GRANT de select a `authenticated` sobre la columna no hace falta: select de gestión está bien.
+
 - [ ] Tests TDD de `generarFolio`/`generarClave`/validaciones de `accionEnviarQueja` (longitud, identidad explícita, categoría inválida).
 - [ ] Implementar página con las dos pestañas (enviar / consultar folio) accesibles sin sesión, es-MX, con el folio+clave mostrados una única vez tras enviar.
 - [ ] Commit: `Buzón: envío anónimo u identificado con folio+clave y consulta de estado sin sesión (TDD)`.
@@ -107,6 +117,7 @@
 ### Task 6: Buzón — panel (lectura auditada fail-closed y seguimiento)
 
 **Files:**
+
 - Create: `apps/web/src/app/panel/[empresa]/buzon/page.tsx` (lista sin contenido) y `buzon/[queja]/page.tsx` (detalle auditado)
 - Create: `apps/web/src/components/panel/queja-detalle.tsx` (cliente: cambio de estado con nota)
 - Modify: `apps/web/src/acciones/buzon.ts`: `accionCrearORotarEnlaceBuzon(companyId)`, `accionActualizarQueja(companyId, quejaId, nuevoEstado, nota)`
@@ -115,6 +126,7 @@
 - Modify: `eslint.config.mjs` (allowlist: `buzon/page.tsx`, `buzon/[queja]/page.tsx` — `complaints` no tiene GRANT)
 
 **Comportamiento:**
+
 - Lista (admin_org/consultor/RD): folio, categoría (etiqueta llana), estado (badge), fecha, identificada sí/no — SIN contenido. Bloque "Enlace del buzón": crear/rotar con confirmación (rotar invalida el anterior; audita `buzon_enlace_rotado`), URL copiable + recordatorio de difundirlo (5.7 d).
 - Detalle: ANTES de renderizar contenido, `registrarAuditoriaEstricta('queja_consultada', entityId=queja)` — si falla, error es-MX y NADA se muestra (patrón página individual del RD). Contenido como texto plano. Cambio de estado exige nota → `complaint_events` + `queja_actualizada`.
 - [ ] Implementar; verificación de rol: `puedeGestionar(membresia) || membresia.esResponsableDesignado`.
@@ -123,10 +135,12 @@
 ### Task 7: Migración del programa + criterios Tabla 4/7 + tests RLS
 
 **Files:**
+
 - Create: `supabase/migrations/20260713200000_programa_intervencion.sql`
 - Modify: `packages/pruebas-rls/src/aislamiento.test.ts`
 
 **Interfaces (produce):**
+
 - `intervention_programs` — `id`, `company_id`, `cycle_id` (`unique (company_id, cycle_id)`), `scope_areas text not null`, `responsible text not null`, `post_evaluation text`, `post_evaluation_date date`, `created_by uuid`, `created_at`, `updated_at`. RLS select miembro / insert+update gestión (sin delete). GRANT select/insert/update a `authenticated`.
 - `action_items` + columnas: `program_id uuid`, FK compuesta `(company_id, program_id) → intervention_programs (company_id, id)`, `target_areas text`, `action_level text check in ('primer_nivel','segundo_nivel','tercer_nivel')`, `evidence_path text`, `evidence_sha256 text`, `completed_at timestamptz` (todas nullable — filas viejas válidas).
 - Seed `system_config` key `criterios_toma_acciones`: JSON con, por nivel (`muy_alto`→`nulo`), el texto LITERAL de la Tabla 4/7 del DOF ("Criterios para la toma de acciones", idéntica en Guías II y III) y `accionesSugeridas` (descripcion, action_level) derivadas: muy_alto → evaluación específica (obligatoria) + campaña de sensibilización + revisión de política/programas; alto → campaña + revisión (evaluación específica opcional); medio → revisión y refuerzo de aplicación/difusión de política y programas. Bucket privado `evidencias`.
@@ -137,6 +151,7 @@
 ### Task 8: Programa — pre-población (TDD) y página
 
 **Files:**
+
 - Create: `apps/web/src/lib/programa.ts` + `apps/web/src/lib/programa.test.ts`
 - Modify: `apps/web/src/app/panel/[empresa]/ciclos/[ciclo]/acciones/page.tsx` → título/copy "Programa de intervención (Capítulo 8)"; integra creación del programa y lo existente
 - Create: `apps/web/src/components/panel/crear-programa.tsx`, `accion-avance.tsx` (cliente)
@@ -145,6 +160,7 @@
 - Modify: `apps/web/src/app/panel/[empresa]/ciclos/[ciclo]/layout.tsx` (renombrar pestaña a "Programa de intervención")
 
 **Interfaces (produce):**
+
 - `nivelesQueExigenPrograma(niveles: NivelRiesgo[]): boolean` y `accionesPrePobladas(nivelesDetectados, criterios): AccionSugerida[]` en `lib/programa.ts` — puras; medio/alto/muy_alto exigen programa (Tabla 4/7); las acciones sugeridas se toman de `criterios_toma_acciones` SIN duplicar textos en código, dedupe por descripción quedándose con la del nivel más alto.
 - `accionSubirEvidenciaAccion`: acepta PDF (`validarPdf`) o imagen (`validarImagen`), sube a `evidencias` con `rutaDeObjeto`, guarda `evidence_path`+`evidence_sha256` (sha256 de los bytes), audita.
 - [ ] Tests TDD de `nivelesQueExigenPrograma` (bajo/nulo no exigen) y `accionesPrePobladas` (dedupe, niveles combinados, criterios vacíos → lista vacía sin crash).
@@ -154,6 +170,7 @@
 ### Task 9: Expediente ZIP completo (TDD) + PDF del programa
 
 **Files:**
+
 - Modify: `apps/web/src/informes/expediente.ts` + `expediente.test.ts`
 - Create: `apps/web/src/informes/programa-pdf.tsx`
 - Modify: `apps/web/src/acciones/informes.ts` (`accionGenerarExpediente` reúne las piezas nuevas; render del PDF del programa)
@@ -168,13 +185,16 @@
 ### Task 10: E2E del ciclo normativo
 
 **Files:**
+
 - Create: `apps/web/e2e/ciclo-normativo.spec.ts`
 - Modify: `apps/web/e2e/global-setup.ts` SOLO si hace falta exponer datos extra en `.datos-e2e.json`
 
 **Flujos (patrón de `informes.spec.ts`/`cuestionarios.spec.ts`, testids con prefijo nuevo `cn-`):**
+
 1. Difusión: login admin → ciclo con resultados → pestaña Difusión → publicar (confirmación) → aparece versión con hash; abrir token de empleado completado → ver "Resultados generales" → acusar → panel muestra 1 acuse.
 2. Buzón: panel → Buzón → crear enlace → abrir `/buzon/<token>` sin sesión → enviar queja anónima → capturar folio+clave → consultar folio (estado "recibida") → panel: detalle (contenido visible) → cambiar estado con nota → consulta de folio refleja "en revisión"; verificar en BD (helper `pg`) el evento `queja_consultada`.
 3. Programa: pestaña Programa de intervención → crear pre-poblado → completar una acción → avance visible.
+
 - [ ] Escribir el spec; verificar que no rompe los 11 existentes (los testids y rutas previos no cambian; la pestaña "Acciones correctivas" renombrada → grep en specs previos por su texto).
 - [ ] Commit: `E2E: difusión con acuse, buzón anónimo con folio y seguimiento, programa pre-poblado`.
 

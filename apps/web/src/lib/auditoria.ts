@@ -40,6 +40,25 @@ export const EVENTOS_AUDITORIA = {
   cuestionarioPublicado: 'cuestionario_publicado',
   cuestionarioArchivado: 'cuestionario_archivado',
   cuestionarioDistribuido: 'cuestionario_distribuido',
+  // Ciclo normativo completo (Fase 4)
+  /** Se publicó una constancia de difusión de resultados (5.7 e / 7.8). */
+  difusionPublicada: 'difusion_publicada',
+  /** Un trabajador acusó "Enterado" sobre una constancia de difusión. */
+  difusionAcusada: 'difusion_acusada',
+  /** Se creó o rotó el enlace del buzón de quejas (8.1 b). */
+  buzonEnlaceRotado: 'buzon_enlace_rotado',
+  /** Entró una queja al buzón (actor sistema; details SIN contenido). */
+  quejaRecibida: 'queja_recibida',
+  /** Regla 5 extendida: lectura del CONTENIDO de una queja (fail-closed). */
+  quejaConsultada: 'queja_consultada',
+  /** Cambio de estado de una queja con nota de seguimiento (8.2 g). */
+  quejaActualizada: 'queja_actualizada',
+  /** Se creó el Programa de intervención del ciclo (8.3/8.4). */
+  programaCreado: 'programa_creado',
+  /** Se editaron los campos 8.4 del Programa. */
+  programaActualizado: 'programa_actualizado',
+  /** Se adjuntó evidencia de avance a una acción del Programa. */
+  evidenciaAccionSubida: 'evidencia_accion_subida',
 } as const;
 
 export type EventoAuditoria = (typeof EVENTOS_AUDITORIA)[keyof typeof EVENTOS_AUDITORIA];

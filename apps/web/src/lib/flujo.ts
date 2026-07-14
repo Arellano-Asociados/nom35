@@ -293,6 +293,45 @@ export async function politicaPendienteDe(ctx: Contexto): Promise<PoliticaPendie
   };
 }
 
+export interface DifusionVigenteInfo {
+  id: string;
+  version: number;
+  resumen: unknown;
+  acusada: boolean;
+}
+
+/**
+ * Última constancia de difusión publicada del ciclo del contexto (5.7 e / 7.8),
+ * con la marca de si este empleado ya la acusó. El resumen viene YA suprimido y
+ * sellado desde su publicación: aquí solo se lee.
+ */
+export async function difusionVigenteDe(ctx: Contexto): Promise<DifusionVigenteInfo | null> {
+  const supabase = clienteAdmin();
+  const { data: difusion } = await supabase
+    .from('dissemination_records')
+    .select('id, version, summary')
+    .eq('company_id', ctx.companyId)
+    .eq('cycle_id', ctx.cycleId)
+    .order('version', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!difusion) return null;
+
+  const { data: acuse } = await supabase
+    .from('dissemination_receipts')
+    .select('id')
+    .eq('dissemination_id', difusion.id)
+    .eq('employee_id', ctx.employeeId)
+    .maybeSingle();
+
+  return {
+    id: difusion.id,
+    version: difusion.version,
+    resumen: difusion.summary,
+    acusada: Boolean(acuse),
+  };
+}
+
 /**
  * Notifica a los Responsables Designados que hay una canalización GR-I pendiente.
  * El correo NO incluye datos del trabajador ni del resultado (regla inviolable 9);

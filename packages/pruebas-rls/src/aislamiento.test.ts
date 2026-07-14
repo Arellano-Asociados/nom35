@@ -630,9 +630,9 @@ describe('difusión de resultados (Fase 4): constancia sellada append-only', () 
       ).rejects.toThrow(/append-only/);
     });
     await comoPostgres(async (q) => {
-      await expect(q(`delete from dissemination_records where id = $1`, [DIFUSION_A])).rejects.toThrow(
-        /append-only/,
-      );
+      await expect(
+        q(`delete from dissemination_records where id = $1`, [DIFUSION_A]),
+      ).rejects.toThrow(/append-only/);
     });
     await comoPostgres(async (q) => {
       await expect(q(`update dissemination_receipts set acknowledged_at = now()`)).rejects.toThrow(

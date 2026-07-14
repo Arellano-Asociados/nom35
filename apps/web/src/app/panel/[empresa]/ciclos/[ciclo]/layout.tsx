@@ -36,6 +36,7 @@ export default async function LayoutCiclo({
     { href: `${base}/acciones`, etiqueta: 'Acciones correctivas' },
     { href: `${base}/gr1`, etiqueta: 'Canalizaciones' },
     { href: `${base}/individual`, etiqueta: 'Resultados individuales' },
+    { href: `${base}/difusion`, etiqueta: 'Difusión' },
     { href: `${base}/informes`, etiqueta: 'Informes y expediente' },
   ];
 

@@ -6,9 +6,9 @@ Programa de intervención 8.3/8.4) y amplía el expediente de inspección.
 
 **Base normativa verificada contra el DOF (23-oct-2018, nota 5541828):**
 
-- **5.7 e)** — el patrón debe *difundir* a los trabajadores los resultados de la identificación y
+- **5.7 e)** — el patrón debe _difundir_ a los trabajadores los resultados de la identificación y
   análisis de FRP (16–50) y de la evaluación del entorno organizacional (>50). **7.8** — los
-  resultados deben *estar disponibles para consulta* de los trabajadores. El PEC (tabla del 10.2,
+  resultados deben _estar disponibles para consulta_ de los trabajadores. El PEC (tabla del 10.2,
   fila 5.7) acepta comprobación **documental**; las observaciones admiten folletos/boletines/carteles.
   **10.4** admite evidencia en medios electrónicos.
 - **8.1 b)** — "mecanismos seguros y confidenciales para la recepción de quejas por prácticas
@@ -23,7 +23,7 @@ Programa de intervención 8.3/8.4) y amplía el expediente de inspección.
   grupal, individual; el tercero solo por médico/psicólogo/psiquiatra).
 - La tabla de criterios es la **Tabla 4 (Guía II)** y su gemela **Tabla 7 (Guía III)**, ambas
   "Criterios para la toma de acciones": Programa de intervención **obligatorio para medio, alto y
-  muy alto** (II.4/III.4 literal); muy alto *deberá* incluir evaluaciones específicas, alto *podrá*;
+  muy alto** (II.4/III.4 literal); muy alto _deberá_ incluir evaluaciones específicas, alto _podrá_;
   bajo = mayor difusión; nulo = nada. El PEC acota el Programa a centros **>15 trabajadores**.
 - Deuda de numeración reconocida (fuera de alcance de esta fase): el "informe 7.9" del producto es
   el informe del **7.7** (7.9 es la periodicidad bienal). Se corrige en una fase posterior junto con
@@ -87,7 +87,7 @@ token personal el servidor sabría quién envía aunque marque "anónimo".
   `category text check in ('violencia_laboral','practicas_opuestas_eof')`,
   `body text`, `is_identified boolean`, `contact_name text`, `contact_info text`
   (solo si `is_identified`), `status text check in
-  ('recibida','en_revision','atendida','cerrada') default 'recibida'`, `created_at`.
+('recibida','en_revision','atendida','cerrada') default 'recibida'`, `created_at`.
   Trigger especializado `app.queja_solo_estado()` (patrón `gr1_solo_canalizacion`): UPDATE solo
   puede cambiar `status`; DELETE/TRUNCATE prohibidos. **Sin GRANT de SELECT para `authenticated`**
   (patrón `risk_results`): el único camino al contenido es la app auditada.
@@ -133,7 +133,7 @@ por acción. La página de "Acciones correctivas" evoluciona a **"Programa de in
   auditados (`programa_creado`/`programa_actualizado`). RLS/GRANT: select miembro, escritura gestión.
 - `action_items` (extensión): `program_id uuid` nullable + FK compuesta
   `(company_id, program_id)`, `target_areas text` (8.4 a por acción), `action_level text check in
-  ('primer_nivel','segundo_nivel','tercer_nivel')` nullable (8.5), `evidence_path text`,
+('primer_nivel','segundo_nivel','tercer_nivel')` nullable (8.5), `evidence_path text`,
   `evidence_sha256 text`, `completed_at timestamptz`. Filas existentes siguen válidas (todo nullable).
 - Seed `system_config` key `criterios_toma_acciones`: el texto **literal** de la Tabla 4/7 por
   nivel (regla 7: nada normativo hardcodeado) + las acciones pre-pobladas sugeridas por nivel
@@ -167,7 +167,7 @@ Ampliación de `informes/expediente.ts` (módulo puro) + `accionGenerarExpedient
   sha256 del documento (evidencia de QUÉ instrumento se aplicó; conecta con el gate
   `verificar:textos`).
 - **`constancia-difusion.pdf`** o `.json` de la última `dissemination_record` del ciclo (contenido
-  + versión + fecha + sha256) y **`acuses-difusion.csv`** (empleado, versión, fecha).
+  - versión + fecha + sha256) y **`acuses-difusion.csv`** (empleado, versión, fecha).
 - **`programa-intervencion.pdf`** + **`programa-avances.csv`** (acción, nivel 8.5, áreas,
   responsable, fecha compromiso, estatus, fecha completado, evidencia sha256 — la evidencia en sí
   no se embebe, se referencia por hash).
@@ -202,13 +202,13 @@ Ampliación de `informes/expediente.ts` (módulo puro) + `accionGenerarExpedient
 
 ## Alternativas consideradas
 
-- *Difusión como página pública por empresa*: descartada — el enlace tokenizado existente ya
+- _Difusión como página pública por empresa_: descartada — el enlace tokenizado existente ya
   autentica "es trabajador del centro" sin crear una superficie pública nueva.
-- *Buzón con token por empleado*: descartado — rompe el anonimato técnico (el servidor sabría
+- _Buzón con token por empleado_: descartado — rompe el anonimato técnico (el servidor sabría
   quién envía); el token por empresa + folio con clave da seguimiento sin identidad.
-- *Programa como tabla append-only*: descartado — es un documento de trabajo vivo (8.4 d exige
+- _Programa como tabla append-only_: descartado — es un documento de trabajo vivo (8.4 d exige
   control de avances); la evidencia de cambios queda en `audit_log`, y lo que sí es evidencia
   congelada (el PDF exportado) se sella con sha256 en el expediente.
-- *Extender `action_items` sin tabla de programa*: descartado — el 8.4 tiene campos de nivel
+- _Extender `action_items` sin tabla de programa_: descartado — el 8.4 tiene campos de nivel
   programa (áreas sujetas, responsable de ejecución, evaluación posterior) que no viven bien
   repetidos por acción, y el inspector pide "un Programa", no una lista.
