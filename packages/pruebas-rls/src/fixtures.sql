@@ -164,3 +164,20 @@ insert into feature_flags (company_id, flag, enabled) values
   ('aaaaaaaa-0000-4000-8000-000000000001', 'demo_flag', true),
   ('bbbbbbbb-0000-4000-8000-000000000001', 'demo_flag', false)
 on conflict do nothing;
+
+-- Difusión de resultados (Fase 4): constancia sellada + acuse, por tenant.
+insert into dissemination_records (id, company_id, cycle_id, version, summary, sha256, published_by) values
+  ('aaaaaaaa-0000-4000-8000-000000000121', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000051', 1, '{"parrafos":[]}', 'fixture-sha-a',
+   '11111111-0000-4000-8000-000000000001'),
+  ('bbbbbbbb-0000-4000-8000-000000000121', 'bbbbbbbb-0000-4000-8000-000000000001',
+   'bbbbbbbb-0000-4000-8000-000000000051', 1, '{"parrafos":[]}', 'fixture-sha-b',
+   '22222222-0000-4000-8000-000000000001')
+on conflict do nothing;
+
+insert into dissemination_receipts (id, company_id, dissemination_id, employee_id) values
+  ('aaaaaaaa-0000-4000-8000-000000000131', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000121', 'aaaaaaaa-0000-4000-8000-000000000021'),
+  ('bbbbbbbb-0000-4000-8000-000000000131', 'bbbbbbbb-0000-4000-8000-000000000001',
+   'bbbbbbbb-0000-4000-8000-000000000121', 'bbbbbbbb-0000-4000-8000-000000000021')
+on conflict do nothing;

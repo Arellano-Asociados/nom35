@@ -573,6 +573,75 @@ describe('feature flags (Fase 3): el tenant los lee, solo la plataforma los escr
   });
 });
 
+describe('difusión de resultados (Fase 4): constancia sellada append-only', () => {
+  const CICLO_A = 'aaaaaaaa-0000-4000-8000-000000000051';
+  const DIFUSION_A = 'aaaaaaaa-0000-4000-8000-000000000121';
+  const EMPLEADO_ID_A1 = 'aaaaaaaa-0000-4000-8000-000000000021';
+
+  it('gestión publica en SU tenant y no puede suplantar published_by ni cruzar tenant', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from dissemination_records where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from dissemination_records where company_id = $1', [
+          TENANT_B,
+        ]),
+      ).toBe(0);
+      const propio = await q(
+        `insert into dissemination_records (company_id, cycle_id, version, summary, sha256, published_by)
+         values ($1, $2, 2, '{}', 'sha-test', $3)`,
+        [TENANT_A, CICLO_A, ADMIN_A],
+      );
+      expect(propio.rowCount).toBe(1);
+      await esperarRechazo(
+        q,
+        `insert into dissemination_records (company_id, cycle_id, version, summary, sha256, published_by)
+         values ($1, $2, 3, '{}', 'sha-test', $3)`,
+        [TENANT_A, CICLO_A, ADMIN_B],
+        'published_by ajeno debe rechazarse',
+      );
+    });
+  });
+
+  it('el acuse del trabajador NO es insertable como authenticated (solo el flujo del empleado)', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into dissemination_receipts (company_id, dissemination_id, employee_id)
+         values ($1, $2, $3)`,
+        [TENANT_A, DIFUSION_A, EMPLEADO_ID_A1],
+      );
+      // La lectura de acuses sí es de gestión (evidencia de difusión)
+      expect(
+        await contar(q, 'select count(*) n from dissemination_receipts where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBe(1);
+    });
+  });
+
+  it('dissemination_records y receipts: UPDATE y DELETE rechazados incluso para el dueño', async () => {
+    await comoPostgres(async (q) => {
+      await expect(
+        q(`update dissemination_records set sha256 = 'alterado' where id = $1`, [DIFUSION_A]),
+      ).rejects.toThrow(/append-only/);
+    });
+    await comoPostgres(async (q) => {
+      await expect(q(`delete from dissemination_records where id = $1`, [DIFUSION_A])).rejects.toThrow(
+        /append-only/,
+      );
+    });
+    await comoPostgres(async (q) => {
+      await expect(q(`update dissemination_receipts set acknowledged_at = now()`)).rejects.toThrow(
+        /append-only/,
+      );
+    });
+  });
+});
+
 describe('limitador de tasa (Fase 2.5): solo la app', () => {
   it('ni authenticated ni anon pueden leer, escribir o ejecutar el limitador', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
