@@ -3,12 +3,19 @@ import { redirect } from 'next/navigation';
 import { Toaster } from 'sonner';
 import { Sidebar } from '@/components/panel/sidebar';
 import { membresiasDe } from '@/lib/autorizacion';
-import { usuarioActual } from '@/lib/supabase-servidor';
+import { clienteSesion, usuarioActual } from '@/lib/supabase-servidor';
 import paquete from '../../../package.json';
 
 export default async function LayoutPanel({ children }: { children: React.ReactNode }) {
   const usuario = await usuarioActual();
   if (!usuario) redirect('/ingresar');
+
+  // MFA (Fase 2.5): si la cuenta tiene un factor TOTP verificado, el panel exige la
+  // sesión elevada (aal2). Una sesión que solo pasó la contraseña regresa al login,
+  // donde el formulario pide el código de la app autenticadora.
+  const supabase = await clienteSesion();
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') redirect('/ingresar');
   // Las membresías alimentan la "empresa activa" y el selector del sidebar (auditoría
   // v0, dimensión 4 [Alto]: una consultora multi-empresa no tenía confirmación
   // persistente de en qué tenant estaba actuando).

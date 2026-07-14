@@ -37,9 +37,10 @@ export function Sidebar({ email, membresias }: { email: string; membresias: Memb
   const refDrawer = useRef<HTMLDivElement>(null);
   const refBotonMenu = useRef<HTMLButtonElement>(null);
 
-  // Detecta si estamos dentro de /panel/[empresa]/... (y no en /panel/nueva)
+  // Detecta si estamos dentro de /panel/[empresa]/... (y no en las rutas fijas)
+  const RUTAS_FIJAS = ['nueva', 'seguridad'];
   const coincidencia = pathname.match(/^\/panel\/([^/]+)/);
-  const empresa = coincidencia && coincidencia[1] !== 'nueva' ? coincidencia[1] : null;
+  const empresa = coincidencia && !RUTAS_FIJAS.includes(coincidencia[1]) ? coincidencia[1] : null;
   const activa = empresa ? membresias.find((m) => m.companyId === empresa) : undefined;
 
   useEffect(() => {
@@ -159,6 +160,18 @@ export function Sidebar({ email, membresias }: { email: string; membresias: Memb
         <span data-testid="usuario-email" className="truncate text-xs text-texto-terciario">
           {email}
         </span>
+        <Link
+          href="/panel/seguridad"
+          aria-current={pathname === '/panel/seguridad' ? 'page' : undefined}
+          className={cn(
+            'rounded-md px-1 py-1 text-xs font-medium',
+            pathname === '/panel/seguridad'
+              ? 'text-marca-700'
+              : 'text-texto-secundario hover:text-texto',
+          )}
+        >
+          Seguridad de la cuenta
+        </Link>
         <BotonSalir />
       </div>
     </div>
