@@ -706,6 +706,67 @@ describe('buzón de quejas (Fase 4): el contenido tiene estándar de dato sensib
   });
 });
 
+describe('programa de intervención (Fase 4)', () => {
+  const PROGRAMA_A = 'aaaaaaaa-0000-4000-8000-000000000161';
+  const PROGRAMA_B = 'bbbbbbbb-0000-4000-8000-000000000161';
+
+  it('gestión edita el programa de SU tenant; el ajeno ni se ve ni se toca', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from intervention_programs where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from intervention_programs where company_id = $1', [
+          TENANT_B,
+        ]),
+      ).toBe(0);
+      const propio = await q(
+        `update intervention_programs set responsible = 'RH A2', updated_at = now() where id = $1`,
+        [PROGRAMA_A],
+      );
+      expect(propio.rowCount).toBe(1);
+      await esperarBloqueo(
+        q,
+        `update intervention_programs set responsible = 'intruso' where id = $1`,
+        [PROGRAMA_B],
+      );
+      await esperarBloqueo(q, `delete from intervention_programs where id = $1`, [PROGRAMA_A]);
+    });
+  });
+
+  it('el rol miembro (RD) lee el programa pero no lo escribe; created_by no se suplanta', async () => {
+    await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from intervention_programs where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBe(1);
+      await esperarBloqueo(q, `update intervention_programs set responsible = 'RD' where id = $1`, [
+        PROGRAMA_A,
+      ]);
+    });
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      // Ciclo nuevo dentro de la transacción (se revierte): el fixture ya tiene un
+      // programa en el ciclo A y chocaría con unique (company_id, cycle_id).
+      const { rows } = await q(
+        `insert into compliance_cycles
+           (company_id, work_center_id, name, date_start, evaluator_name, evaluator_license)
+         values ($1, $2, 'Ciclo test RLS', current_date, 'Eval', 'CED-X') returning id`,
+        [TENANT_A, WC_A1],
+      );
+      await esperarRechazo(
+        q,
+        `insert into intervention_programs (company_id, cycle_id, scope_areas, responsible, created_by)
+         values ($1, $2, 'X', 'X', $3)`,
+        [TENANT_A, (rows[0] as { id: string }).id, ADMIN_B],
+        'created_by ajeno debe rechazarse',
+      );
+    });
+  });
+});
+
 describe('limitador de tasa (Fase 2.5): solo la app', () => {
   it('ni authenticated ni anon pueden leer, escribir o ejecutar el limitador', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {

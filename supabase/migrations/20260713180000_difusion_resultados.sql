@@ -57,10 +57,11 @@ create trigger dissemination_receipts_sin_truncate
 alter table dissemination_records enable row level security;
 alter table dissemination_receipts enable row level security;
 
--- Lectura para cualquier miembro (el contenido ya está suprimido: es lo que se
--- publica a los trabajadores); publicación solo para gestión.
+-- Lectura para gestión y RD (el contenido ya está suprimido: es lo que se publica
+-- a los trabajadores); publicación solo para gestión. OJO: app.es_miembro() es
+-- "empleado con cuenta", no el rol miembro — el RD navega con es_responsable_designado.
 create policy dissemination_records_select on dissemination_records for select
-  using (app.gestiona_tenant(company_id) or app.es_miembro(company_id));
+  using (app.gestiona_tenant(company_id) or app.es_responsable_designado(company_id));
 create policy dissemination_records_insert on dissemination_records for insert
   with check (app.gestiona_tenant(company_id) and published_by = auth.uid());
 

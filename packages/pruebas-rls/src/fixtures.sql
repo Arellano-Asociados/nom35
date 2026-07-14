@@ -175,6 +175,16 @@ insert into dissemination_records (id, company_id, cycle_id, version, summary, s
    '22222222-0000-4000-8000-000000000001')
 on conflict do nothing;
 
+-- Programa de intervención (Fase 4): uno por tenant.
+insert into intervention_programs (id, company_id, cycle_id, scope_areas, responsible, created_by) values
+  ('aaaaaaaa-0000-4000-8000-000000000161', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000051', 'Todo el centro A1', 'RH A',
+   '11111111-0000-4000-8000-000000000001'),
+  ('bbbbbbbb-0000-4000-8000-000000000161', 'bbbbbbbb-0000-4000-8000-000000000001',
+   'bbbbbbbb-0000-4000-8000-000000000051', 'Todo el centro B1', 'RH B',
+   '22222222-0000-4000-8000-000000000001')
+on conflict do nothing;
+
 -- Buzón de quejas (Fase 4): enlace por empresa + una queja con su evento por tenant.
 insert into complaint_boxes (company_id, token, token_hash) values
   ('aaaaaaaa-0000-4000-8000-000000000001', 'token-buzon-a', 'hash-buzon-a'),
