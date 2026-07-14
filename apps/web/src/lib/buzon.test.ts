@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { generarClave, generarFolio, validarQueja } from './buzon';
+import { generarClave, generarFolio } from './buzon-folio';
+import { validarQueja } from './buzon';
 
 // Buzón de quejas (NOM-035 8.1 b): folio y clave de seguimiento sin ambigüedad
 // tipográfica (se dictan por teléfono o se copian de un papel) y validación del

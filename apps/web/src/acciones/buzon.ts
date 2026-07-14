@@ -1,13 +1,17 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { registrarAuditoria } from '@/lib/auditoria';
-import { generarClave, generarFolio, validarQueja, type DatosQueja } from '@/lib/buzon';
+import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
+import { ESTADOS_QUEJA, validarQueja, type DatosQueja } from '@/lib/buzon';
+import { generarClave, generarFolio } from '@/lib/buzon-folio';
 import { proveedorCorreo, plantillaCorreo } from '@/lib/correo';
 import { escrituraOk } from '@/lib/escrituras';
 import { ipCliente, permitido } from '@/lib/limites';
 import { ACTOR_SISTEMA } from '@/lib/recordatorios';
 import { clienteAdmin } from '@/lib/supabase-admin';
-import { hashDeToken } from '@/lib/tokens';
+import { generarToken, hashDeToken } from '@/lib/tokens';
+import type { ResultadoPanel } from './panel';
 
 // Acciones del buzón de quejas (NOM-035 8.1 b). El flujo del trabajador corre sin
 // sesión: el token del buzón (por EMPRESA, no por persona — el anonimato debe ser
@@ -181,4 +185,103 @@ export async function accionConsultarFolio(
     recibidaEl: queja.created_at,
     transiciones: (eventos ?? []).map((e) => ({ estado: e.to_status, fecha: e.created_at })),
   };
+}
+
+// ─── Acciones del panel ────────────────────────────────────────────────────────
+
+const SIN_PERMISOS =
+  'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.';
+
+/**
+ * Crea el enlace del buzón (primera vez) o lo rota (invalida el anterior). Escritura
+ * con service_role justificada: complaint_boxes solo la escribe la app; el token en
+ * claro se guarda porque el enlace es de difusión obligatoria (5.7 d), no un secreto.
+ */
+export async function accionCrearORotarEnlaceBuzon(companyId: string): Promise<ResultadoPanel> {
+  const acceso = await autorizarEmpresa(companyId);
+  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: SIN_PERMISOS };
+
+  const token = generarToken();
+  const guardado = await escrituraOk(
+    'crear o rotar enlace del buzón',
+    clienteAdmin()
+      .from('complaint_boxes')
+      .upsert({
+        company_id: companyId,
+        token,
+        token_hash: hashDeToken(token),
+        rotated_at: new Date().toISOString(),
+      }),
+  );
+  if (!guardado.ok) return { ok: false, error: 'No se pudo generar el enlace. Intenta de nuevo.' };
+
+  await registrarAuditoria(companyId, acceso.userId, 'buzon_enlace_rotado', 'complaint_boxes');
+  revalidatePath(`/panel/${companyId}/buzon`);
+  return { ok: true, detalle: ['Enlace del buzón generado. Difúndelo a tu plantilla (5.7 d).'] };
+}
+
+/**
+ * Cambia el estado de una queja con nota de seguimiento (8.2 g). service_role
+ * justificado: complaints no tiene GRANT para authenticated (estándar de dato
+ * sensible); la autorización real es autorizarEmpresa + rol, y el cambio queda en
+ * complaint_events y en la bitácora.
+ */
+export async function accionActualizarQueja(
+  companyId: string,
+  quejaId: string,
+  nuevoEstado: string,
+  nota: string,
+): Promise<ResultadoPanel> {
+  const acceso = await autorizarEmpresa(companyId);
+  const puedeVerBuzon = puedeGestionar(acceso.membresia) || acceso.membresia.esResponsableDesignado;
+  if (!puedeVerBuzon) return { ok: false, error: SIN_PERMISOS };
+
+  if (!(nuevoEstado in ESTADOS_QUEJA)) return { ok: false, error: 'Estado inválido' };
+  if (nota.trim().length < 5) {
+    return { ok: false, error: 'Escribe una nota de seguimiento (qué se hizo o qué sigue).' };
+  }
+
+  const supabase = clienteAdmin();
+  const { data: queja } = await supabase
+    .from('complaints')
+    .select('id, status')
+    .eq('company_id', companyId)
+    .eq('id', quejaId)
+    .maybeSingle();
+  if (!queja) return { ok: false, error: 'Queja no encontrada' };
+  if (queja.status === nuevoEstado) {
+    return { ok: false, error: 'La queja ya está en ese estado.' };
+  }
+
+  const actualizado = await escrituraOk(
+    'actualizar estado de queja',
+    supabase.from('complaints').update({ status: nuevoEstado }).eq('id', quejaId),
+  );
+  if (!actualizado.ok) return { ok: false, error: 'No se pudo guardar el cambio de estado.' };
+
+  const evento = await escrituraOk(
+    'bitácora de seguimiento de queja',
+    supabase.from('complaint_events').insert({
+      company_id: companyId,
+      complaint_id: quejaId,
+      from_status: queja.status,
+      to_status: nuevoEstado,
+      note: nota.trim(),
+      actor_user_id: acceso.userId,
+    }),
+  );
+  if (!evento.ok) {
+    return {
+      ok: false,
+      error: 'El estado cambió pero la nota de seguimiento no se guardó. Revisa la queja.',
+    };
+  }
+
+  await registrarAuditoria(companyId, acceso.userId, 'queja_actualizada', 'complaints', quejaId, {
+    de: queja.status,
+    a: nuevoEstado,
+  });
+  revalidatePath(`/panel/${companyId}/buzon/${quejaId}`);
+  revalidatePath(`/panel/${companyId}/buzon`);
+  return { ok: true, detalle: ['Estado actualizado y nota registrada.'] };
 }

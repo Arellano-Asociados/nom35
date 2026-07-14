@@ -14,6 +14,7 @@ const SECCIONES_EMPRESA = [
   ['empleados', 'Empleados'],
   ['ciclos', 'Ciclos'],
   ['cuestionarios', 'Cuestionarios'],
+  ['buzon', 'Buzón'],
   ['politica', 'Política'],
   ['configuracion', 'Configuración'],
   ['capacitacion', 'Capacitación'],
