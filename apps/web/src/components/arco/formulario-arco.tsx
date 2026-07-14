@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { accionSolicitudArco } from '@/acciones/arco';
 import { Button } from '@/components/ui/button';
+import { Turnstile } from '@/components/ui/turnstile';
 
 const DERECHOS = [
   {
@@ -127,8 +128,12 @@ export function FormularioArco() {
         </p>
       )}
 
+      {/* Anti-bot (Fase 2.5): inyecta cf-turnstile-response en este form; sin site key
+          no se renderiza y el servidor no lo exige. */}
+      <Turnstile />
+
       <Button type="submit" disabled={enviando} aria-busy={enviando}>
-        {enviando ? 'Enviando…' : 'Enviar solicitud'}
+        {enviando ? 'Procesando…' : 'Enviar solicitud'}
       </Button>
     </form>
   );

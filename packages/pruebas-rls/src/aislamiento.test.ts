@@ -35,6 +35,7 @@ const TABLAS_GLOBALES = [
   'risk_level_ranges',
   'platform_users',
   'system_config',
+  'rate_limits', // limitador de tasa (Fase 2.5): solo service_role, sin GRANT para nadie más
 ];
 
 let pool: pg.Pool;
@@ -454,6 +455,23 @@ describe('capacidades del panel con RLS (Fase 2.5: el panel opera como el usuari
         [TENANT_A, DR_A],
       );
     });
+  });
+});
+
+describe('limitador de tasa (Fase 2.5): solo la app', () => {
+  it('ni authenticated ni anon pueden leer, escribir o ejecutar el limitador', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(q, 'select count(*) n from rate_limits');
+      await esperarRechazo(q, `select app.golpe_limite('x', 60, 1) n`);
+    });
+    await como(
+      { sub: '00000000-0000-4000-8000-000000000000' },
+      async (q) => {
+        await esperarRechazo(q, 'select count(*) n from rate_limits');
+        await esperarRechazo(q, `select app.golpe_limite('x', 60, 1) n`);
+      },
+      'anon',
+    );
   });
 });
 

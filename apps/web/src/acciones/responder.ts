@@ -5,7 +5,9 @@ import { headers } from 'next/headers';
 import { enviarCuestionario, obtenerContexto, type Contexto } from '@/lib/flujo';
 import { avisoVigenteDe } from '@/lib/aviso-privacidad';
 import { escrituraOk } from '@/lib/escrituras';
+import { ipCliente, permitido } from '@/lib/limites';
 import { clienteAdmin } from '@/lib/supabase-admin';
+import { hashDeToken } from '@/lib/tokens';
 
 // Acciones del flujo del empleado. El token del enlace es la capacidad: se re-valida en
 // CADA acción (existencia, vigencia, estado). Nunca se confía en datos del cliente.
@@ -18,8 +20,21 @@ export interface ResultadoAccion {
 const OPCIONES_LIKERT = ['siempre', 'casi_siempre', 'algunas_veces', 'casi_nunca', 'nunca'];
 
 async function contextoActivo(token: string): Promise<Contexto | { error: string }> {
+  // Límite por TOKEN, no por IP (Fase 2.5): una oficina entera comparte IP mientras
+  // responde en paralelo. 2,500/hora sobra para un cuestionario legítimo (≤~400
+  // escrituras) y frena martilleo automatizado sobre un mismo enlace. La fuerza
+  // bruta de tokens INVÁLIDOS se limita aparte, por IP, en la página del enlace.
+  const clave = `token:${hashDeToken(token).slice(0, 16)}`;
+  if (!(await permitido(clave, { ventanaSegundos: 3600, maximo: 2500 }))) {
+    return { error: 'Demasiadas operaciones con este enlace. Espera unos minutos.' };
+  }
   const ctx = await obtenerContexto(token);
-  if (!ctx) return { error: 'Enlace inválido' };
+  if (!ctx) {
+    // Un token que NO existe también cuenta contra la IP: es la señal de adivinación.
+    const ip = await ipCliente();
+    await permitido(`token-miss:${ip}`, { ventanaSegundos: 600, maximo: 30 });
+    return { error: 'Enlace inválido' };
+  }
   if (ctx.completado) return { error: 'Este cuestionario ya fue enviado' };
   if (ctx.expirado) return { error: 'Este enlace ha expirado' };
   return ctx;
