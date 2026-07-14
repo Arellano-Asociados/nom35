@@ -189,9 +189,10 @@ Dentro de un ciclo verás:
 Las subpestañas del ciclo son:
 
 - **Dashboard agregado**
-- **Acciones (Cap. 8)**
+- **Programa de intervención** (antes "Acciones": Capítulo 8 de la norma)
 - **Canalizaciones GR-I** (exclusiva del Responsable Designado)
 - **Resultados individuales** (exclusiva del Responsable Designado)
+- **Difusión** (constancia de resultados para los trabajadores)
 - **Informes y expediente**
 
 ### 3.5 Dashboard agregado: qué significa "— (n<3)"
@@ -213,12 +214,19 @@ conteos y porcentajes por nivel de riesgo (Nulo/Bajo/Medio/Alto/Muy alto) y un f
    y más agregado sea el corte (la tabla global del ciclo, sin filtrar por área), menos
    celdas quedarán suprimidas; al filtrar por área pequeña es normal ver más supresión.
 
-### 3.6 Acciones (Cap. 8), política, capacitación
+### 3.6 Programa de intervención (Cap. 8), política, capacitación
 
-- **Acciones (Cap. 8)**: registra acciones correctivas (descripción, nivel de riesgo de
-  origen, responsable, fecha compromiso). La misma pestaña te sugiere, a modo de referencia
-  de la Tabla 7 de la norma, categorías con nivel medio o superior en el ciclo para que no se
-  te pase ninguna.
+- **Programa de intervención**: cuando algún resultado vigente del ciclo (calificación
+  final, categoría o dominio) cae en nivel **medio, alto o muy alto**, la norma exige un
+  Programa de intervención (numerales 8.3 y 8.4; criterios de la Tabla 4 de la Guía II /
+  Tabla 7 de la Guía III). La pestaña te lo dice con el criterio literal de la norma por
+  nivel detectado y te guía a crearlo: capturas las áreas o trabajadores sujetos (8.4 a) y
+  el responsable de la ejecución (8.4 f), y la plataforma **pre-puebla las acciones** que la
+  tabla de criterios exige para los niveles encontrados (editables o descartables antes de
+  crear). Cada acción lleva nivel de acción del 8.5 (organizacional/grupal/individual),
+  áreas, responsable, fecha compromiso, estatus y **evidencia adjunta** (PDF o imagen; se
+  registra su huella de integridad). El avance (8.4 d) se ve como "x de y completadas" y el
+  documento Programa entra al expediente como PDF con los seis incisos.
 - **Política**: publica el PDF de tu política de prevención de riesgos psicosociales (título
   - versión + archivo). Cada empleado la verá al entrar a su cuestionario (si aún no la
     acusó) y podrá registrar su acuse de recibo — esa es tu evidencia de difusión.
@@ -229,7 +237,49 @@ conteos y porcentajes por nivel de riesgo (Nulo/Bajo/Medio/Alto/Muy alto) y un f
   correo (el consultor debe tener ya una cuenta creada). Cualquier miembro ve cuántos
   administradores, Responsables Designados y consultores tiene la empresa.
 
-### 3.7 Informes y expediente
+### 3.7 Difusión de resultados a los trabajadores
+
+La norma obliga a **difundir los resultados** de la evaluación a los trabajadores (numeral
+5.7 inciso e) y a que estén **disponibles para su consulta** (numeral 7.8). La pestaña
+**Difusión** del ciclo lo resuelve con una **constancia de difusión**:
+
+- Ves una **vista previa** idéntica a lo que verá el trabajador: un resumen en lenguaje
+  llano (sin códigos internos) con la participación, la distribución de resultados del grupo
+  (con la misma supresión n<3 del dashboard: nada individual sobrevive) y las acciones
+  comprometidas.
+- Al **publicar**, esa vista previa se congela como constancia sellada con huella SHA-256:
+  no se puede editar ni borrar; una corrección es una versión nueva. El historial muestra
+  versión, fecha, huella y cuántos trabajadores han acusado.
+- Cada trabajador con enlace vigente la ve en su misma liga del cuestionario (después de
+  enviarlo, para no sesgar sus respuestas) y puede registrar **"Enterado"** — tu evidencia
+  de difusión efectiva. Para quien no tiene enlace vigente, imprime o difunde el contenido
+  por otros medios (la norma acepta folletos, boletines o carteles).
+- La constancia y sus acuses entran al expediente de inspección.
+
+### 3.8 Buzón de quejas y denuncias
+
+La norma exige **mecanismos seguros y confidenciales** para recibir quejas por prácticas
+opuestas al entorno organizacional favorable y denuncias de violencia laboral (numeral 8.1
+inciso b), e informar a los trabajadores de que existen (5.7 d). La sección **Buzón** del
+menú lateral (visible para gestión y para el Responsable Designado):
+
+- Genera el **enlace del buzón de tu empresa** — difúndelo a toda tu plantilla (correo
+  interno, cartel con QR, intranet). El enlace es por empresa, no por persona: **el
+  anonimato es técnicamente real**. Puedes rotarlo si se compromete (los enlaces difundidos
+  anteriores dejan de servir).
+- El trabajador entra **sin cuenta ni sesión**, elige el tipo de reporte, cuenta lo que pasó
+  y decide EXPLÍCITAMENTE si se identifica o no. Recibe un **folio y una clave** (se
+  muestran una sola vez) con los que puede consultar el estado de su reporte cuando quiera —
+  la consulta solo devuelve el estado, nunca re-muestra el contenido.
+- En el panel ves la lista solo con metadatos (folio, tipo, estado, fecha). **Abrir una
+  queja registra la lectura en la bitácora** (mismo estándar que los resultados
+  individuales: sin registro no hay consulta). El seguimiento exige una nota por cada cambio
+  de estado (recibida → en revisión → atendida → cerrada), y el trabajador ve esos cambios
+  con su folio.
+- Al expediente solo entra un **registro agregado** (conteos por tipo, estado y mes): jamás
+  el contenido, los folios ni la identidad de nadie.
+
+### 3.9 Informes y expediente
 
 Pestaña **Informes y expediente** del ciclo: dos botones, "Generar informe 7.9" y "Generar
 expediente de inspección", más un historial descargable de todo lo generado (tipo, fecha,
@@ -239,22 +289,28 @@ hash SHA-256 de integridad, botón "Descargar" vía enlace firmado temporal).
   centros evaluados, método y guías aplicadas, distribuciones global/por categoría/por
   dominio (con la misma supresión n<3 que el dashboard), resumen de GR-I, conclusiones y
   acciones, datos del evaluador y fechas.
-- El **expediente de inspección** es un ZIP con el PDF anterior, la política de prevención
-  vigente (o una marca explícita de que no hay una publicada — nunca se inventa), CSVs de
-  evidencia de proceso (acuses de política, participación, acciones de la Tabla 7,
-  capacitación, resumen de auditoría) y un `manifiesto.json` con el hash de cada archivo. Es
-  literalmente lo que le muestras a un inspector.
+- El **expediente de inspección** es un ZIP con TODAS las piezas del ciclo: un `INDICE.txt`
+  legible al inicio (qué contiene, qué falta —declarado, nunca omitido en silencio— y la
+  huella SHA-256 de cada archivo), el informe en PDF, la política de prevención vigente (o
+  la marca explícita "ausente"), los **cuestionarios aplicados sellados** por guía (número y
+  texto oficial de cada pregunta, con huella), la **constancia de difusión** con sus acuses,
+  el **Programa de intervención** en PDF con su CSV de avances, el **registro agregado del
+  buzón** (solo conteos), CSVs de evidencia de proceso (acuses de política, participación,
+  acciones, capacitación, resumen de auditoría) y un `manifiesto.json` verificable por
+  máquina. Es literalmente lo que le muestras a un inspector.
 
 Ninguno de los dos incluye jamás una respuesta cruda ni un resultado por empleado: solo datos
 agregados y evidencia de proceso.
 
-### 3.8 Qué rol ve qué
+### 3.10 Qué rol ve qué
 
 |                                                                                                                                                            | Admin de Organización           | Consultor asignado                          | Responsable Designado (flag, sobre cualquier rol) | Empleado (enlace tokenizado)                  |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------- | ------------------------------------------------- | --------------------------------------------- |
 | Centros / empleados / ciclos (ver)                                                                                                                         | Sí                              | Sí                                          | —                                                 | No                                            |
 | Crear centros, empleados, ciclos; importar CSV; distribuir/recordatorios; registrar acciones; publicar política/capacitación; generar informe y expediente | Sí                              | Sí                                          | —                                                 | No                                            |
-| Dashboard agregado, Acciones (Cap. 8), Informes y expediente (ver)                                                                                         | Sí                              | Sí                                          | —                                                 | No                                            |
+| Dashboard agregado, Programa de intervención, Difusión, Informes y expediente (ver)                                                                        | Sí                              | Sí                                          | —                                                 | No                                            |
+| Buzón de quejas: ver lista y abrir quejas (lectura auditada) y dar seguimiento                                                                             | Sí                              | Sí                                          | Sí                                                | Presenta y consulta su folio, sin sesión      |
+| Publicar constancia de difusión / crear o rotar el enlace del buzón                                                                                        | Sí                              | Sí                                          | No                                                | No                                            |
 | Designarse RD / agregar consultores                                                                                                                        | Sí (solo Admin de Organización) | No                                          | No                                                | No                                            |
 | Canalizaciones GR-I (ver y cambiar estatus)                                                                                                                | Solo si además tiene el flag RD | No (un Consultor no puede ser designado RD) | Sí                                                | No                                            |
 | Resultados individuales procesados (ver, tras interstitial)                                                                                                | Solo si además tiene el flag RD | No (un Consultor no puede ser designado RD) | Sí, y cada consulta se audita                     | No                                            |
@@ -299,6 +355,13 @@ necesitas saber:
   y el Responsable Designado de tu centro se pondrá en contacto para dar seguimiento.
 - **Si tu enlace ya no funciona** (expiró o lo perdiste), pide a tu empresa que te reenvíe el
   recordatorio: te llegará un enlace nuevo, el anterior deja de servir.
+- **Después de enviar también verás los resultados generales de tu centro** (cuando tu
+  empresa los publique): son del grupo, en lenguaje claro, y nunca muestran el resultado de
+  una persona. Puedes registrar "Enterado" para dejar constancia de que los consultaste.
+- **Si vives o presencias malos tratos o violencia laboral**, tu empresa tiene un **buzón de
+  quejas confidencial**: entras sin cuenta, decides si te identificas o reportas de forma
+  anónima, y recibes un folio con clave para consultar cómo va tu reporte. El enlace aparece
+  en la página de tu cuestionario y tu empresa debe difundirlo también por otros medios.
 
 ## 5. Prueba end-to-end en local
 
@@ -310,8 +373,8 @@ start`, `.env.local`, `pnpm demo:seed`, `pnpm --filter @nom35/web dev`).
    `/ingresar` y abre la empresa demo.
 2. **Recorre el panel administrativo completo**: Centros (categoría normativa automática),
    Empleados (alta individual y CSV), Ciclos (abre "Ciclo 2026" de un centro), Dashboard
-   agregado (filtra por área), Acciones (Cap. 8), Política, Capacitación, Equipo — así
-   verificas que cada pestaña carga con datos reales.
+   agregado (filtra por área), Programa de intervención, Difusión, Buzón, Política,
+   Capacitación, Equipo — así verificas que cada pestaña carga con datos reales.
 3. **Copia el enlace `/responder/<token>` de un empleado pendiente.** `pnpm demo:seed`
    imprime en consola el enlace del empleado que se dejó sin completar en cada centro (uno
    por centro). Si ya perdiste esa salida de consola, entra a la pestaña **Ciclos** →

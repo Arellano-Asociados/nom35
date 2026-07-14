@@ -155,6 +155,30 @@ spec del editor), gate `verificar:textos` verde (las 3 guías oficiales intactas
 | Plantillas de comunicación editables ({{variables}}, escape obligatorio, vista previa, restaurar)                                                              | `b995120` | ✅ Correo de acuse nuevo; envíos reales cableados                                                                                                     |
 | Parámetros de ciclo: recordatorios automáticos cada N días + fecha límite visible                                                                              | `b995120` | ✅ Cron idempotente con CRON_SECRET; decide por bitácora; reusa el módulo del botón manual                                                            |
 
+## Remediación — Fase 4 «ciclo normativo completo» (2026-07-13, rama `fase-4-ciclo-normativo`)
+
+Cierra los tres [Alto] de la dimensión 9 que bloqueaban aprobar una inspección (difusión de
+resultados, buzón de quejas, Programa de intervención) y completa el expediente. Base
+normativa verificada contra el DOF (spec en
+`docs/superpowers/specs/2026-07-13-fase-4-ciclo-normativo-design.md`). Validación al
+cierre: lint + typecheck, build, motor 59/59, web 120/120 (unit), **RLS 58/58**
+(creció de 50), **E2E 15/15** (spec nuevo `ciclo-normativo.spec.ts`).
+
+| Hallazgo                                                                        | Commit                | Estado                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §9 [Alto] No existe difusión de resultados a los trabajadores (5.7 e / 7.8)     | `5c589ce`→`788f1af`   | ✅ Constancia por ciclo: instantánea agregada (supresión n<3 + fila completa) en lenguaje llano, sellada sha256, append-only y versionada; acuse "Enterado" por token                                                       |
+| §9 [Alto] No hay mecanismo de quejas por violencia laboral (8.1 b)              | `6021067`→`e636370`   | ✅ Buzón por empresa sin sesión (token de difusión obligatoria), anonimato real a elección explícita, folio+clave (solo hash en BD), estados con nota (8.2 g)                                                               |
+| Regla 5 extendida: el contenido de una queja = estándar de resultado individual | `6021067` + `e636370` | ✅ `complaints` sin GRANT para authenticated; lectura solo en la app con `queja_consultada` fail-closed; texto libre siempre como texto plano; jamás en correos                                                             |
+| §9 [Alto] Las "acciones" no son el Programa de intervención (8.3/8.4)           | `10c3683`→`e68009b`   | ✅ `intervention_programs` (áreas sujetas, responsable, evaluación posterior) + acciones con nivel 8.5, evidencia por magic bytes y avance; criterios LITERALES de la Tabla 4/7 como datos; documento PDF con los 6 incisos |
+| §8 [Bajo] Expediente incompleto frente al ciclo real                            | `3ea19e4`             | ✅ `INDICE.txt` (primera entrada, sha256 por archivo, ausencias DECLARADAS), instrumentos aplicados sellados por guía, constancia de difusión byte-verificable, programa PDF+CSV, buzón agregado (solo conteos)             |
+| §9 [Bajo] "Sugerencias Tabla 7" mal atribuidas                                  | `10c3683`             | ✅ Los criterios reales de la Tabla 4/7 (texto literal del DOF) gobiernan el programa; el contenido propio quedó como "sugerencias de referencia"                                                                           |
+
+Sigue abierto de la dimensión 9 (plan de fases, decisión explícita de alcance de esta fase):
+renombrar el informe a **7.7** y añadirle los incisos b) Objetivo y c) Actividades del
+centro; registro exportable 5.8 c) (trabajadores examinados, generado por el RD auditado);
+registro completo de resultados 5.8 a) para la autoridad; acontecimientos traumáticos
+severos fuera de ciclo (5.5/6.5); integración con NOM-030 (7.6); ficha Guía V.
+
 ## Los 9 hallazgos críticos
 
 ### C-01 · Los cuestionarios no contienen las preguntas oficiales (NOM-035 · Código)
