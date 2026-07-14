@@ -458,6 +458,121 @@ describe('capacidades del panel con RLS (Fase 2.5: el panel opera como el usuari
   });
 });
 
+describe('cuestionarios personalizados (Fase 3)', () => {
+  it('gestión crea/edita borradores en SU tenant; custom_answers es inalcanzable como authenticated', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const creado = await q(
+        `insert into custom_questionnaires (company_id, title) values ($1, 'Encuesta RLS')
+         returning id`,
+        [TENANT_A],
+      );
+      expect(creado.rowCount).toBe(1);
+      const idCp = creado.rows[0].id as string;
+      const editado = await q(
+        `update custom_questionnaires set title = 'Encuesta RLS v2' where id = $1`,
+        [idCp],
+      );
+      expect(editado.rowCount).toBe(1);
+      // Cruce de tenant rechazado
+      await esperarRechazo(
+        q,
+        `insert into custom_questionnaires (company_id, title) values ($1, 'X')`,
+        [TENANT_B],
+      );
+      // Respuestas de empleados: sin GRANT, mismo patrón que responses
+      await esperarRechazo(q, 'select count(*) n from custom_answers');
+      await esperarRechazo(
+        q,
+        `insert into custom_answers (company_id, assignment_id, question_key, answer)
+         values ($1, $2, 'p1', 'x')`,
+        [TENANT_A, QA_A1],
+      );
+    });
+  });
+
+  it('un cuestionario PUBLICADO es inmutable incluso para el dueño de la tabla (trigger)', async () => {
+    await comoPostgres(async (q) => {
+      const creado = await q(
+        `insert into custom_questionnaires (company_id, title, status, sha256, published_at, definition)
+         values ($1, 'Sellado', 'publicado', 'abc123', now(), '{"secciones": []}'::jsonb)
+         returning id`,
+        [TENANT_A],
+      );
+      const idCp = creado.rows[0].id as string;
+      // Cambiar contenido: rechazado por el trigger
+      const cambio = await intento(
+        q,
+        `update custom_questionnaires set definition = '{"secciones": [{"x": 1}]}'::jsonb where id = $1`,
+        [idCp],
+      );
+      expect(cambio.codigo).toBe('P0001');
+      // Borrarlo: rechazado (evidencia)
+      const borrado = await intento(q, `delete from custom_questionnaires where id = $1`, [idCp]);
+      expect(borrado.codigo).toBe('P0001');
+      // Archivar SIN tocar contenido: permitido
+      const archivado = await q(
+        `update custom_questionnaires set status = 'archivado' where id = $1`,
+        [idCp],
+      );
+      expect(archivado.rowCount).toBe(1);
+    });
+  });
+});
+
+describe('configuración de organización y plantillas (Fase 3)', () => {
+  it('gestión configura SU tenant (settings y plantillas); nada del tenant ajeno', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const settings = await q(
+        `insert into company_settings (company_id, timezone, contacto_nombre)
+         values ($1, 'America/Mexico_City', 'RH')`,
+        [TENANT_A],
+      );
+      expect(settings.rowCount).toBe(1);
+      const plantilla = await q(
+        `insert into mail_templates (company_id, tipo, asunto, cuerpo)
+         values ($1, 'invitacion', 'Asunto', 'Hola {{nombre}}')`,
+        [TENANT_A],
+      );
+      expect(plantilla.rowCount).toBe(1);
+      // "Restaurar" = DELETE de la fila propia
+      const restaurada = await q(
+        `delete from mail_templates where company_id = $1 and tipo = 'invitacion'`,
+        [TENANT_A],
+      );
+      expect(restaurada.rowCount).toBe(1);
+      // Cruce de tenant rechazado
+      await esperarRechazo(q, `insert into company_settings (company_id) values ($1)`, [TENANT_B]);
+      await esperarRechazo(
+        q,
+        `insert into mail_templates (company_id, tipo, asunto, cuerpo) values ($1, 'acuse', 'x', 'y')`,
+        [TENANT_B],
+      );
+    });
+  });
+});
+
+describe('feature flags (Fase 3): el tenant los lee, solo la plataforma los escribe', () => {
+  it('un miembro lee los flags de SU tenant (no los de otros) y no puede escribir ninguno', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      // El fixture siembra demo_flag en A y en B: A ve el suyo, no el de B.
+      expect(
+        await contar(q, 'select count(*) n from feature_flags where company_id = $1', [TENANT_A]),
+      ).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from feature_flags where company_id = $1', [TENANT_B]),
+      ).toBe(0);
+      await esperarRechazo(
+        q,
+        `insert into feature_flags (company_id, flag, enabled) values ($1, 'plan_pro', true)`,
+        [TENANT_A],
+      );
+      await esperarBloqueo(q, `update feature_flags set enabled = true where company_id = $1`, [
+        TENANT_A,
+      ]);
+    });
+  });
+});
+
 describe('limitador de tasa (Fase 2.5): solo la app', () => {
   it('ni authenticated ni anon pueden leer, escribir o ejecutar el limitador', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {

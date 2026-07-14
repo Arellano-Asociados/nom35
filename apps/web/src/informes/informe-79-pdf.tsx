@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 import type { CeldaAgregado, Distribucion } from '../lib/agregados';
 import type { DatosInforme79 } from '../lib/informe';
 
@@ -134,15 +134,25 @@ const styles = StyleSheet.create({
 // Node 22 (runtime objetivo de CI/Vercel) trae ICU completo por defecto (full-icu),
 // así que los datos de la locale es-MX están disponibles sin configuración adicional
 // (sin necesidad de --icu-data-dir ni del paquete full-icu).
-const FORMATO_FECHA_PIE = new Intl.DateTimeFormat('es-MX', {
-  dateStyle: 'long',
-  timeStyle: 'short',
-});
+// La zona horaria es configurable por organización (Fase 3, company_settings);
+// default sensato: America/Mexico_City. El formatter se crea por render porque
+// depende de datos, no de una constante.
+function formatoFechaPie(timezone: string): Intl.DateTimeFormat {
+  try {
+    return new Intl.DateTimeFormat('es-MX', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+      timeZone: timezone,
+    });
+  } catch {
+    return new Intl.DateTimeFormat('es-MX', { dateStyle: 'long', timeStyle: 'short' });
+  }
+}
 
 // `datos.generadoEl` permanece ISO en `DatosInforme79` (no se reformatea en el tipo ni en
 // las acciones de servidor): el formateo es puramente de presentación, al renderizar.
-function formatearFechaPie(iso: string): string {
-  return FORMATO_FECHA_PIE.format(new Date(iso));
+function formatearFechaPie(iso: string, timezone: string): string {
+  return formatoFechaPie(timezone).format(new Date(iso));
 }
 
 function textoCelda(c: CeldaAgregado): string {
@@ -194,13 +204,25 @@ export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
       author="Constata — Cumplimiento NOM-035-STPS-2018"
     >
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.encabezado}>
-          <Text style={styles.tituloInforme}>
-            Informe de resultados — Numeral 7.9 NOM-035-STPS-2018
-          </Text>
-          <Text style={styles.subtituloInforme}>
-            {datos.empresa.razonSocial} — RFC: {datos.empresa.rfc || 'No especificado'}
-          </Text>
+        <View
+          style={[styles.encabezado, { flexDirection: 'row', justifyContent: 'space-between' }]}
+        >
+          <View style={{ flexShrink: 1 }}>
+            <Text style={styles.tituloInforme}>
+              Informe de resultados — Numeral 7.9 NOM-035-STPS-2018
+            </Text>
+            <Text style={styles.subtituloInforme}>
+              {datos.empresa.razonSocial} — RFC: {datos.empresa.rfc || 'No especificado'}
+            </Text>
+          </View>
+          {/* Logo del cliente JUNTO A la marca Constata (que firma el pie), nunca en su
+              lugar (indicación del propietario, Fase 3). Data URI validado por magic bytes. */}
+          {datos.personalizacion?.logoDataUri && (
+            <Image
+              src={datos.personalizacion.logoDataUri}
+              style={{ height: 32, maxWidth: 120, objectFit: 'contain' }}
+            />
+          )}
         </View>
 
         {/* a) Centro(s) de trabajo evaluados */}
@@ -358,13 +380,30 @@ export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
             <Text style={styles.etiqueta}>Fecha de fin</Text>
             <Text style={styles.valor}>{datos.ciclo.fechaFin ?? 'En curso'}</Text>
           </View>
+          {(datos.personalizacion?.contactoNombre || datos.personalizacion?.contactoCorreo) && (
+            <View style={styles.filaEtiquetaValor}>
+              <Text style={styles.etiqueta}>Contacto</Text>
+              <Text style={styles.valor}>
+                {[
+                  datos.personalizacion?.contactoNombre,
+                  datos.personalizacion?.contactoCorreo,
+                  datos.personalizacion?.contactoTelefono,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+            </View>
+          )}
         </View>
 
         <Text
           style={styles.pie}
           render={({ pageNumber, totalPages }) =>
-            `Motor de cálculo NOM-035 v${datos.motorVersion} · ` +
-            `Generado el ${formatearFechaPie(datos.generadoEl)} · ` +
+            `Constata · Motor de cálculo NOM-035 v${datos.motorVersion} · ` +
+            `Generado el ${formatearFechaPie(
+              datos.generadoEl,
+              datos.personalizacion?.timezone ?? 'America/Mexico_City',
+            )} · ` +
             'La integridad de este documento se verifica mediante el hash SHA-256 registrado en ' +
             `el expediente de inspección (no incluido en el PDF) · Página ${pageNumber} de ${totalPages}`
           }

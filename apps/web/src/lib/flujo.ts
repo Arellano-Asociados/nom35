@@ -8,6 +8,7 @@ import {
 } from '@nom35/motor-nom035';
 import { EVENTOS_AUDITORIA, registrarAuditoria } from './auditoria';
 import { plantillaCorreo, proveedorCorreo } from './correo';
+import { plantillaVigente, renderPlantilla } from './plantillas';
 import {
   construirEntradaGR1,
   construirEntradaLikert,
@@ -31,6 +32,8 @@ export interface Contexto {
   questionnaireId: string;
   guia: CodigoGuia;
   expirado: boolean;
+  /** Vencimiento del enlace (ISO): visible para el empleado como fecha limite. */
+  expiraEl: string;
   completado: boolean;
   consentido: boolean;
   filtrosCapturados: boolean;
@@ -79,6 +82,7 @@ export async function obtenerContexto(token: string): Promise<Contexto | null> {
     questionnaireId: data.questionnaire_id,
     guia,
     expirado: new Date(data.expires_at).getTime() < Date.now(),
+    expiraEl: data.expires_at,
     completado: data.completed_at !== null,
     consentido: consentimiento !== null,
     filtrosCapturados: data.filters_captured_at !== null,
@@ -221,6 +225,32 @@ export async function enviarCuestionario(ctx: Contexto): Promise<{ error?: strin
     .eq('id', ctx.asignacionId)
     .is('completed_at', null);
   if (error) return { error: error.message };
+
+  // Acuse de recibo al empleado (Fase 3, plantilla editable 'acuse'): confirmación
+  // genérica SIN datos del resultado (regla inviolable 9). Fire-and-forget: el envío
+  // del cuestionario no depende del correo.
+  try {
+    const { data: empleado } = await supabase
+      .from('employees')
+      .select('email')
+      .eq('id', ctx.employeeId)
+      .maybeSingle();
+    if (empleado?.email) {
+      const plantilla = await plantillaVigente(supabase, ctx.companyId, 'acuse');
+      const r = renderPlantilla(plantilla, {
+        nombre: ctx.empleado.nombre,
+        empresa: ctx.empresa.razonSocial,
+      });
+      const [saludo, ...parrafos] = r.parrafos;
+      await proveedorCorreo().enviar({
+        para: [empleado.email],
+        asunto: r.asunto,
+        html: plantillaCorreo({ saludo: saludo ?? `Hola ${ctx.empleado.nombre}:`, parrafos }),
+      });
+    }
+  } catch {
+    // El acuse es cortesía; la evidencia dura es la fila completed_at + resultados.
+  }
   return {};
 }
 

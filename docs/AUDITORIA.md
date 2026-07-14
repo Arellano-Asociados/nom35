@@ -138,6 +138,23 @@ completo. Validación al cierre: lint (con guardia nueva) + typecheck, build, mo
 | `.env.example` documentando el entorno                                                                   | `21fa3f0`             | ✅ Cerrado                                                                                                                                                                                                           |
 | `loading.tsx` del panel                                                                                  | `21fa3f0` → `d7fd567` | ⚠️ Intentado y revertido con causa verificada: el Router Cache del cliente servía contenido viejo tras mutaciones con redirect a la misma ruta (el empleado recién creado no aparecía). Queda en deuda con el porqué |
 
+## Remediación — Fase 3 «configurabilidad» (2026-07-13, rama `fase-3-config`)
+
+Mini-fase (remates de deuda 2.5) + configurabilidad. Validación al cierre: lint +
+typecheck, build, motor 59/59, web 94/94 (unit), **RLS 50/50**, **E2E 11/11** (nuevo
+spec del editor), gate `verificar:textos` verde (las 3 guías oficiales intactas).
+
+| Entregable                                                                                                                                                     | Commit    | Estado                                                                                                                                                |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §6 [Medio] Recordatorios/informes sin límite ni idempotencia                                                                                                   | `0e13c5c` | ✅ Cerrado: 1/10min por ciclo (recordatorios) y 1/5min (informe/expediente) con el limitador de BD                                                    |
+| §6 [Alto] Auto-designación de RD sin control                                                                                                                   | `0e13c5c` | ✅ Cerrado (evaluado: NO se prohíbe — empresa unipersonal del segmento —; confirmación explícita + bitácora + correo a los demás admins)              |
+| §6 [Alto] Sin caducidad de sesión                                                                                                                              | `0e13c5c` | ✅ Cerrado: timebox 168h + inactividad 12h + VigiaSesion (aviso y regreso al login; el cuestionario del empleado guarda incremental y no pierde nada) |
+| Feature flags por organización (terreno para planes)                                                                                                           | `0346f14` | ✅ BD bajo RLS, escritura solo plataforma, evaluación en servidor, default sensato                                                                    |
+| Cuestionarios personalizados (editor, previa móvil real, publicado inmutable sellado sha256, versionado, respuesta por token, reporte simple sin semáforo/7.9) | `820c8ca` | ✅ Guías oficiales intocables (gate verde); `custom_answers` sin GRANT (patrón `responses`)                                                           |
+| Configuración de organización (logo validado junto a la marca, zona horaria, contacto en informes)                                                             | `b995120` | ✅ `validarImagen` por magic bytes (SVG rechazado: HTML ejecutable)                                                                                   |
+| Plantillas de comunicación editables ({{variables}}, escape obligatorio, vista previa, restaurar)                                                              | `b995120` | ✅ Correo de acuse nuevo; envíos reales cableados                                                                                                     |
+| Parámetros de ciclo: recordatorios automáticos cada N días + fecha límite visible                                                                              | `b995120` | ✅ Cron idempotente con CRON_SECRET; decide por bitácora; reusa el módulo del botón manual                                                            |
+
 ## Los 9 hallazgos críticos
 
 ### C-01 · Los cuestionarios no contienen las preguntas oficiales (NOM-035 · Código)

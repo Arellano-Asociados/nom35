@@ -1,5 +1,6 @@
 'use server';
 
+import { permitido } from '@/lib/limites';
 import { createHash } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -139,6 +140,23 @@ async function armarDatosInforme79DesdeBd(
     estatus: a.status,
   }));
 
+  // Personalización de organización (Fase 3): logo junto a la marca, contacto y
+  // zona horaria. Sin fila de settings, el informe sale con los defaults.
+  const { data: settings } = await supabase
+    .from('company_settings')
+    .select('logo_path, timezone, contacto_nombre, contacto_correo, contacto_telefono')
+    .eq('company_id', companyId)
+    .maybeSingle();
+  let logoDataUri: string | undefined;
+  if (settings?.logo_path) {
+    const { data: logo } = await supabase.storage.from('logos').download(settings.logo_path);
+    if (logo) {
+      const bytes = Buffer.from(await logo.arrayBuffer());
+      const mime = settings.logo_path.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      logoDataUri = `data:${mime};base64,${bytes.toString('base64')}`;
+    }
+  }
+
   const datos = armarDatosInforme79({
     empresa: { razonSocial: empresa.legal_name, rfc: empresa.rfc },
     centros,
@@ -156,6 +174,14 @@ async function armarDatosInforme79DesdeBd(
     generadoEl: new Date().toISOString(),
   });
 
+  datos.personalizacion = {
+    logoDataUri,
+    contactoNombre: settings?.contacto_nombre ?? null,
+    contactoCorreo: settings?.contacto_correo ?? null,
+    contactoTelefono: settings?.contacto_telefono ?? null,
+    timezone: settings?.timezone ?? 'America/Mexico_City',
+  };
+
   return { ok: true, datos };
 }
 
@@ -170,6 +196,16 @@ export async function accionGenerarInforme79(
       error:
         'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
     };
+
+  // Idempotencia práctica (mini-fase 3): un doble clic no archiva dos informes
+  // idénticos en compliance_reports (cada uno es evidencia con hash).
+  if (!(await permitido(`informe:${cycleId}`, { ventanaSegundos: 300, maximo: 1 }))) {
+    return {
+      ok: false,
+      error:
+        'Este informe se generó hace unos minutos. Descárgalo del historial o espera 5 minutos.',
+    };
+  }
 
   const supabase = clienteAdmin();
 
@@ -307,6 +343,15 @@ export async function accionGenerarExpediente(
       error:
         'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
     };
+
+  // Idempotencia práctica (mini-fase 3): mismo criterio que el informe 7.9.
+  if (!(await permitido(`expediente:${cycleId}`, { ventanaSegundos: 300, maximo: 1 }))) {
+    return {
+      ok: false,
+      error:
+        'Este expediente se generó hace unos minutos. Descárgalo del historial o espera 5 minutos.',
+    };
+  }
 
   const supabase = clienteAdmin();
 

@@ -32,6 +32,16 @@ const ETIQUETA_NIVEL: Record<NivelRiesgo, string> = {
 
 export interface DatosInforme79 {
   empresa: { razonSocial: string; rfc: string };
+  /** Personalización de organización (Fase 3, company_settings): logo del cliente
+   * (data URI, validado por magic bytes), contacto para el reporte y zona horaria.
+   * Opcional: sin configuración, el informe sale igual que antes. */
+  personalizacion?: {
+    logoDataUri?: string;
+    contactoNombre?: string | null;
+    contactoCorreo?: string | null;
+    contactoTelefono?: string | null;
+    timezone?: string;
+  };
   centros: Array<{
     nombre: string;
     domicilio: string;

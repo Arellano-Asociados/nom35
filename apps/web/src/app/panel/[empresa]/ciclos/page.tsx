@@ -129,6 +129,17 @@ export default async function PaginaCiclos({
                     nombre="cedula"
                     required
                   />
+                  <CampoSelect
+                    etiqueta="Recordatorios automáticos a pendientes"
+                    nombre="recordatorio_dias"
+                    defaultValue=""
+                    ayuda="El sistema reenvía el enlace a quien no ha contestado, sin duplicar envíos."
+                  >
+                    <option value="">Sin recordatorios automáticos</option>
+                    <option value="3">Cada 3 días</option>
+                    <option value="7">Cada 7 días</option>
+                    <option value="14">Cada 14 días</option>
+                  </CampoSelect>
                   <p className="text-xs text-texto-terciario">
                     Los cuestionarios a aplicar se seleccionan automáticamente según el tamaño del
                     centro.
