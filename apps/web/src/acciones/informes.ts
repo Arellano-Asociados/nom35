@@ -140,6 +140,23 @@ async function armarDatosInforme79DesdeBd(
     estatus: a.status,
   }));
 
+  // Personalización de organización (Fase 3): logo junto a la marca, contacto y
+  // zona horaria. Sin fila de settings, el informe sale con los defaults.
+  const { data: settings } = await supabase
+    .from('company_settings')
+    .select('logo_path, timezone, contacto_nombre, contacto_correo, contacto_telefono')
+    .eq('company_id', companyId)
+    .maybeSingle();
+  let logoDataUri: string | undefined;
+  if (settings?.logo_path) {
+    const { data: logo } = await supabase.storage.from('logos').download(settings.logo_path);
+    if (logo) {
+      const bytes = Buffer.from(await logo.arrayBuffer());
+      const mime = settings.logo_path.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      logoDataUri = `data:${mime};base64,${bytes.toString('base64')}`;
+    }
+  }
+
   const datos = armarDatosInforme79({
     empresa: { razonSocial: empresa.legal_name, rfc: empresa.rfc },
     centros,
@@ -156,6 +173,14 @@ async function armarDatosInforme79DesdeBd(
     acciones,
     generadoEl: new Date().toISOString(),
   });
+
+  datos.personalizacion = {
+    logoDataUri,
+    contactoNombre: settings?.contacto_nombre ?? null,
+    contactoCorreo: settings?.contacto_correo ?? null,
+    contactoTelefono: settings?.contacto_telefono ?? null,
+    timezone: settings?.timezone ?? 'America/Mexico_City',
+  };
 
   return { ok: true, datos };
 }

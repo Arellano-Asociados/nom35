@@ -54,6 +54,42 @@ export async function validarPdf(archivo: File): Promise<ResultadoValidacion> {
   };
 }
 
+// ── Imágenes (logos de cliente, Fase 3) ──────────────────────────────────────
+
+export const TAMANO_MAXIMO_IMAGEN = 2 * 1024 * 1024;
+
+const MAGIC_PNG = [0x89, 0x50, 0x4e, 0x47];
+const MAGIC_JPEG = [0xff, 0xd8, 0xff];
+
+export interface ImagenValidada {
+  bytes: Buffer;
+  contentType: 'image/png' | 'image/jpeg';
+  extension: '.png' | '.jpg';
+}
+
+export type ResultadoImagen = { ok: true; archivo: ImagenValidada } | { ok: false; error: string };
+
+/**
+ * Solo PNG/JPEG por magic bytes (un SVG es HTML ejecutable: mismo vector de XSS que
+ * las subidas de PDF), máximo 2 MB, contentType forzado por el servidor.
+ */
+export async function validarImagen(archivo: File): Promise<ResultadoImagen> {
+  if (archivo.size === 0) {
+    return { ok: false, error: 'El archivo está vacío. Elige una imagen PNG o JPG.' };
+  }
+  if (archivo.size > TAMANO_MAXIMO_IMAGEN) {
+    return { ok: false, error: 'La imagen pesa más de 2 MB. Redúcela antes de subirla.' };
+  }
+  const bytes = Buffer.from(await archivo.arrayBuffer());
+  if (MAGIC_PNG.every((b, i) => bytes[i] === b)) {
+    return { ok: true, archivo: { bytes, contentType: 'image/png', extension: '.png' } };
+  }
+  if (MAGIC_JPEG.every((b, i) => bytes[i] === b)) {
+    return { ok: true, archivo: { bytes, contentType: 'image/jpeg', extension: '.jpg' } };
+  }
+  return { ok: false, error: 'La imagen debe ser PNG o JPG.' };
+}
+
 /**
  * Nombre del objeto en Storage, generado por el servidor. Nunca se concatena el nombre
  * que trae el archivo: eso rompía la invariante "todo objeto de la empresa X vive bajo

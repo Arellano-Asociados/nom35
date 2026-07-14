@@ -519,6 +519,38 @@ describe('cuestionarios personalizados (Fase 3)', () => {
   });
 });
 
+describe('configuración de organización y plantillas (Fase 3)', () => {
+  it('gestión configura SU tenant (settings y plantillas); nada del tenant ajeno', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const settings = await q(
+        `insert into company_settings (company_id, timezone, contacto_nombre)
+         values ($1, 'America/Mexico_City', 'RH')`,
+        [TENANT_A],
+      );
+      expect(settings.rowCount).toBe(1);
+      const plantilla = await q(
+        `insert into mail_templates (company_id, tipo, asunto, cuerpo)
+         values ($1, 'invitacion', 'Asunto', 'Hola {{nombre}}')`,
+        [TENANT_A],
+      );
+      expect(plantilla.rowCount).toBe(1);
+      // "Restaurar" = DELETE de la fila propia
+      const restaurada = await q(
+        `delete from mail_templates where company_id = $1 and tipo = 'invitacion'`,
+        [TENANT_A],
+      );
+      expect(restaurada.rowCount).toBe(1);
+      // Cruce de tenant rechazado
+      await esperarRechazo(q, `insert into company_settings (company_id) values ($1)`, [TENANT_B]);
+      await esperarRechazo(
+        q,
+        `insert into mail_templates (company_id, tipo, asunto, cuerpo) values ($1, 'acuse', 'x', 'y')`,
+        [TENANT_B],
+      );
+    });
+  });
+});
+
 describe('feature flags (Fase 3): el tenant los lee, solo la plataforma los escribe', () => {
   it('un miembro lee los flags de SU tenant (no los de otros) y no puede escribir ninguno', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {

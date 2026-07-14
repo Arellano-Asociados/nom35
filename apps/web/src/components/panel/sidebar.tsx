@@ -15,6 +15,7 @@ const SECCIONES_EMPRESA = [
   ['ciclos', 'Ciclos'],
   ['cuestionarios', 'Cuestionarios'],
   ['politica', 'Política'],
+  ['configuracion', 'Configuración'],
   ['capacitacion', 'Capacitación'],
   ['equipo', 'Equipo'],
 ] as const;

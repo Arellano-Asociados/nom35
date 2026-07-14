@@ -43,6 +43,7 @@ export default tseslint.config(
       'apps/web/src/app/panel/**/individual/page.tsx',
       'apps/web/src/app/panel/**/individual/*/page.tsx',
       'apps/web/src/app/panel/**/cuestionarios/*/resultados/page.tsx',
+      'apps/web/src/app/panel/**/configuracion/page.tsx',
     ],
     rules: {
       'no-restricted-imports': [

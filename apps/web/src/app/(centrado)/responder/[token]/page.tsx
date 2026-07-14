@@ -8,6 +8,7 @@ import {
   registrarConsultaResultadoPropio,
   respuestasVigentes,
 } from '@/lib/flujo';
+import { fechaEsMx } from '@/lib/fechas';
 import { ipCliente, permitido } from '@/lib/limites';
 import { PoliticaPendiente } from '@/components/responder/politica';
 import { Consentimiento } from '@/components/responder/consentimiento';
@@ -187,7 +188,7 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
         </h1>
         <p className="text-sm text-slate-600">
           {ctx.empresa.razonSocial} · Tus respuestas se guardan automáticamente y son
-          confidenciales: nadie de tu empresa puede verlas.
+          confidenciales: nadie de tu empresa puede verlas. Fecha límite: {fechaEsMx(ctx.expiraEl)}.
         </p>
         {ctx.guia !== 'GR-I' && (
           <p className="mt-1 text-sm text-slate-600">

@@ -7,6 +7,8 @@ import { registrarAuditoria } from '@/lib/auditoria';
 import { plantillaCorreo, proveedorCorreo } from '@/lib/correo';
 import { fechaEsMx } from '@/lib/fechas';
 import { permitido } from '@/lib/limites';
+import { plantillaVigente, renderPlantilla } from '@/lib/plantillas';
+import { enviarRecordatoriosDeCiclo } from '@/lib/recordatorios';
 import { parsearCsvEmpleados } from '@/lib/csv-empleados';
 import { escrituraOk } from '@/lib/escrituras';
 import { rutaDeObjeto, validarPdf } from '@/lib/subidas';
@@ -310,12 +312,15 @@ export async function accionCrearCiclo(companyId: string, formData: FormData): P
   const cedula = String(formData.get('cedula') ?? '').trim();
   if (!centroId || !nombre || !inicio || !evaluador || !cedula) redirect(`${ruta}?error=datos`);
 
+  // Recordatorios automáticos cada N días (Fase 3); vacío = desactivado.
+  const recordatorioDias = Number(formData.get('recordatorio_dias')) || null;
   const { data: ciclo, error: errorCiclo } = await (
     await clienteSesion()
   )
     .from('compliance_cycles')
     .insert({
       company_id: companyId,
+      reminder_interval_days: recordatorioDias,
       work_center_id: centroId,
       name: nombre,
       date_start: inicio,
@@ -387,6 +392,10 @@ export async function accionDistribuir(
 
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const correo = proveedorCorreo();
+  // Plantilla editable por la organización (Fase 3); sin fila, la original. El
+  // render sustituye variables en texto plano y plantillaCorreo escapa TODO
+  // (inyección desde CSV, hallazgo Bajo de la auditoría v0).
+  const plantilla = await plantillaVigente(supabase, companyId, 'invitacion');
   let creadas = 0;
   let correosEnviados = 0;
 
@@ -406,19 +415,18 @@ export async function accionDistribuir(
       if (error) continue;
       creadas++;
       try {
+        const r = renderPlantilla(plantilla, {
+          nombre: empleado.full_name,
+          empresa: acceso.membresia.razonSocial,
+          fecha_limite: fechaEsMx(vencimiento.toISOString()),
+        });
+        const [saludo, ...parrafos] = r.parrafos;
         await correo.enviar({
           para: [empleado.email],
-          // Sin código interno (GR-*) en el asunto; el cuerpo dice duración,
-          // confidencialidad y vencimiento (tabla de copy de la auditoría v0, filas
-          // 6 y 21). La plantilla escapa full_name (inyección desde CSV, hallazgo Bajo).
-          asunto: 'Te invitamos a responder tu cuestionario NOM-035',
+          asunto: r.asunto,
           html: plantillaCorreo({
-            saludo: `Hola ${empleado.full_name}:`,
-            parrafos: [
-              'Tu empresa está evaluando el entorno de trabajo conforme a la NOM-035. Responder toma entre 10 y 25 minutos, y puedes pausar cuando quieras: tus avances se guardan solos.',
-              'Tus respuestas son confidenciales: nadie de tu empresa puede verlas.',
-              `Tu enlace es personal y vence el ${fechaEsMx(vencimiento.toISOString())}.`,
-            ],
+            saludo: saludo ?? `Hola ${empleado.full_name}:`,
+            parrafos,
             cta: { url: `${base}/responder/${token}`, etiqueta: 'Responder cuestionario' },
           }),
         });
@@ -471,60 +479,14 @@ export async function accionRecordatorios(
     };
   }
 
-  const supabase = clienteAdmin();
-  const { data: pendientes } = await supabase
-    .from('questionnaire_assignments')
-    .select('id, employee_id, employees (email, full_name), questionnaires (code)')
-    .eq('company_id', companyId)
-    .eq('cycle_id', cicloId)
-    .is('completed_at', null);
-
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-  const correo = proveedorCorreo();
-  let enviados = 0;
-
-  for (const asignacion of pendientes ?? []) {
-    const token = generarToken();
-    const vencimiento = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
-    const { error } = await supabase
-      .from('questionnaire_assignments')
-      .update({
-        token_hash: hashDeToken(token),
-        expires_at: vencimiento.toISOString(),
-      })
-      .eq('id', asignacion.id);
-    if (error) continue;
-    const empleado = asignacion.employees as unknown as { email: string; full_name: string };
-    try {
-      await correo.enviar({
-        para: [empleado.email],
-        asunto: 'Aún no has respondido tu cuestionario NOM-035',
-        html: plantillaCorreo({
-          saludo: `Hola ${empleado.full_name}:`,
-          parrafos: [
-            'Aún no has respondido tu cuestionario sobre el entorno de trabajo. Usa este nuevo enlace: los anteriores ya no funcionan.',
-            'Tus respuestas son confidenciales: nadie de tu empresa puede verlas.',
-            `El enlace vence el ${fechaEsMx(vencimiento.toISOString())}.`,
-          ],
-          cta: { url: `${base}/responder/${token}`, etiqueta: 'Responder cuestionario' },
-        }),
-      });
-      enviados++;
-    } catch {
-      // sin interrumpir el resto
-    }
-  }
-
-  await registrarAuditoria(
+  // Envío compartido con el cron de recordatorios automáticos (Fase 3): rota tokens,
+  // usa la plantilla vigente y deja el evento en bitácora.
+  const enviados = await enviarRecordatoriosDeCiclo({
     companyId,
-    acceso.userId,
-    'recordatorios_enviados',
-    'compliance_cycles',
     cicloId,
-    {
-      enviados,
-    },
-  );
+    razonSocial: acceso.membresia.razonSocial,
+    actorUserId: acceso.userId,
+  });
   return { ok: true, detalle: [`${enviados} recordatorios enviados`] };
 }
 
