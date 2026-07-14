@@ -373,7 +373,7 @@ describe('expediente completo (Fase 4)', () => {
     expect(sha).toBe(entrada.difusion!.sha256);
 
     const acuses = await leido.file('acuses-difusion.csv')!.async('text');
-    expect(acuses.replace(/^﻿/, '').split('\r\n')[0]).toBe('empleado,version,fecha_acuse');
+    expect(acuses.replace(/^\uFEFF/, '').split('\r\n')[0]).toBe('empleado,version,fecha_acuse');
   });
 
   it('programa-avances.csv trae el avance 8.4 d sin resultados y con fórmulas neutralizadas', async () => {
@@ -382,7 +382,7 @@ describe('expediente completo (Fase 4)', () => {
     expect(leido.file('programa-intervencion.pdf')).not.toBeNull();
 
     const avances = await leido.file('programa-avances.csv')!.async('text');
-    const lineas = avances.replace(/^﻿/, '').split('\r\n');
+    const lineas = avances.replace(/^\uFEFF/, '').split('\r\n');
     expect(lineas[0]).toBe(
       'descripcion,nivel_accion,areas,responsable,fecha_compromiso,estatus,fecha_completado,evidencia_sha256',
     );
@@ -393,7 +393,7 @@ describe('expediente completo (Fase 4)', () => {
     const { zip } = await armarExpediente(entradaFase4());
     const leido = await JSZip.loadAsync(zip);
     const registro = await leido.file('buzon-registro.csv')!.async('text');
-    const lineas = registro.replace(/^﻿/, '').split('\r\n');
+    const lineas = registro.replace(/^\uFEFF/, '').split('\r\n');
     expect(lineas[0]).toBe('categoria,estatus,mes,conteo');
     expect(lineas[1]).toBe('violencia_laboral,recibida,2026-07,3');
   });
