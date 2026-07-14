@@ -33,7 +33,7 @@ export default async function LayoutCiclo({
   const PESTANAS = [
     { href: base, etiqueta: 'Resumen', exacta: true },
     { href: `${base}/dashboard`, etiqueta: 'Dashboard agregado' },
-    { href: `${base}/acciones`, etiqueta: 'Acciones correctivas' },
+    { href: `${base}/acciones`, etiqueta: 'Programa de intervención' },
     { href: `${base}/gr1`, etiqueta: 'Canalizaciones' },
     { href: `${base}/individual`, etiqueta: 'Resultados individuales' },
     { href: `${base}/difusion`, etiqueta: 'Difusión' },
