@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { accionRegistro58a } from '@/acciones/registros';
+import { DescargarRegistro } from '@/components/panel/descargar-registro';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 import { clienteAdmin } from '@/lib/supabase-admin';
@@ -62,6 +64,14 @@ export default async function PaginaIndividual({
         <p className="text-sm text-slate-600">
           Cada consulta de un resultado individual queda registrada en la bitácora de auditoría.
         </p>
+        {empleados.size > 0 && (
+          <DescargarRegistro
+            etiqueta="Descargar registro de resultados (5.8 a)"
+            ayuda="CSV con la calificación y los niveles por categoría y dominio de cada trabajador, para exhibir ante una inspección. Se registra en la bitácora una consulta por cada resultado incluido."
+            testid="registro-58a"
+            generar={accionRegistro58a.bind(null, empresa, ciclo)}
+          />
+        )}
         {empleados.size === 0 && (
           <p className="rounded-md border border-dashed border-slate-300 bg-slate-50/60 px-4 py-8 text-center text-sm text-slate-500">
             Aún no hay resultados individuales en este ciclo.

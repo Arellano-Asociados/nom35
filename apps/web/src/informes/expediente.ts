@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { extname } from 'node:path';
 import JSZip from 'jszip';
+import { construirCsv } from '../lib/csv';
 import type { DatosInforme79 } from '../lib/informe';
 
 // Armado PURO del expediente de inspección (numeral 7.9 + evidencia documental,
@@ -135,44 +136,10 @@ export interface ManifiestoExpediente {
   archivos: ArchivoManifiesto[];
 }
 
-const BOM = '\uFEFF';
-
-// Caracteres que Excel/Sheets interpreta como inicio de fórmula al abrir un CSV (conjunto
-// canónico de OWASP para neutralización de CSV injection: =, +, -, @, tab y retorno de carro).
-const INICIO_FORMULA = /^[=+\-@\t\r]/;
-
-/**
- * Escapa un campo CSV: primero neutraliza formula injection (si el valor inicia con
- * =, +, -, @, tab o retorno de carro —conjunto canónico OWASP—, antepone un apóstrofo —
- * convención estándar de Excel para forzar texto, p. ej. un nombre de empleado capturado
- * como `=HYPERLINK("http://evil","x")` no debe ejecutarse como fórmula al abrir el
- * expediente en Excel), y LUEGO aplica el
- * entrecomillado RFC 4180 (comillas dobles alrededor si trae coma, comilla o salto de
- * línea) sobre el resultado ya neutralizado.
- *
- * Tradeoff aceptado: un valor numérico legítimamente negativo recibiría un apóstrofo
- * espurio (dejaría de leerse como número en Excel, pero el valor se sigue mostrando
- * correctamente como texto). Ninguna columna de este módulo produce hoy valores
- * negativos (conteos y asignaciones son siempre >= 0; fechas son ISO y empiezan con
- * dígito), así que el costo es hipotético, no actual.
- */
-function escaparCampoCsv(valor: string): string {
-  const neutralizado = INICIO_FORMULA.test(valor) ? `'${valor}` : valor;
-  if (/[",\r\n]/.test(neutralizado)) {
-    return `"${neutralizado.replace(/"/g, '""')}"`;
-  }
-  return neutralizado;
-}
-
-function filaCsv(campos: readonly string[]): string {
-  return campos.map(escaparCampoCsv).join(',');
-}
-
-/** UTF-8 con BOM (Excel es-MX respeta acentos) y CRLF, con escapado correcto por campo. */
-function construirCsv(cabecera: readonly string[], filas: readonly (readonly string[])[]): Buffer {
-  const lineas = [cabecera, ...filas].map(filaCsv).join('\r\n');
-  return Buffer.from(BOM + lineas + '\r\n', 'utf-8');
-}
+// construirCsv (BOM + CRLF + RFC 4180 + neutralización de formula injection) vive ahora en
+// lib/csv.ts: lo comparten este expediente y los registros 5.8 del RD (Fase 4.5). La
+// neutralización es un requisito de seguridad de TODO CSV que sale del producto, no un
+// detalle del expediente; una segunda copia del helper terminaría divergiendo.
 
 function sha256Hex(contenido: Buffer): string {
   return createHash('sha256').update(contenido).digest('hex');

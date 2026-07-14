@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { accionActualizarCanalizacion } from '@/acciones/panel';
+import { accionRegistro58c } from '@/acciones/registros';
 import { claseEstadoVacio } from '@/components/panel/campos';
+import { DescargarRegistro } from '@/components/panel/descargar-registro';
 import { SelectorCanalizacion } from '@/components/panel/selector-canalizacion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
@@ -64,7 +66,13 @@ export default async function PaginaGR1({
           Guía de Referencia I: acontecimientos traumáticos severos
         </p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
+        <DescargarRegistro
+          etiqueta="Descargar registro de trabajadores examinados (5.8 c)"
+          ayuda="CSV de TODA la empresa (ciclos y acontecimientos traumáticos): quién presentó acontecimiento, quién requiere valoración y el estatus de su canalización. La generación queda en la bitácora."
+          testid="registro-58c"
+          generar={accionRegistro58c.bind(null, empresa)}
+        />
         {(canalizaciones ?? []).length === 0 ? (
           <p className={claseEstadoVacio}>No hay canalizaciones pendientes en este ciclo.</p>
         ) : (
