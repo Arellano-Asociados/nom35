@@ -36,7 +36,7 @@ trabajadores), se cargan los empleados, se abre un ciclo de evaluación, se dist
 cuestionarios por enlace único, cada empleado responde desde su propio dispositivo, el motor
 de cálculo oficial califica sus respuestas al instante, y el resultado se agrega en un
 dashboard sin promedios ni datos individuales visibles. Al cierre del ciclo, la plataforma
-genera el informe normativo (numeral 7.9) y un expediente de inspección descargable, listos
+genera el informe normativo de resultados (numeral 7.7) y un expediente de inspección descargable, listos
 para mostrarle a un inspector de la STPS.
 
 Todo lo que entra a la base de datos por esta vía —respuestas y resultados— es **inmutable**:
@@ -53,7 +53,7 @@ flowchart TD
     F --> G["Motor de cálculo NOM-035<br/>(califica con las matrices oficiales)"]
     G --> H["Dashboard agregado<br/>distribuciones y conteos, supresion n menor a 3"]
     G --> K["Canalizaciones GR-I<br/>solo Responsable Designado"]
-    H --> I["Informe 7.9"]
+    H --> I["Informe de resultados (7.7)"]
     I --> J["Expediente de inspeccion ZIP"]
     K --> L["Responsable Designado da seguimiento"]
     J --> M["Se muestra al inspector de la STPS"]
@@ -121,7 +121,7 @@ registro de auditoría fallara por cualquier motivo, la plataforma no muestra el
 Recorrido de las pestañas reales de la plataforma, en el orden en que normalmente se usan.
 Aplica igual si entras como **Admin de Organización** o como **Consultor** asignado a la
 empresa (ambos pueden gestionar); las diferencias de permisos están en la
-[tabla de roles](#38-qué-rol-ve-qué) al final de esta sección.
+[tabla de roles](#312-qué-rol-ve-qué) al final de esta sección.
 
 ### 3.1 Ingresar y elegir empresa
 
@@ -279,30 +279,71 @@ menú lateral (visible para gestión y para el Responsable Designado):
 - Al expediente solo entra un **registro agregado** (conteos por tipo, estado y mes): jamás
   el contenido, los folios ni la identidad de nadie.
 
-### 3.9 Informes y expediente
+### 3.9 Acontecimientos traumáticos severos (sección "Eventos traumáticos")
 
-Pestaña **Informes y expediente** del ciclo: dos botones, "Generar informe 7.9" y "Generar
-expediente de inspección", más un historial descargable de todo lo generado (tipo, fecha,
-hash SHA-256 de integridad, botón "Descargar" vía enlace firmado temporal).
+Cuando ocurre un acontecimiento traumático severo —un asalto, un accidente grave, un
+fallecimiento, un hecho de violencia— la norma **no espera al ciclo de evaluación**: los
+numerales 5.3, 5.5 y 6.5 obligan a aplicar la Guía de Referencia I a quienes lo presenciaron
+o lo sufrieron, en cualquier momento del año.
 
-- El **informe 7.9** es un PDF con las secciones que exige el numeral 7.9 de la norma:
-  centros evaluados, método y guías aplicadas, distribuciones global/por categoría/por
-  dominio (con la misma supresión n<3 que el dashboard), resumen de GR-I, conclusiones y
-  acciones, datos del evaluador y fechas.
+1. En **Eventos traumáticos** → registra el acontecimiento: centro, fecha y descripción **del
+   hecho**. Nunca escribas ahí datos de salud ni el estado de una persona: eso es información
+   sensible y se recaba con la Guía I. El registro es evidencia y **no se puede editar ni
+   borrar**; una corrección se hace registrando un acontecimiento nuevo.
+2. En el detalle del acontecimiento → marca a los **trabajadores expuestos** y pulsa "Aplicar
+   cuestionario a los seleccionados". Se les envía la Guía I por enlace personal (el correo
+   no menciona el acontecimiento). Solo a los seleccionados, no a todo el centro.
+3. Quien resulte con necesidad de valoración clínica aparece en las **canalizaciones** que
+   atiende el Responsable Designado, con el mismo flujo de siempre.
+
+Estas aplicaciones no cuentan como evaluación del centro: la alerta de reevaluación bienal
+(numeral 7.9) sigue su curso, y estos cuestionarios no aparecen en la lista de Ciclos.
+
+### 3.10 Registros del 5.8 (solo el Responsable Designado)
+
+El numeral 5.8 obliga al patrón a **conservar** dos registros con datos de salud por persona.
+Ambos se descargan bajo demanda —ante una inspección— y **solo puede generarlos el
+Responsable Designado**; cada generación queda en la bitácora de auditoría (si la bitácora
+falla, no hay archivo).
+
+- **Registro de resultados (5.8 a)**, en _Resultados individuales_ del ciclo: CSV con la
+  calificación final y los niveles por categoría y dominio de cada trabajador. Se registra en
+  la bitácora una consulta por **cada** resultado incluido, igual que si los hubieras abierto
+  uno a uno.
+- **Registro de trabajadores examinados (5.8 c)**, en _Canalizaciones_: CSV de **toda la
+  empresa** (evaluaciones y acontecimientos traumáticos, con una columna que dice de cuál
+  viene cada renglón): quién presentó acontecimiento, quién requiere valoración y el estatus
+  de su canalización.
+
+### 3.11 Informes y expediente
+
+Pestaña **Informes y expediente** del ciclo: dos botones, "Generar informe de resultados
+(7.7)" y "Generar expediente de inspección", más un historial descargable de todo lo generado
+(tipo, fecha, hash SHA-256 de integridad, botón "Descargar" vía enlace firmado temporal).
+
+- El **informe de resultados** es el que exige el numeral **7.7** de la norma (el 7.9 es la
+  periodicidad: reevaluar al menos cada dos años). Es un PDF con: centros evaluados, objetivo
+  de la evaluación, principales actividades del centro, método y forma de aplicación (censo,
+  cuestionario individual electrónico, condiciones de confidencialidad), distribuciones
+  global/por categoría/por dominio (con la misma supresión n<3 que el dashboard), resumen de
+  GR-I, conclusiones —incluida la integración al diagnóstico de seguridad y salud en el
+  trabajo, numeral 7.6 / NOM-030—, acciones, datos del evaluador y fechas.
 - El **expediente de inspección** es un ZIP con TODAS las piezas del ciclo: un `INDICE.txt`
   legible al inicio (qué contiene, qué falta —declarado, nunca omitido en silencio— y la
   huella SHA-256 de cada archivo), el informe en PDF, la política de prevención vigente (o
   la marca explícita "ausente"), los **cuestionarios aplicados sellados** por guía (número y
   texto oficial de cada pregunta, con huella), la **constancia de difusión** con sus acuses,
   el **Programa de intervención** en PDF con su CSV de avances, el **registro agregado del
-  buzón** (solo conteos), CSVs de evidencia de proceso (acuses de política, participación,
+  buzón** (solo conteos), el **registro de acontecimientos traumáticos** del centro (solo
+  conteos por evento), CSVs de evidencia de proceso (acuses de política, participación,
   acciones, capacitación, resumen de auditoría) y un `manifiesto.json` verificable por
   máquina. Es literalmente lo que le muestras a un inspector.
 
 Ninguno de los dos incluye jamás una respuesta cruda ni un resultado por empleado: solo datos
-agregados y evidencia de proceso.
+agregados y evidencia de proceso. Los registros del 5.8 —que sí traen datos por persona— son
+aparte, exclusivos del Responsable Designado y auditados (3.10).
 
-### 3.10 Qué rol ve qué
+### 3.12 Qué rol ve qué
 
 |                                                                                                                                                            | Admin de Organización           | Consultor asignado                          | Responsable Designado (flag, sobre cualquier rol) | Empleado (enlace tokenizado)                  |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------- | ------------------------------------------------- | --------------------------------------------- |
@@ -312,6 +353,8 @@ agregados y evidencia de proceso.
 | Buzón de quejas: ver lista y abrir quejas (lectura auditada) y dar seguimiento                                                                             | Sí                              | Sí                                          | Sí                                                | Presenta y consulta su folio, sin sesión      |
 | Publicar constancia de difusión / crear o rotar el enlace del buzón                                                                                        | Sí                              | Sí                                          | No                                                | No                                            |
 | Designarse RD / agregar consultores                                                                                                                        | Sí (solo Admin de Organización) | No                                          | No                                                | No                                            |
+| Eventos traumáticos: registrar el acontecimiento y aplicar la Guía I a los expuestos                                                                       | Sí                              | Sí                                          | No (solo lectura)                                 | No                                            |
+| Registros del 5.8 a) y c) (CSV con datos de salud por persona)                                                                                             | Solo si además tiene el flag RD | No (un Consultor no puede ser designado RD) | Sí, y cada generación se audita                   | No                                            |
 | Canalizaciones GR-I (ver y cambiar estatus)                                                                                                                | Solo si además tiene el flag RD | No (un Consultor no puede ser designado RD) | Sí                                                | No                                            |
 | Resultados individuales procesados (ver, tras interstitial)                                                                                                | Solo si además tiene el flag RD | No (un Consultor no puede ser designado RD) | Sí, y cada consulta se audita                     | No                                            |
 | Respuestas crudas ítem por ítem                                                                                                                            | **Nunca**                       | **Nunca**                                   | **Nunca**                                         | Solo mientras responde su propio cuestionario |
@@ -388,7 +431,7 @@ start`, `.env.local`, `pnpm demo:seed`, `pnpm --filter @nom35/web dev`).
    ese empleado ya cuenta como completado, y en el Dashboard agregado su nivel de riesgo ya
    forma parte de la distribución (puede hacer que una celda que antes estaba suprimida por
    n<3 ahora se muestre, o viceversa).
-6. **Genera el informe 7.9 y el expediente** en "Informes y expediente" del ciclo y descarga
+6. **Genera el informe 7.7 y el expediente** en "Informes y expediente" del ciclo y descarga
    el ZIP; confirma que el nuevo resultado está reflejado en las distribuciones del PDF.
 7. **Verifica la auditoría desde Supabase Studio** (`http://127.0.0.1:54323`, con Supabase
    local corriendo): abre el editor SQL y corre, por ejemplo:
@@ -449,7 +492,7 @@ evaluación nueva.
 
 **¿Qué le muestro a un inspector de la STPS?**
 El **expediente de inspección** (ZIP) del ciclo correspondiente, descargable desde "Informes
-y expediente". Contiene el informe 7.9 en PDF, la política de prevención publicada, la
+y expediente". Contiene el informe 7.7 en PDF, la política de prevención publicada, la
 evidencia de proceso (acuses de política, participación, acciones de la Tabla 7,
 capacitación, resumen de auditoría) y un manifiesto con el hash de integridad de cada
 archivo — todo generado a partir de datos agregados y de proceso, nunca de respuestas o

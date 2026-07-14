@@ -173,11 +173,29 @@ cierre: lint + typecheck, build, motor 59/59, web 120/120 (unit), **RLS 58/58**
 | §8 [Bajo] Expediente incompleto frente al ciclo real                            | `3ea19e4`             | ✅ `INDICE.txt` (primera entrada, sha256 por archivo, ausencias DECLARADAS), instrumentos aplicados sellados por guía, constancia de difusión byte-verificable, programa PDF+CSV, buzón agregado (solo conteos)             |
 | §9 [Bajo] "Sugerencias Tabla 7" mal atribuidas                                  | `10c3683`             | ✅ Los criterios reales de la Tabla 4/7 (texto literal del DOF) gobiernan el programa; el contenido propio quedó como "sugerencias de referencia"                                                                           |
 
-Sigue abierto de la dimensión 9 (plan de fases, decisión explícita de alcance de esta fase):
-renombrar el informe a **7.7** y añadirle los incisos b) Objetivo y c) Actividades del
-centro; registro exportable 5.8 c) (trabajadores examinados, generado por el RD auditado);
-registro completo de resultados 5.8 a) para la autoridad; acontecimientos traumáticos
-severos fuera de ciclo (5.5/6.5); integración con NOM-030 (7.6); ficha Guía V.
+Lo que quedó abierto de la dimensión 9 al cierre de la Fase 4 lo cierra la Fase 4.5, abajo.
+
+## Remediación — Fase 4.5 «remates normativos» (2026-07-14, rama `fase-4.5-remates`)
+
+Cierra **toda la deuda normativa restante de la dimensión 9**. Spec en
+`docs/superpowers/specs/2026-07-14-fase-4.5-remates-normativos-design.md`. Validación al
+cierre: lint + typecheck, build, motor 59/59, web 129/129 (unit, creció de 120),
+**RLS 64/64** (creció de 58), **E2E 19/19** (spec nuevo `eventos-ats.spec.ts`).
+
+| Hallazgo                                                                           | Commit              | Estado                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §9 [Medio] Acontecimientos traumáticos severos solo dentro de ciclos (5.3/5.5/6.5) | `fd4df76`→`a57be4f` | ✅ `traumatic_events` append-only + sección "Eventos traumáticos": registro del hecho y aplicación de la GR-I **solo a los expuestos**. Internamente crea un ciclo ATS marcado, que reutiliza tokens/GR-I/canalización sin tocarlos y NO cuenta para la alerta bienal |
+| §9 [Medio] Registro de trabajadores examinados (5.8 c) sin soporte exportable      | `fcf2040`           | ✅ CSV generado por el RD, de TODA la empresa, con columna de origen (ciclo ordinario vs. acontecimiento). Controlado por acceso —no por inexistencia—: auditoría fail-closed, sin Storage, sin correo                                                                |
+| §9 Registro de resultados (5.8 a) para la autoridad                                | `fcf2040`           | ✅ CSV del RD con calificación y niveles por categoría/dominio de cada trabajador, solo resultados vigentes. Regla 5 estricta: un `individual_result_access` **por resultado incluido**; sin bitácora no hay archivo                                                  |
+| §9 Informe mal numerado (era 7.9) y sin los incisos b) y c)                        | `eb78e2f`           | ✅ Informe **7.7** en toda la superficie (PDF, UI, ZIP, tipos); 7.9 se conserva solo donde significa periodicidad. Nuevos: b) Objetivo determinista por guías, c) Actividades del centro, d) método con la forma de aplicación del 7.4 b–d                            |
+| §9 [Medio] Sin integración al diagnóstico de SST (7.6 / NOM-030)                   | `eb78e2f`           | ✅ Las conclusiones del informe incluyen la integración al diagnóstico de seguridad y salud (NOM-030). La integración es obligación del patrón; el informe es su insumo                                                                                               |
+| §8 Expediente ciego a los acontecimientos traumáticos                              | `dbb3fc2`           | ✅ `eventos-traumaticos.csv` con solo conteos por evento; sin acontecimientos, la ausencia se **declara** en el INDICE. Sin nombres: quién requirió valoración vive en el 5.8 c) del RD                                                                               |
+
+**Guía V (ficha sociodemográfica): no es deuda normativa.** Las guías de referencia se
+declaran a sí mismas no obligatorias («El contenido de esta guía es un complemento… y no es
+de cumplimiento obligatorio»). El dato «área» ya se captura; ampliar la ficha es una decisión
+de producto, no un requisito. El resto de la dimensión 9 queda **cerrado**: las únicas deudas
+abiertas del documento son las de dependencia externa (ver «Deuda abierta reconocida»).
 
 ## Los 9 hallazgos críticos
 
@@ -662,10 +680,15 @@ Sin esto, el producto no puede aplicarse a ningún trabajador real.
 
 ---
 
-## Deuda abierta reconocida (al cierre de la Fase 1.5, 2026-07-13)
+## Deuda abierta reconocida (actualizado al cierre de la Fase 4.5, 2026-07-14)
 
-Lo que se deja abierto **a propósito**, con su porqué y su plan. Todo lo demás abierto
-de la auditoría sigue el plan de fases de la sección anterior (fases 2–4).
+Lo que se deja abierto **a propósito**, con su porqué y su plan.
+
+> **Deuda normativa (dimensión 9): VACÍA.** Con la Fase 4.5 no queda ningún incumplimiento
+> de la NOM-035 identificado por esta auditoría. Lo que sigue abierto abajo es de
+> **dependencia externa** (validación del motor por consultor, texto legal del aviso y DPA,
+> criterio legal de retención) o de deuda técnica/producto (dimensión 10 y el ataque de
+> inferencia temporal), no de cumplimiento normativo.
 
 | Deuda                                                                                                                                                                                                                                                                                                                                | Por qué queda abierta                                                                                                                         | Plan                                                                                                                                                        |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |

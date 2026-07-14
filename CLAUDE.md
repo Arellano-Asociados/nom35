@@ -78,6 +78,9 @@ Estas reglas no admiten excepciones, flags de configuración ni "casos especiale
 
 ## 4. Convenciones
 
+- **Toda fase inicia committeando su plan a `docs/superpowers/plans/` antes de implementar.**
+  (Y su spec de diseño a `docs/superpowers/specs/`.) Si la sesión se interrumpe, el plan
+  committeado es lo único que permite retomar sin reconstruir el contexto.
 - **Commits atómicos** con mensajes descriptivos **en español**. Una rama por milestone.
 - **TDD estricto en el motor** (test primero, luego implementación). Unit + integración en el
   resto; E2E (Playwright) para flujos críticos.
@@ -127,7 +130,7 @@ Bitácora detallada de lo construido en cada uno: **`docs/historia-milestones.md
 | M2        | Base de datos, multi-tenancy y auth (RLS)                    | ✅                                                       |
 | M3        | Flujo del empleado + captura inmutable                       | ✅                                                       |
 | M4        | Panel administrativo                                         | ✅                                                       |
-| M5        | Informe 7.9 y expediente de inspección                       | ✅                                                       |
+| M5        | Informe de resultados y expediente de inspección             | ✅                                                       |
 | M6        | Endurecimiento y demo                                        | ✅                                                       |
 | M7        | Manual de uso y UI premium                                   | ✅                                                       |
 | F1.5      | Remediación de críticos de la auditoría v0                   | ✅ (`docs/AUDITORIA.md`)                                 |
@@ -135,8 +138,14 @@ Bitácora detallada de lo construido en cada uno: **`docs/historia-milestones.md
 | F2.5      | Endurecimiento estructural (RLS real en el panel)            | ✅                                                       |
 | F3        | Configurabilidad (cuestionarios propios, plantillas, cron)   | ✅                                                       |
 | F4        | Ciclo normativo completo (difusión, buzón, programa 8.3–8.5) | ✅ (2026-07-14)                                          |
+| F4.5      | Remates normativos (eventos ATS, informe 7.7, registros 5.8) | ✅ (2026-07-14) — deuda normativa VACÍA                  |
 
-Estado de validación tras F4: motor 59/59, web 120/120, RLS 58/58, E2E 15/15.
+Estado de validación tras F4.5: motor 59/59, web 129/129, RLS 64/64, E2E 19/19.
+
+**El informe de resultados es del numeral 7.7.** El 7.9 es la PERIODICIDAD bienal: se usa
+solo en la alerta de reevaluación y en la conclusión de repetir cada dos años.
+`compliance_reports.report_type = 'informe_79'` es un código de tipo interno (evidencia
+histórica protegida por CHECK), no el numeral: no se renombra.
 
 ### PENDIENTE_CONFIRMAR abiertos
 
