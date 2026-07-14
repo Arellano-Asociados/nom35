@@ -458,6 +458,28 @@ describe('capacidades del panel con RLS (Fase 2.5: el panel opera como el usuari
   });
 });
 
+describe('feature flags (Fase 3): el tenant los lee, solo la plataforma los escribe', () => {
+  it('un miembro lee los flags de SU tenant (no los de otros) y no puede escribir ninguno', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      // El fixture siembra demo_flag en A y en B: A ve el suyo, no el de B.
+      expect(
+        await contar(q, 'select count(*) n from feature_flags where company_id = $1', [TENANT_A]),
+      ).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from feature_flags where company_id = $1', [TENANT_B]),
+      ).toBe(0);
+      await esperarRechazo(
+        q,
+        `insert into feature_flags (company_id, flag, enabled) values ($1, 'plan_pro', true)`,
+        [TENANT_A],
+      );
+      await esperarBloqueo(q, `update feature_flags set enabled = true where company_id = $1`, [
+        TENANT_A,
+      ]);
+    });
+  });
+});
+
 describe('limitador de tasa (Fase 2.5): solo la app', () => {
   it('ni authenticated ni anon pueden leer, escribir o ejecutar el limitador', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {

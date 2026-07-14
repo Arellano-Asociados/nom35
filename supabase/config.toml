@@ -279,8 +279,8 @@ max_frequency = "5s"
 # respuestas se guardan de una en una: no pierde nada. En la nube se replica en el
 # dashboard de Auth.
 [auth.sessions]
-# Force log out after the specified duration.
-timebox = "7d"
+# Force log out after the specified duration. (Formato Go: horas; 168h = 7 días.)
+timebox = "168h"
 # Force log out if the user has been inactive longer than the specified duration.
 inactivity_timeout = "12h"
 

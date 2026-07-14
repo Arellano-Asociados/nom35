@@ -158,3 +158,9 @@ insert into audit_log (id, company_id, actor_user_id, event_type, entity) values
   ('bbbbbbbb-0000-4000-8000-000000000111', 'bbbbbbbb-0000-4000-8000-000000000001',
    '22222222-0000-4000-8000-000000000001', 'fixture', 'test')
 on conflict do nothing;
+
+-- Feature flags (Fase 3): uno por tenant para probar lectura propia y aislamiento.
+insert into feature_flags (company_id, flag, enabled) values
+  ('aaaaaaaa-0000-4000-8000-000000000001', 'demo_flag', true),
+  ('bbbbbbbb-0000-4000-8000-000000000001', 'demo_flag', false)
+on conflict do nothing;
