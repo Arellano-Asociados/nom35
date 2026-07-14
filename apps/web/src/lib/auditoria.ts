@@ -36,6 +36,10 @@ export const EVENTOS_AUDITORIA = {
   accesoResultadoIndividual: 'individual_result_access',
   /** El titular consulta su propio resultado con su enlace. */
   resultadoPropioConsultado: 'resultado_propio_consultado',
+  // Cuestionarios personalizados (Fase 3)
+  cuestionarioPublicado: 'cuestionario_publicado',
+  cuestionarioArchivado: 'cuestionario_archivado',
+  cuestionarioDistribuido: 'cuestionario_distribuido',
 } as const;
 
 export type EventoAuditoria = (typeof EVENTOS_AUDITORIA)[keyof typeof EVENTOS_AUDITORIA];
