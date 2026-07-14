@@ -990,6 +990,92 @@ describe('seeds normativos', () => {
   });
 });
 
+describe('eventos traumáticos severos (Fase 4.5): 5.3 / 5.5 / 6.5', () => {
+  const TE_A = 'aaaaaaaa-0000-4000-8000-000000000171';
+  const WC_A2 = 'aaaaaaaa-0000-4000-8000-000000000012';
+
+  it('gestión ve y registra los eventos de SU tenant; el otro tenant no existe para ella', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from traumatic_events where company_id = $1', [TENANT_A]),
+      ).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from traumatic_events where company_id = $1', [TENANT_B]),
+      ).toBe(0);
+      const propio = await q(
+        `insert into traumatic_events (company_id, work_center_id, occurred_on, description, reported_by)
+         values ($1, $2, current_date, 'Incendio en almacén', $3)`,
+        [TENANT_A, WC_A2, ADMIN_A],
+      );
+      expect(propio.rowCount).toBe(1);
+    });
+  });
+
+  it('no se puede suplantar a otro como quien reporta, ni registrar en tenant ajeno', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into traumatic_events (company_id, work_center_id, occurred_on, description, reported_by)
+         values ($1, $2, current_date, 'Evento con reportante ajeno', $3)`,
+        [TENANT_A, WC_A2, ADMIN_B],
+        'reported_by ajeno debe rechazarse',
+      );
+      await esperarRechazo(
+        q,
+        `insert into traumatic_events (company_id, work_center_id, occurred_on, description, reported_by)
+         values ($1, $2, current_date, 'Evento en tenant ajeno', $3)`,
+        ['bbbbbbbb-0000-4000-8000-000000000001', 'bbbbbbbb-0000-4000-8000-000000000011', ADMIN_A],
+        'registrar en tenant ajeno debe rechazarse',
+      );
+    });
+  });
+
+  it('el Responsable Designado los lee (atiende la canalización derivada)', async () => {
+    await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from traumatic_events where company_id = $1', [TENANT_A]),
+      ).toBe(1);
+    });
+  });
+
+  it('el empleado con cuenta NO lee los eventos del centro', async () => {
+    await como({ sub: EMPLEADO_A1, company_id: TENANT_A }, async (q) => {
+      expect(await contar(q, 'select count(*) n from traumatic_events')).toBe(0);
+    });
+  });
+
+  it('append-only: UPDATE y DELETE rechazados incluso para el dueño de la tabla', async () => {
+    await comoPostgres(async (q) => {
+      await expect(
+        q(`update traumatic_events set description = 'reescrito' where id = $1`, [TE_A]),
+      ).rejects.toThrow(/append-only/);
+    });
+    await comoPostgres(async (q) => {
+      await expect(q(`delete from traumatic_events where id = $1`, [TE_A])).rejects.toThrow(
+        /append-only/,
+      );
+    });
+  });
+
+  it('un ciclo ATS reciente NO apaga la alerta bienal de un centro sin evaluación ordinaria', async () => {
+    // El Centro A2 tiene un ciclo ATS de HOY (fixture) y ningún ciclo ordinario.
+    // El 7.9 habla de la evaluación ordinaria: la aplicación reactiva de GR-I a unos
+    // pocos expuestos no evalúa el centro y no puede dar por cumplida la bienal.
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const r = await q(
+        `select requiere_nueva_evaluacion from work_centers_alerta_ciclo where work_center_id = $1`,
+        [WC_A2],
+      );
+      expect(r.rows[0].requiere_nueva_evaluacion).toBe(true);
+      const ats = await contar(
+        q,
+        'select count(*) n from compliance_cycles where traumatic_event_id is not null',
+      );
+      expect(ats).toBe(1); // el ciclo ATS existe: la alerta sigue encendida a pesar de él
+    });
+  });
+});
+
 describe('alerta de ciclo vencido (numeral 7.9)', () => {
   it('marca centros sin ciclo o con evaluación de hace más de 24 meses', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {

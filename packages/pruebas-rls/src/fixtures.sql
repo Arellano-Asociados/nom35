@@ -208,6 +208,27 @@ insert into complaint_events
    '22222222-0000-4000-8000-000000000001')
 on conflict do nothing;
 
+-- Eventos traumáticos (Fase 4.5): un evento por tenant + el ciclo ATS que genera.
+-- OJO: el evento de A cuelga del Centro A2, que NO tiene ciclo ordinario. Su ciclo ATS es
+-- RECIENTE: si la vista work_centers_alerta_ciclo contara los ciclos ATS, el Centro A2
+-- dejaría de pedir evaluación (y el test de la alerta bienal lo detectaría).
+insert into traumatic_events (id, company_id, work_center_id, occurred_on, description, reported_by) values
+  ('aaaaaaaa-0000-4000-8000-000000000171', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000012', current_date - 3,
+   'Asalto a mano armada en el turno nocturno', '11111111-0000-4000-8000-000000000001'),
+  ('bbbbbbbb-0000-4000-8000-000000000171', 'bbbbbbbb-0000-4000-8000-000000000001',
+   'bbbbbbbb-0000-4000-8000-000000000011', current_date - 3,
+   'Accidente grave en el área de carga', '22222222-0000-4000-8000-000000000001')
+on conflict do nothing;
+
+insert into compliance_cycles
+  (id, company_id, work_center_id, name, date_start, evaluator_name, evaluator_license,
+   traumatic_event_id) values
+  ('aaaaaaaa-0000-4000-8000-000000000181', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000012', 'Evento ATS — fixture', current_date,
+   'Eval A', 'CED-A-1', 'aaaaaaaa-0000-4000-8000-000000000171')
+on conflict do nothing;
+
 insert into dissemination_receipts (id, company_id, dissemination_id, employee_id) values
   ('aaaaaaaa-0000-4000-8000-000000000131', 'aaaaaaaa-0000-4000-8000-000000000001',
    'aaaaaaaa-0000-4000-8000-000000000121', 'aaaaaaaa-0000-4000-8000-000000000021'),
