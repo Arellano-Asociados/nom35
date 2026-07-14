@@ -16,14 +16,21 @@ import {
   type EntradaResultadoGr1,
   type NomCategory,
 } from '@/lib/informe';
+import { selloCanonico } from '@/lib/cuestionarios-sello';
+import { fechaEsMx } from '@/lib/fechas';
 import { clienteAdmin } from '@/lib/supabase-admin';
-import { generarPdfInforme79 } from '@/informes/generar-pdf';
+import { generarPdfInforme79, generarPdfPrograma } from '@/informes/generar-pdf';
 import {
   armarExpediente,
   type EntradaAcusePolitica,
+  type EntradaAvancePrograma,
+  type EntradaBuzonAgregado,
   type EntradaCapacitacion,
+  type EntradaCuestionarioAplicado,
+  type EntradaDifusionExpediente,
   type EntradaParticipacionCentro,
   type EntradaPoliticaArchivo,
+  type EntradaProgramaExpediente,
   type EntradaResumenAuditoria,
 } from '@/informes/expediente';
 
@@ -332,6 +339,160 @@ async function politicaPublicadaDesdeBd(
   return { ok: true, politica: { nombreArchivo: politica.storage_path, bytes } };
 }
 
+/**
+ * Piezas de la Fase 4 para el expediente: constancia de difusión con acuses,
+ * Programa de intervención (PDF + avances), registro AGREGADO del buzón (solo
+ * conteos: jamás contenido, folios ni identidad) e instrumentos aplicados
+ * sellados por guía. Todas opcionales: si no existen, el índice del ZIP las
+ * declara "ausente" (no truena ni miente).
+ */
+async function piezasCicloNormativoDesdeBd(
+  supabase: SupabaseClient,
+  companyId: string,
+  cycleId: string,
+  contexto: { empresa: string; centroTrabajo: string; ciclo: string },
+): Promise<{
+  difusion: EntradaDifusionExpediente | null;
+  programa: EntradaProgramaExpediente | null;
+  buzonAgregado: EntradaBuzonAgregado[];
+  cuestionariosAplicados: EntradaCuestionarioAplicado[];
+}> {
+  // Constancia de difusión vigente (última versión) + sus acuses.
+  const { data: difusionFila } = await supabase
+    .from('dissemination_records')
+    .select('id, version, summary, sha256, published_at')
+    .eq('company_id', companyId)
+    .eq('cycle_id', cycleId)
+    .order('version', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let difusion: EntradaDifusionExpediente | null = null;
+  if (difusionFila) {
+    // Se re-serializa canónicamente el jsonb: produce los MISMOS bytes que se
+    // sellaron al publicar (claves ordenadas), así el sha256 del archivo del ZIP
+    // es verificable contra el registro publicado.
+    const sello = selloCanonico(difusionFila.summary);
+    const { data: acusesFilas } = await supabase
+      .from('dissemination_receipts')
+      .select('acknowledged_at, dissemination_id, employees (full_name)')
+      .eq('company_id', companyId);
+    const { data: versiones } = await supabase
+      .from('dissemination_records')
+      .select('id, version')
+      .eq('company_id', companyId)
+      .eq('cycle_id', cycleId);
+    const versionDe = new Map((versiones ?? []).map((v) => [v.id, v.version]));
+    difusion = {
+      version: difusionFila.version,
+      sha256: sello.sha256,
+      publicadaEl: difusionFila.published_at,
+      resumenJson: sello.json,
+      acuses: (acusesFilas ?? [])
+        .filter((a) => versionDe.has(a.dissemination_id))
+        .map((a) => ({
+          nombreEmpleado: (a.employees as unknown as { full_name: string } | null)?.full_name ?? '',
+          version: versionDe.get(a.dissemination_id) ?? 0,
+          fechaAcuse: a.acknowledged_at,
+        })),
+    };
+  }
+
+  // Programa de intervención (8.4) con su avance y su PDF.
+  const { data: programaFila } = await supabase
+    .from('intervention_programs')
+    .select('id, scope_areas, responsible, post_evaluation, post_evaluation_date, created_at')
+    .eq('company_id', companyId)
+    .eq('cycle_id', cycleId)
+    .maybeSingle();
+
+  let programa: EntradaProgramaExpediente | null = null;
+  if (programaFila) {
+    const { data: accionesFilas } = await supabase
+      .from('action_items')
+      .select(
+        'description, action_level, target_areas, responsible, due_date, status, completed_at, evidence_sha256',
+      )
+      .eq('company_id', companyId)
+      .eq('cycle_id', cycleId)
+      .order('created_at');
+    const avances: EntradaAvancePrograma[] = (accionesFilas ?? []).map((a) => ({
+      descripcion: a.description,
+      nivelAccion: a.action_level,
+      areas: a.target_areas,
+      responsable: a.responsible,
+      fechaCompromiso: a.due_date,
+      estatus: a.status,
+      fechaCompletado: a.completed_at,
+      evidenciaSha256: a.evidence_sha256,
+    }));
+    const pdfPrograma = await generarPdfPrograma({
+      empresa: contexto.empresa,
+      centroTrabajo: contexto.centroTrabajo,
+      ciclo: contexto.ciclo,
+      creadoEl: fechaEsMx(programaFila.created_at),
+      generadoEl: fechaEsMx(new Date().toISOString()),
+      scopeAreas: programaFila.scope_areas,
+      responsible: programaFila.responsible,
+      postEvaluation: programaFila.post_evaluation,
+      postEvaluationDate: programaFila.post_evaluation_date
+        ? fechaEsMx(programaFila.post_evaluation_date)
+        : null,
+      acciones: avances,
+    });
+    programa = { pdf: pdfPrograma, avances };
+  }
+
+  // Registro agregado del buzón: SOLO conteos por categoría × estado × mes.
+  const { data: quejasFilas } = await supabase
+    .from('complaints')
+    .select('category, status, created_at')
+    .eq('company_id', companyId);
+  const conteos = new Map<string, EntradaBuzonAgregado>();
+  for (const q of quejasFilas ?? []) {
+    const mes = String(q.created_at).slice(0, 7);
+    const clave = `${q.category}|${q.status}|${mes}`;
+    const actual = conteos.get(clave);
+    if (actual) actual.conteo += 1;
+    else conteos.set(clave, { categoria: q.category, estatus: q.status, mes, conteo: 1 });
+  }
+  const buzonAgregado = [...conteos.values()].sort((a, b) =>
+    `${a.mes}${a.categoria}${a.estatus}`.localeCompare(`${b.mes}${b.categoria}${b.estatus}`),
+  );
+
+  // Instrumentos aplicados en el ciclo, sellados por guía (evidencia de QUÉ se aplicó).
+  const { data: asignaciones } = await supabase
+    .from('questionnaire_assignments')
+    .select('questionnaire_id, questionnaires (code)')
+    .eq('company_id', companyId)
+    .eq('cycle_id', cycleId);
+  const guiasDelCiclo = new Map<string, string>();
+  for (const a of asignaciones ?? []) {
+    const code = (a.questionnaires as unknown as { code: string } | null)?.code;
+    if (code) guiasDelCiclo.set(a.questionnaire_id, code);
+  }
+  const cuestionariosAplicados: EntradaCuestionarioAplicado[] = [];
+  for (const [questionnaireId, guia] of guiasDelCiclo) {
+    const { data: preguntas } = await supabase
+      .from('questions')
+      .select('item_number, section, text')
+      .eq('questionnaire_id', questionnaireId)
+      .order('item_number');
+    const sello = selloCanonico({
+      guia,
+      items: (preguntas ?? []).map((p) => ({
+        numero: p.item_number,
+        seccion: p.section,
+        texto: p.text,
+      })),
+    });
+    cuestionariosAplicados.push({ guia, sha256: sello.sha256, itemsJson: sello.json });
+  }
+  cuestionariosAplicados.sort((a, b) => a.guia.localeCompare(b.guia));
+
+  return { difusion, programa, buzonAgregado, cuestionariosAplicados };
+}
+
 export async function accionGenerarExpediente(
   companyId: string,
   cycleId: string,
@@ -418,6 +579,14 @@ export async function accionGenerarExpediente(
     ([eventType, conteo]) => ({ eventType, conteo }),
   );
 
+  // Piezas del ciclo normativo completo (Fase 4): difusión, programa, buzón
+  // agregado e instrumentos sellados. El único centro del ciclo da el contexto.
+  const piezas = await piezasCicloNormativoDesdeBd(supabase, companyId, cycleId, {
+    empresa: datos.empresa.razonSocial,
+    centroTrabajo: datos.centros[0]?.nombre ?? '',
+    ciclo: datos.ciclo.nombre,
+  });
+
   const { zip, manifiesto } = await armarExpediente({
     datos,
     pdfInforme: pdf,
@@ -426,6 +595,10 @@ export async function accionGenerarExpediente(
     participacion,
     capacitacion,
     resumenAuditoria,
+    difusion: piezas.difusion,
+    programa: piezas.programa,
+    buzonAgregado: piezas.buzonAgregado,
+    cuestionariosAplicados: piezas.cuestionariosAplicados,
     generadoEl: new Date().toISOString(),
   });
   const sha256 = createHash('sha256').update(zip).digest('hex');

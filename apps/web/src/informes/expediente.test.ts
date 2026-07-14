@@ -91,6 +91,7 @@ describe('armarExpediente', () => {
 
     expect(Object.keys(leido.files).sort()).toEqual(
       [
+        'INDICE.txt',
         'manifiesto.json',
         'informe-7-9.pdf',
         'politica-prevencion.pdf',
@@ -291,5 +292,119 @@ describe('armarExpediente', () => {
     expect(manifiesto.ciclo).toBe('Ciclo 2026');
     expect(manifiesto.generadoEl).toBe('2026-07-11T12:00:00.000Z');
     expect(manifiesto.politicaPublicada).toBe('presente');
+  });
+});
+
+// ─── Fase 4: expediente completo (difusión, programa, buzón, instrumentos, índice) ───
+
+const RESUMEN_DIFUSION_JSON = JSON.stringify({ esquema: 1, parrafos: ['Resultados del grupo'] });
+
+function entradaFase4(overrides?: Partial<EntradaExpediente>): EntradaExpediente {
+  return entradaCompleta({
+    difusion: {
+      version: 2,
+      sha256: createHash('sha256').update(RESUMEN_DIFUSION_JSON).digest('hex'),
+      publicadaEl: '2026-07-10T12:00:00.000Z',
+      resumenJson: RESUMEN_DIFUSION_JSON,
+      acuses: [
+        { nombreEmpleado: 'María López', version: 2, fechaAcuse: '2026-07-11T09:00:00.000Z' },
+      ],
+    },
+    programa: {
+      pdf: Buffer.from('%PDF-1.4 programa de intervención', 'utf-8'),
+      avances: [
+        {
+          descripcion: '=SUM(A1:A9) Campaña de sensibilización',
+          nivelAccion: 'segundo_nivel',
+          areas: 'Producción',
+          responsable: 'RH',
+          fechaCompromiso: '2026-08-01',
+          estatus: 'en_progreso',
+          fechaCompletado: null,
+          evidenciaSha256: 'abc123',
+        },
+      ],
+    },
+    buzonAgregado: [
+      { categoria: 'violencia_laboral', estatus: 'recibida', mes: '2026-07', conteo: 3 },
+    ],
+    cuestionariosAplicados: [
+      {
+        guia: 'GR-III',
+        sha256: createHash('sha256').update('{"items":[]}').digest('hex'),
+        itemsJson: '{"items":[]}',
+      },
+    ],
+    ...overrides,
+  });
+}
+
+describe('expediente completo (Fase 4)', () => {
+  it('INDICE.txt es la PRIMERA entrada y lista todos los archivos con el mismo sha256 del manifiesto', async () => {
+    const { zip, manifiesto } = await armarExpediente(entradaFase4());
+    const leido = await JSZip.loadAsync(zip);
+    expect(Object.keys(leido.files)[0]).toBe('INDICE.txt');
+
+    const indice = await leido.file('INDICE.txt')!.async('text');
+    for (const archivo of manifiesto.archivos) {
+      if (archivo.nombre === 'INDICE.txt') continue;
+      expect(indice).toContain(archivo.nombre);
+      expect(indice).toContain(archivo.sha256);
+    }
+  });
+
+  it('las piezas ausentes se declaran explícitamente en el índice (jamás se omiten en silencio)', async () => {
+    const { zip } = await armarExpediente(
+      entradaCompleta({ politica: null }), // sin difusión, programa, buzón ni política
+    );
+    const leido = await JSZip.loadAsync(zip);
+    const indice = await leido.file('INDICE.txt')!.async('text');
+    expect(indice).toMatch(/política de prevención.*ausente/i);
+    expect(indice).toMatch(/constancia de difusión.*ausente/i);
+    expect(indice).toMatch(/programa de intervención.*ausente/i);
+  });
+
+  it('la constancia de difusión se archiva con bytes cuyo sha256 ES el sello publicado (verificable)', async () => {
+    const entrada = entradaFase4();
+    const { zip } = await armarExpediente(entrada);
+    const leido = await JSZip.loadAsync(zip);
+    const bytes = await leido.file('constancia-difusion.json')!.async('nodebuffer');
+    const sha = createHash('sha256').update(bytes).digest('hex');
+    expect(sha).toBe(entrada.difusion!.sha256);
+
+    const acuses = await leido.file('acuses-difusion.csv')!.async('text');
+    expect(acuses.replace(/^\uFEFF/, '').split('\r\n')[0]).toBe('empleado,version,fecha_acuse');
+  });
+
+  it('programa-avances.csv trae el avance 8.4 d sin resultados y con fórmulas neutralizadas', async () => {
+    const { zip } = await armarExpediente(entradaFase4());
+    const leido = await JSZip.loadAsync(zip);
+    expect(leido.file('programa-intervencion.pdf')).not.toBeNull();
+
+    const avances = await leido.file('programa-avances.csv')!.async('text');
+    const lineas = avances.replace(/^\uFEFF/, '').split('\r\n');
+    expect(lineas[0]).toBe(
+      'descripcion,nivel_accion,areas,responsable,fecha_compromiso,estatus,fecha_completado,evidencia_sha256',
+    );
+    expect(lineas[1]!.startsWith("'=SUM")).toBe(true);
+  });
+
+  it('buzon-registro.csv SOLO trae conteos agregados: ni folios, ni contenido, ni identidad', async () => {
+    const { zip } = await armarExpediente(entradaFase4());
+    const leido = await JSZip.loadAsync(zip);
+    const registro = await leido.file('buzon-registro.csv')!.async('text');
+    const lineas = registro.replace(/^\uFEFF/, '').split('\r\n');
+    expect(lineas[0]).toBe('categoria,estatus,mes,conteo');
+    expect(lineas[1]).toBe('violencia_laboral,recibida,2026-07,3');
+  });
+
+  it('el instrumento aplicado se archiva sellado por guía y su sha256 coincide con los bytes', async () => {
+    const entrada = entradaFase4();
+    const { zip } = await armarExpediente(entrada);
+    const leido = await JSZip.loadAsync(zip);
+    const bytes = await leido.file('cuestionario-aplicado-gr-iii.json')!.async('nodebuffer');
+    expect(createHash('sha256').update(bytes).digest('hex')).toBe(
+      entrada.cuestionariosAplicados![0]!.sha256,
+    );
   });
 });

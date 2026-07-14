@@ -164,3 +164,53 @@ insert into feature_flags (company_id, flag, enabled) values
   ('aaaaaaaa-0000-4000-8000-000000000001', 'demo_flag', true),
   ('bbbbbbbb-0000-4000-8000-000000000001', 'demo_flag', false)
 on conflict do nothing;
+
+-- Difusión de resultados (Fase 4): constancia sellada + acuse, por tenant.
+insert into dissemination_records (id, company_id, cycle_id, version, summary, sha256, published_by) values
+  ('aaaaaaaa-0000-4000-8000-000000000121', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000051', 1, '{"parrafos":[]}', 'fixture-sha-a',
+   '11111111-0000-4000-8000-000000000001'),
+  ('bbbbbbbb-0000-4000-8000-000000000121', 'bbbbbbbb-0000-4000-8000-000000000001',
+   'bbbbbbbb-0000-4000-8000-000000000051', 1, '{"parrafos":[]}', 'fixture-sha-b',
+   '22222222-0000-4000-8000-000000000001')
+on conflict do nothing;
+
+-- Programa de intervención (Fase 4): uno por tenant.
+insert into intervention_programs (id, company_id, cycle_id, scope_areas, responsible, created_by) values
+  ('aaaaaaaa-0000-4000-8000-000000000161', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000051', 'Todo el centro A1', 'RH A',
+   '11111111-0000-4000-8000-000000000001'),
+  ('bbbbbbbb-0000-4000-8000-000000000161', 'bbbbbbbb-0000-4000-8000-000000000001',
+   'bbbbbbbb-0000-4000-8000-000000000051', 'Todo el centro B1', 'RH B',
+   '22222222-0000-4000-8000-000000000001')
+on conflict do nothing;
+
+-- Buzón de quejas (Fase 4): enlace por empresa + una queja con su evento por tenant.
+insert into complaint_boxes (company_id, token, token_hash) values
+  ('aaaaaaaa-0000-4000-8000-000000000001', 'token-buzon-a', 'hash-buzon-a'),
+  ('bbbbbbbb-0000-4000-8000-000000000001', 'token-buzon-b', 'hash-buzon-b')
+on conflict do nothing;
+
+insert into complaints (id, company_id, folio, folio_key_hash, category, body, is_identified) values
+  ('aaaaaaaa-0000-4000-8000-000000000141', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'QJ-FIXTURE-A', 'hash-clave-a', 'violencia_laboral', 'Contenido confidencial A', false),
+  ('bbbbbbbb-0000-4000-8000-000000000141', 'bbbbbbbb-0000-4000-8000-000000000001',
+   'QJ-FIXTURE-B', 'hash-clave-b', 'practicas_opuestas_eof', 'Contenido confidencial B', false)
+on conflict do nothing;
+
+insert into complaint_events
+  (id, company_id, complaint_id, from_status, to_status, note, actor_user_id) values
+  ('aaaaaaaa-0000-4000-8000-000000000151', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000141', 'recibida', 'en_revision', 'Nota A',
+   '11111111-0000-4000-8000-000000000001'),
+  ('bbbbbbbb-0000-4000-8000-000000000151', 'bbbbbbbb-0000-4000-8000-000000000001',
+   'bbbbbbbb-0000-4000-8000-000000000141', 'recibida', 'en_revision', 'Nota B',
+   '22222222-0000-4000-8000-000000000001')
+on conflict do nothing;
+
+insert into dissemination_receipts (id, company_id, dissemination_id, employee_id) values
+  ('aaaaaaaa-0000-4000-8000-000000000131', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000121', 'aaaaaaaa-0000-4000-8000-000000000021'),
+  ('bbbbbbbb-0000-4000-8000-000000000131', 'bbbbbbbb-0000-4000-8000-000000000001',
+   'bbbbbbbb-0000-4000-8000-000000000121', 'bbbbbbbb-0000-4000-8000-000000000021')
+on conflict do nothing;

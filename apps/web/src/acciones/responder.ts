@@ -3,8 +3,10 @@
 import { GR2, GR3 } from '@nom35/motor-nom035';
 import { headers } from 'next/headers';
 import { enviarCuestionario, obtenerContexto, type Contexto } from '@/lib/flujo';
+import { registrarAuditoria } from '@/lib/auditoria';
 import { avisoVigenteDe } from '@/lib/aviso-privacidad';
 import { escrituraOk } from '@/lib/escrituras';
+import { ACTOR_SISTEMA } from '@/lib/recordatorios';
 import { ipCliente, permitido } from '@/lib/limites';
 import { clienteAdmin } from '@/lib/supabase-admin';
 import { hashDeToken } from '@/lib/tokens';
@@ -151,6 +153,61 @@ export async function accionEnviarCuestionario(token: string): Promise<Resultado
 
   const resultado = await enviarCuestionario(ctx);
   if (resultado.error) return { ok: false, error: resultado.error };
+  return { ok: true };
+}
+
+/**
+ * Acuse "Enterado" del trabajador sobre una constancia de difusión de resultados
+ * (5.7 e / 7.8). Como el acuse de política: puede ocurrir con el cuestionario ya
+ * enviado, pero jamás con un enlace vencido.
+ */
+export async function accionAcusarDifusion(
+  token: string,
+  disseminationId: string,
+): Promise<ResultadoAccion> {
+  const ctx = await obtenerContexto(token);
+  if (!ctx) return { ok: false, error: 'Enlace inválido' };
+  if (ctx.expirado) return { ok: false, error: 'Este enlace ha expirado' };
+  if (!ctx.consentido) return { ok: false, error: 'Falta el consentimiento' };
+
+  const supabase = clienteAdmin();
+  const { data: difusion } = await supabase
+    .from('dissemination_records')
+    .select('id')
+    .eq('company_id', ctx.companyId)
+    .eq('id', disseminationId)
+    .maybeSingle();
+  if (!difusion) return { ok: false, error: 'Constancia no encontrada' };
+
+  // Acuse idempotente: volver a pulsar no duplica (unique dissemination+employee).
+  const { data: existente } = await supabase
+    .from('dissemination_receipts')
+    .select('id')
+    .eq('dissemination_id', disseminationId)
+    .eq('employee_id', ctx.employeeId)
+    .maybeSingle();
+  if (existente) return { ok: true };
+
+  const guardado = await escrituraOk(
+    'acuse de difusión de resultados',
+    supabase.from('dissemination_receipts').insert({
+      company_id: ctx.companyId,
+      dissemination_id: disseminationId,
+      employee_id: ctx.employeeId,
+    }),
+  );
+  if (!guardado.ok) {
+    return { ok: false, error: 'No se pudo registrar tu acuse. Intenta de nuevo.' };
+  }
+
+  await registrarAuditoria(
+    ctx.companyId,
+    ACTOR_SISTEMA,
+    'difusion_acusada',
+    'dissemination_receipts',
+    undefined,
+    { disseminationId },
+  );
   return { ok: true };
 }
 

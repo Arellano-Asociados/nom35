@@ -573,6 +573,200 @@ describe('feature flags (Fase 3): el tenant los lee, solo la plataforma los escr
   });
 });
 
+describe('difusión de resultados (Fase 4): constancia sellada append-only', () => {
+  const CICLO_A = 'aaaaaaaa-0000-4000-8000-000000000051';
+  const DIFUSION_A = 'aaaaaaaa-0000-4000-8000-000000000121';
+  const EMPLEADO_ID_A1 = 'aaaaaaaa-0000-4000-8000-000000000021';
+
+  it('gestión publica en SU tenant y no puede suplantar published_by ni cruzar tenant', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from dissemination_records where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from dissemination_records where company_id = $1', [
+          TENANT_B,
+        ]),
+      ).toBe(0);
+      const propio = await q(
+        `insert into dissemination_records (company_id, cycle_id, version, summary, sha256, published_by)
+         values ($1, $2, 2, '{}', 'sha-test', $3)`,
+        [TENANT_A, CICLO_A, ADMIN_A],
+      );
+      expect(propio.rowCount).toBe(1);
+      await esperarRechazo(
+        q,
+        `insert into dissemination_records (company_id, cycle_id, version, summary, sha256, published_by)
+         values ($1, $2, 3, '{}', 'sha-test', $3)`,
+        [TENANT_A, CICLO_A, ADMIN_B],
+        'published_by ajeno debe rechazarse',
+      );
+    });
+  });
+
+  it('el acuse del trabajador NO es insertable como authenticated (solo el flujo del empleado)', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into dissemination_receipts (company_id, dissemination_id, employee_id)
+         values ($1, $2, $3)`,
+        [TENANT_A, DIFUSION_A, EMPLEADO_ID_A1],
+      );
+      // La lectura de acuses sí es de gestión (evidencia de difusión)
+      expect(
+        await contar(q, 'select count(*) n from dissemination_receipts where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBe(1);
+    });
+  });
+
+  it('dissemination_records y receipts: UPDATE y DELETE rechazados incluso para el dueño', async () => {
+    await comoPostgres(async (q) => {
+      await expect(
+        q(`update dissemination_records set sha256 = 'alterado' where id = $1`, [DIFUSION_A]),
+      ).rejects.toThrow(/append-only/);
+    });
+    await comoPostgres(async (q) => {
+      await expect(
+        q(`delete from dissemination_records where id = $1`, [DIFUSION_A]),
+      ).rejects.toThrow(/append-only/);
+    });
+    await comoPostgres(async (q) => {
+      await expect(q(`update dissemination_receipts set acknowledged_at = now()`)).rejects.toThrow(
+        /append-only/,
+      );
+    });
+  });
+});
+
+describe('buzón de quejas (Fase 4): el contenido tiene estándar de dato sensible', () => {
+  const QUEJA_A = 'aaaaaaaa-0000-4000-8000-000000000141';
+
+  it('NADIE del lado patronal toca complaints por la API: sin GRANT ni para su propio tenant', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(q, 'select count(*) n from complaints');
+      await esperarRechazo(
+        q,
+        `insert into complaints (company_id, folio, folio_key_hash, category, body)
+         values ($1, 'QJ-HACK', 'x', 'violencia_laboral', 'x')`,
+        [TENANT_A],
+      );
+      await esperarRechazo(q, `update complaints set status = 'cerrada' where id = $1`, [QUEJA_A]);
+      await esperarRechazo(q, 'select count(*) n from complaint_events');
+    });
+  });
+
+  it('el enlace del buzón: gestión y RD lo VEN (para difundirlo), nadie lo escribe como authenticated', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from complaint_boxes where company_id = $1', [TENANT_A]),
+      ).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from complaint_boxes where company_id = $1', [TENANT_B]),
+      ).toBe(0);
+      await esperarRechazo(
+        q,
+        `update complaint_boxes set token = 'robado', token_hash = 'robado' where company_id = $1`,
+        [TENANT_A],
+      );
+    });
+    await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from complaint_boxes where company_id = $1', [TENANT_A]),
+      ).toBe(1);
+    });
+  });
+
+  it('complaints: solo status es mutable; borrar está prohibido incluso para el dueño', async () => {
+    await comoPostgres(async (q) => {
+      const ok = await q(`update complaints set status = 'en_revision' where id = $1`, [QUEJA_A]);
+      expect(ok.rowCount).toBe(1);
+    });
+    await comoPostgres(async (q) => {
+      await expect(
+        q(`update complaints set body = 'texto alterado' where id = $1`, [QUEJA_A]),
+      ).rejects.toThrow(/solo puede actualizarse status/);
+    });
+    await comoPostgres(async (q) => {
+      await expect(
+        q(`update complaints set contact_name = 'reidentificado' where id = $1`, [QUEJA_A]),
+      ).rejects.toThrow(/solo puede actualizarse status/);
+    });
+    await comoPostgres(async (q) => {
+      await expect(q(`delete from complaints where id = $1`, [QUEJA_A])).rejects.toThrow(
+        /append-only/,
+      );
+    });
+    await comoPostgres(async (q) => {
+      await expect(q(`update complaint_events set note = 'x'`)).rejects.toThrow(/append-only/);
+    });
+  });
+});
+
+describe('programa de intervención (Fase 4)', () => {
+  const PROGRAMA_A = 'aaaaaaaa-0000-4000-8000-000000000161';
+  const PROGRAMA_B = 'bbbbbbbb-0000-4000-8000-000000000161';
+
+  it('gestión edita el programa de SU tenant; el ajeno ni se ve ni se toca', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from intervention_programs where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from intervention_programs where company_id = $1', [
+          TENANT_B,
+        ]),
+      ).toBe(0);
+      const propio = await q(
+        `update intervention_programs set responsible = 'RH A2', updated_at = now() where id = $1`,
+        [PROGRAMA_A],
+      );
+      expect(propio.rowCount).toBe(1);
+      await esperarBloqueo(
+        q,
+        `update intervention_programs set responsible = 'intruso' where id = $1`,
+        [PROGRAMA_B],
+      );
+      await esperarBloqueo(q, `delete from intervention_programs where id = $1`, [PROGRAMA_A]);
+    });
+  });
+
+  it('el rol miembro (RD) lee el programa pero no lo escribe; created_by no se suplanta', async () => {
+    await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from intervention_programs where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBe(1);
+      await esperarBloqueo(q, `update intervention_programs set responsible = 'RD' where id = $1`, [
+        PROGRAMA_A,
+      ]);
+    });
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      // Ciclo nuevo dentro de la transacción (se revierte): el fixture ya tiene un
+      // programa en el ciclo A y chocaría con unique (company_id, cycle_id).
+      const { rows } = await q(
+        `insert into compliance_cycles
+           (company_id, work_center_id, name, date_start, evaluator_name, evaluator_license)
+         values ($1, $2, 'Ciclo test RLS', current_date, 'Eval', 'CED-X') returning id`,
+        [TENANT_A, WC_A1],
+      );
+      await esperarRechazo(
+        q,
+        `insert into intervention_programs (company_id, cycle_id, scope_areas, responsible, created_by)
+         values ($1, $2, 'X', 'X', $3)`,
+        [TENANT_A, (rows[0] as { id: string }).id, ADMIN_B],
+        'created_by ajeno debe rechazarse',
+      );
+    });
+  });
+});
+
 describe('limitador de tasa (Fase 2.5): solo la app', () => {
   it('ni authenticated ni anon pueden leer, escribir o ejecutar el limitador', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {

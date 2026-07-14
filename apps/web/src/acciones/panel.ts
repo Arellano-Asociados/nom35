@@ -543,15 +543,32 @@ export async function accionCrearAccion(
   const responsable = String(formData.get('responsable') ?? '').trim();
   if (!descripcion || !nivel || !responsable) redirect(`${ruta}?error=datos`);
 
+  const nivelAccion = String(formData.get('nivel_accion') ?? '');
+  const areas = String(formData.get('areas') ?? '').trim();
+
+  // Si el ciclo ya tiene Programa de intervención (8.4), la acción nueva le pertenece.
+  const supabase = await clienteSesion();
+  const { data: programa } = await supabase
+    .from('intervention_programs')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('cycle_id', cicloId)
+    .maybeSingle();
+
   const accionCreada = await escrituraOk(
     'registrar acción del Capítulo 8',
-    (await clienteSesion()).from('action_items').insert({
+    supabase.from('action_items').insert({
       company_id: companyId,
       cycle_id: cicloId,
+      program_id: programa?.id ?? null,
       description: descripcion,
       origin_level: nivel,
       responsible: responsable,
       due_date: String(formData.get('fecha') ?? '') || null,
+      action_level: ['primer_nivel', 'segundo_nivel', 'tercer_nivel'].includes(nivelAccion)
+        ? nivelAccion
+        : null,
+      target_areas: areas || null,
     }),
   );
   if (!accionCreada.ok) redirect(`${ruta}?error=crear`);
@@ -575,7 +592,11 @@ export async function accionActualizarAccion(
     'actualizar estatus de la acción',
     (await clienteSesion())
       .from('action_items')
-      .update({ status: estatus })
+      // completed_at documenta el control de avances del programa (8.4 d).
+      .update({
+        status: estatus,
+        completed_at: estatus === 'completada' ? new Date().toISOString() : null,
+      })
       .eq('company_id', companyId)
       .eq('id', accionId),
   );
