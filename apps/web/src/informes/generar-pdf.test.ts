@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { DatosInforme79 } from '../lib/informe';
-import { generarPdfInforme79 } from './generar-pdf';
+import type { DatosInforme77 } from '../lib/informe';
+import { generarPdfInforme77 } from './generar-pdf';
+import { objetivoDeGuias } from './informe-77-pdf';
 
-// Smoke test únicamente: este módulo solo renderiza `DatosInforme79` (ya armado
-// por `armarDatosInforme79`) a bytes de PDF. No valida layout/visual (eso es
+// Smoke test únicamente: este módulo solo renderiza `DatosInforme77` (ya armado
+// por `armarDatosInforme77`) a bytes de PDF. No valida layout/visual (eso es
 // responsabilidad del E2E/revisión manual), solo que el resultado sea un PDF
 // real y no un documento trivial/vacío.
 
-const DATOS_DE_EJEMPLO: DatosInforme79 = {
+const DATOS_DE_EJEMPLO: DatosInforme77 = {
   empresa: { razonSocial: 'Acme S.A. de C.V.', rfc: 'ACM010101AAA' },
   centros: [
     {
@@ -96,9 +97,23 @@ const DATOS_DE_EJEMPLO: DatosInforme79 = {
   generadoEl: '2026-07-11T12:00:00.000Z',
 };
 
-describe('generarPdfInforme79', () => {
+describe('objetivo del informe (7.7 b)', () => {
+  it('afirma la evaluación del entorno organizacional SOLO si se aplicó la GR-III', () => {
+    // Los centros de >50 trabajadores evalúan además el entorno organizacional (7.3).
+    // Afirmarlo en un centro que solo aplicó GR-I/GR-II sería falsear el informe.
+    const conGr3 = objetivoDeGuias(['GR-I', 'GR-III']);
+    expect(conGr3).toContain('evaluar el entorno organizacional');
+    expect(conGr3).toContain('7.1, 7.2 y 7.3');
+
+    const sinGr3 = objetivoDeGuias(['GR-I', 'GR-II']);
+    expect(sinGr3).not.toContain('entorno organizacional');
+    expect(sinGr3).toContain('Identificar y analizar los factores de riesgo psicosocial');
+  });
+});
+
+describe('generarPdfInforme77', () => {
   it('produce un Buffer con encabezado %PDF y tamaño > 1KB', async () => {
-    const bytes = await generarPdfInforme79(DATOS_DE_EJEMPLO);
+    const bytes = await generarPdfInforme77(DATOS_DE_EJEMPLO);
 
     expect(Buffer.isBuffer(bytes)).toBe(true);
     expect(bytes.subarray(0, 4).toString('utf-8')).toBe('%PDF');

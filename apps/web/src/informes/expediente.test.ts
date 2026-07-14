@@ -85,7 +85,7 @@ function entradaCompleta(overrides?: Partial<EntradaExpediente>): EntradaExpedie
 }
 
 describe('armarExpediente', () => {
-  it('(a) el ZIP contiene manifiesto.json, informe-7-9.pdf y los CSVs esperados', async () => {
+  it('(a) el ZIP contiene manifiesto.json, informe-7-7.pdf y los CSVs esperados', async () => {
     const { zip } = await armarExpediente(entradaCompleta());
     const leido = await JSZip.loadAsync(zip);
 
@@ -93,7 +93,7 @@ describe('armarExpediente', () => {
       [
         'INDICE.txt',
         'manifiesto.json',
-        'informe-7-9.pdf',
+        'informe-7-7.pdf',
         'politica-prevencion.pdf',
         'acuses-politica.csv',
         'participacion.csv',
@@ -174,7 +174,7 @@ describe('armarExpediente', () => {
     expect(Object.keys(leido.files).some((n) => n.startsWith('politica-prevencion'))).toBe(false);
     // El resto del expediente se genera igual.
     expect(leido.file('manifiesto.json')).not.toBeNull();
-    expect(leido.file('informe-7-9.pdf')).not.toBeNull();
+    expect(leido.file('informe-7-7.pdf')).not.toBeNull();
   });
 
   it('escapa correctamente comas, comillas y acentos en los campos CSV', async () => {
@@ -406,5 +406,43 @@ describe('expediente completo (Fase 4)', () => {
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(
       entrada.cuestionariosAplicados![0]!.sha256,
     );
+  });
+
+  it('eventos-traumaticos.csv trae SOLO conteos por evento: ningún nombre', async () => {
+    const { zip } = await armarExpediente({
+      ...entradaFase4(),
+      eventosTraumaticos: [
+        {
+          fecha: '10/07/2026',
+          descripcion: 'Asalto a mano armada en el turno nocturno',
+          expuestos: 4,
+          completados: 3,
+          requierenValoracion: 2,
+          canalizacionesAtendidas: 1,
+        },
+      ],
+    });
+    const leido = await JSZip.loadAsync(zip);
+    const csv = await leido.file('eventos-traumaticos.csv')!.async('text');
+    const lineas = csv.replace(/^\uFEFF/, '').split('\r\n');
+    expect(lineas[0]).toBe(
+      'fecha,descripcion,trabajadores_expuestos,cuestionarios_completados,requieren_valoracion,canalizaciones_atendidas',
+    );
+    expect(lineas[1]).toBe('10/07/2026,Asalto a mano armada en el turno nocturno,4,3,2,1');
+
+    // Quién requirió valoración es resultado individual (regla 4): va en el registro
+    // 5.8 c) del RD, jamás en el expediente que ve el patrón y la STPS.
+    const indice = await leido.file('INDICE.txt')!.async('text');
+    expect(indice).toContain('eventos-traumaticos.csv');
+    expect(indice).toContain('sin nombres');
+  });
+
+  it('sin acontecimientos, la ausencia se DECLARA en el índice (no se omite en silencio)', async () => {
+    const { zip } = await armarExpediente(entradaFase4());
+    const leido = await JSZip.loadAsync(zip);
+    expect(leido.file('eventos-traumaticos.csv')).toBeNull();
+    const indice = await leido.file('INDICE.txt')!.async('text');
+    expect(indice).toContain('PIEZAS NO INCLUIDAS');
+    expect(indice).toContain('Acontecimientos traumáticos severos (5.3/5.5/6.5): ninguno');
   });
 });

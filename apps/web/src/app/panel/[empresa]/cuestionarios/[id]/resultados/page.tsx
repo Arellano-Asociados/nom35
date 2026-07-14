@@ -166,7 +166,7 @@ export default async function PaginaResultadosCuestionario({
       )}
       <p className="text-xs text-texto-secundario">
         Las respuestas se muestran agregadas y las abiertas sin identificar a la persona. Este
-        reporte no genera semáforo ni forma parte del informe normativo 7.9.
+        reporte no genera semáforo ni forma parte del informe normativo 7.7.
       </p>
     </div>
   );

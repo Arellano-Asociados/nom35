@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
 import { extname } from 'node:path';
 import JSZip from 'jszip';
-import type { DatosInforme79 } from '../lib/informe';
+import { construirCsv } from '../lib/csv';
+import type { DatosInforme77 } from '../lib/informe';
 
-// Armado PURO del expediente de inspección (numeral 7.9 + evidencia documental,
+// Armado PURO del expediente de inspección (informe 7.7 + evidencia documental,
 // CLAUDE.md §1): no hace I/O (no llama a Supabase), recibe filas YA leídas por el caller
 // y solo empaqueta un ZIP. Única excepción a "puro": jszip expone una API de generación
 // asíncrona (compresión), no implica llamadas externas.
@@ -80,6 +81,20 @@ export interface EntradaProgramaExpediente {
   avances: readonly EntradaAvancePrograma[];
 }
 
+/**
+ * Acontecimiento traumático severo del centro del ciclo (5.3/5.5/6.5), con conteos.
+ * SIN nombres: quién requirió valoración y cómo se le canalizó es resultado individual
+ * (regla 4) y vive en el registro 5.8 c) que solo el Responsable Designado genera.
+ */
+export interface EntradaEventoTraumatico {
+  fecha: string;
+  descripcion: string;
+  expuestos: number;
+  completados: number;
+  requierenValoracion: number;
+  canalizacionesAtendidas: number;
+}
+
 /** SOLO conteos agregados del buzón: jamás folios, contenido ni identidad. */
 export interface EntradaBuzonAgregado {
   categoria: string;
@@ -98,8 +113,8 @@ export interface EntradaCuestionarioAplicado {
 }
 
 export interface EntradaExpediente {
-  /** Ya armado por armarDatosInforme79: se reutiliza para el contexto empresa/ciclo y Tabla 7. */
-  datos: Pick<DatosInforme79, 'empresa' | 'ciclo' | 'acciones'>;
+  /** Ya armado por armarDatosInforme77: se reutiliza para el contexto empresa/ciclo y Tabla 7. */
+  datos: Pick<DatosInforme77, 'empresa' | 'ciclo' | 'acciones'>;
   pdfInforme: Buffer;
   /** null si no hay política de prevención publicada (el manifiesto la marca "ausente"). */
   politica: EntradaPoliticaArchivo | null;
@@ -115,6 +130,8 @@ export interface EntradaExpediente {
   programa?: EntradaProgramaExpediente | null;
   /** Registro agregado del buzón (8.1 b); vacío/ausente si no hay quejas. */
   buzonAgregado?: readonly EntradaBuzonAgregado[];
+  /** Acontecimientos traumáticos del centro del ciclo (5.3/5.5/6.5); vacío si no hubo. */
+  eventosTraumaticos?: readonly EntradaEventoTraumatico[];
   /** Instrumentos aplicados en el ciclo, sellados por guía. */
   cuestionariosAplicados?: readonly EntradaCuestionarioAplicado[];
   /** ISO; lo inyecta el caller (este módulo no llama a Date.now/new Date). */
@@ -135,44 +152,10 @@ export interface ManifiestoExpediente {
   archivos: ArchivoManifiesto[];
 }
 
-const BOM = '\uFEFF';
-
-// Caracteres que Excel/Sheets interpreta como inicio de fórmula al abrir un CSV (conjunto
-// canónico de OWASP para neutralización de CSV injection: =, +, -, @, tab y retorno de carro).
-const INICIO_FORMULA = /^[=+\-@\t\r]/;
-
-/**
- * Escapa un campo CSV: primero neutraliza formula injection (si el valor inicia con
- * =, +, -, @, tab o retorno de carro —conjunto canónico OWASP—, antepone un apóstrofo —
- * convención estándar de Excel para forzar texto, p. ej. un nombre de empleado capturado
- * como `=HYPERLINK("http://evil","x")` no debe ejecutarse como fórmula al abrir el
- * expediente en Excel), y LUEGO aplica el
- * entrecomillado RFC 4180 (comillas dobles alrededor si trae coma, comilla o salto de
- * línea) sobre el resultado ya neutralizado.
- *
- * Tradeoff aceptado: un valor numérico legítimamente negativo recibiría un apóstrofo
- * espurio (dejaría de leerse como número en Excel, pero el valor se sigue mostrando
- * correctamente como texto). Ninguna columna de este módulo produce hoy valores
- * negativos (conteos y asignaciones son siempre >= 0; fechas son ISO y empiezan con
- * dígito), así que el costo es hipotético, no actual.
- */
-function escaparCampoCsv(valor: string): string {
-  const neutralizado = INICIO_FORMULA.test(valor) ? `'${valor}` : valor;
-  if (/[",\r\n]/.test(neutralizado)) {
-    return `"${neutralizado.replace(/"/g, '""')}"`;
-  }
-  return neutralizado;
-}
-
-function filaCsv(campos: readonly string[]): string {
-  return campos.map(escaparCampoCsv).join(',');
-}
-
-/** UTF-8 con BOM (Excel es-MX respeta acentos) y CRLF, con escapado correcto por campo. */
-function construirCsv(cabecera: readonly string[], filas: readonly (readonly string[])[]): Buffer {
-  const lineas = [cabecera, ...filas].map(filaCsv).join('\r\n');
-  return Buffer.from(BOM + lineas + '\r\n', 'utf-8');
-}
+// construirCsv (BOM + CRLF + RFC 4180 + neutralización de formula injection) vive ahora en
+// lib/csv.ts: lo comparten este expediente y los registros 5.8 del RD (Fase 4.5). La
+// neutralización es un requisito de seguridad de TODO CSV que sale del producto, no un
+// detalle del expediente; una segunda copia del helper terminaría divergiendo.
 
 function sha256Hex(contenido: Buffer): string {
   return createHash('sha256').update(contenido).digest('hex');
@@ -199,7 +182,7 @@ function csvParticipacion(filas: readonly EntradaParticipacionCentro[]): Buffer 
   );
 }
 
-function csvAcciones(filas: DatosInforme79['acciones']): Buffer {
+function csvAcciones(filas: DatosInforme77['acciones']): Buffer {
   return construirCsv(
     ['descripcion', 'nivel_origen', 'responsable', 'fecha_compromiso', 'estatus'],
     filas.map((f) => [
@@ -267,6 +250,30 @@ function csvBuzonAgregado(filas: readonly EntradaBuzonAgregado[]): Buffer {
   );
 }
 
+// Solo CONTEOS por evento: el expediente lo lee el patrón y la STPS, y ninguno de los dos
+// puede ver quién requirió valoración clínica (regla inviolable 4). Los nombres están en
+// el registro 5.8 c), exclusivo del Responsable Designado.
+function csvEventosTraumaticos(filas: readonly EntradaEventoTraumatico[]): Buffer {
+  return construirCsv(
+    [
+      'fecha',
+      'descripcion',
+      'trabajadores_expuestos',
+      'cuestionarios_completados',
+      'requieren_valoracion',
+      'canalizaciones_atendidas',
+    ],
+    filas.map((f) => [
+      f.fecha,
+      f.descripcion,
+      String(f.expuestos),
+      String(f.completados),
+      String(f.requierenValoracion),
+      String(f.canalizacionesAtendidas),
+    ]),
+  );
+}
+
 function nombreInstrumento(guia: string): string {
   return `cuestionario-aplicado-${guia.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
 }
@@ -280,7 +287,7 @@ interface ArchivoPendiente {
 
 /**
  * Arma el expediente de inspección: un ZIP con TODAS las piezas del ciclo — informe
- * 7.9, política + acuses, instrumentos aplicados sellados, constancia de difusión con
+ * 7.7, política + acuses, instrumentos aplicados sellados, constancia de difusión con
  * sus acuses, Programa de intervención con avances, registro agregado del buzón,
  * evidencia de proceso — más un `INDICE.txt` legible (PRIMERA entrada) y el
  * `manifiesto.json` con el sha256 de cada archivo. Las piezas faltantes se declaran
@@ -298,9 +305,9 @@ export async function armarExpediente(
   }
 
   preparar(
-    'informe-7-9.pdf',
+    'informe-7-7.pdf',
     entrada.pdfInforme,
-    'Informe normativo de resultados (secciones a-g)',
+    'Informe normativo de resultados del numeral 7.7 (incisos a-i)',
   );
 
   let politicaPublicada: 'presente' | 'ausente' = 'ausente';
@@ -386,6 +393,18 @@ export async function armarExpediente(
     );
   } else {
     ausentes.push('Registro agregado del buzón de quejas: sin quejas registradas');
+  }
+
+  if ((entrada.eventosTraumaticos ?? []).length > 0) {
+    preparar(
+      'eventos-traumaticos.csv',
+      csvEventosTraumaticos(entrada.eventosTraumaticos ?? []),
+      'Acontecimientos traumáticos severos del centro (5.3/5.5/6.5): aplicación de la Guía I a los expuestos y conteo de canalizaciones — sin nombres',
+    );
+  } else {
+    ausentes.push(
+      'Acontecimientos traumáticos severos (5.3/5.5/6.5): ninguno registrado en el centro',
+    );
   }
 
   const archivos: ArchivoManifiesto[] = pendientes.map((p) => ({

@@ -5,7 +5,7 @@ import pg from 'pg';
 import { aceptarConsentimiento, completarYEnviar, responderFiltros } from './utilidades';
 
 // E2E de informes y expediente (Milestone 5): un Admin de Organización genera el informe
-// normativo 7.9 y el expediente de inspección de un ciclo con al menos un resultado real,
+// normativo 7.7 y el expediente de inspección de un ciclo con al menos un resultado real,
 // descarga ambos y queda registrado en `audit_log`; un consultor de OTRA empresa no puede
 // ver esta página (aislamiento, gate de CI).
 //
@@ -83,7 +83,7 @@ async function nuevaPagina(browser: Browser): Promise<Page> {
   return contexto.newPage();
 }
 
-test('el Admin de Organización genera informe 7.9 y expediente con auditoría', async ({ page }) => {
+test('el Admin de Organización genera informe 7.7 y expediente con auditoría', async ({ page }) => {
   test.setTimeout(240_000);
 
   // Empresa, centro (30 trabajadores → GR-I + GR-II), un empleado y un ciclo distribuido
@@ -152,8 +152,8 @@ test('el Admin de Organización genera informe 7.9 y expediente con auditoría',
 
   await page.goto(`/panel/${empresaId}/ciclos/${cicloId}/informes`);
 
-  // (a) Generar informe 7.9 → aparece en la tabla con un sha256 visible (truncado)
-  await page.getByTestId('generar-informe-79').click();
+  // (a) Generar informe de resultados (7.7) → aparece en la tabla con un sha256 visible (truncado)
+  await page.getByTestId('generar-informe-77').click();
   const filaInforme79 = page.locator('[data-testid="fila-informe"][data-report-type="informe_79"]');
   // Timeout explícito de 15s: el flujo cubierto es generar→renderizar PDF→subir→insertar→
   // auditar→refrescar la tabla completo, no solo un cambio de DOM instantáneo (mismo criterio
@@ -207,7 +207,7 @@ test('el Admin de Organización genera informe 7.9 y expediente con auditoría',
   const filaExpediente = page.locator(
     '[data-testid="fila-informe"][data-report-type="expediente_zip"]',
   );
-  // Mismo timeout de 15s que la fila del informe 7.9: generar el expediente arma el PDF
+  // Mismo timeout de 15s que la fila del informe de resultados: generar el expediente arma el PDF
   // completo más los CSVs y el ZIP antes de subir/insertar/auditar/refrescar.
   await expect(filaExpediente).toHaveCount(1, { timeout: 15_000 });
 

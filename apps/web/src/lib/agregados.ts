@@ -26,7 +26,7 @@ export interface Distribucion {
 /**
  * Celda de un agregado: suprime (n: null) cuando 0 < n < 3 (anti-reidentificación);
  * n = 0 se conserva (no reidentifica). Exportada para que otros módulos de armado
- * de vistas agregadas (p. ej. el informe 7.9) reutilicen el mismo criterio de
+ * de vistas agregadas (p. ej. el informe 7.7) reutilicen el mismo criterio de
  * supresión en vez de reimplementarlo.
  */
 export function celda(n: number, total: number): CeldaAgregado {

@@ -14,13 +14,13 @@ export interface InformeFila {
 }
 
 const ETIQUETA_TIPO: Record<InformeFila['reportType'], string> = {
-  informe_79: 'Informe 7.9',
+  informe_79: 'Informe de resultados (7.7)',
   expediente_zip: 'Expediente de inspección',
   export_excel: 'Exportación Excel',
 };
 
 /**
- * Botones de generación (informe 7.9 / expediente) + historial descargable del ciclo.
+ * Botones de generación (informe 7.7 / expediente) + historial descargable del ciclo.
  * Un único componente cliente: la tabla necesita un botón interactivo por fila (descarga
  * vía signed URL), así que vive junto a los botones de generación en lugar de dividirse
  * entre server/client. Las acciones de servidor llegan ya ligadas a companyId/cycleId
@@ -29,21 +29,21 @@ const ETIQUETA_TIPO: Record<InformeFila['reportType'], string> = {
  */
 export function GenerarInforme({
   informes,
-  generarInforme79,
+  generarInforme77,
   generarExpediente,
   obtenerUrlDescarga,
 }: {
   informes: InformeFila[];
-  generarInforme79: () => Promise<ResultadoGenerarInforme>;
+  generarInforme77: () => Promise<ResultadoGenerarInforme>;
   generarExpediente: () => Promise<ResultadoGenerarInforme>;
   obtenerUrlDescarga: (reporteId: string) => Promise<ResultadoUrlDescarga>;
 }) {
   const router = useRouter();
 
-  const [pendiente79, iniciar79] = useTransition();
+  const [pendiente77, iniciar77] = useTransition();
   const [pendienteExpediente, iniciarExpediente] = useTransition();
 
-  const [error79, setError79] = useState<string | null>(null);
+  const [error77, setError77] = useState<string | null>(null);
   const [errorExpediente, setErrorExpediente] = useState<string | null>(null);
 
   // Estado de descarga POR FILA: cada informe.id se rastrea de forma independiente
@@ -56,8 +56,8 @@ export function GenerarInforme({
 
   function generar(
     accion: () => Promise<ResultadoGenerarInforme>,
-    iniciar: typeof iniciar79,
-    setError: typeof setError79,
+    iniciar: typeof iniciar77,
+    setError: typeof setError77,
     mensajeExito: string,
   ) {
     iniciar(async () => {
@@ -124,16 +124,18 @@ export function GenerarInforme({
       <div className="flex flex-wrap gap-3">
         <div className="flex flex-col gap-2">
           <Button
-            disabled={pendiente79}
-            aria-busy={pendiente79}
-            data-testid="generar-informe-79"
-            onClick={() => generar(generarInforme79, iniciar79, setError79, 'Informe 7.9 generado')}
+            disabled={pendiente77}
+            aria-busy={pendiente77}
+            data-testid="generar-informe-77"
+            onClick={() =>
+              generar(generarInforme77, iniciar77, setError77, 'Informe de resultados generado')
+            }
           >
-            {pendiente79 ? 'Generando…' : 'Generar informe 7.9'}
+            {pendiente77 ? 'Generando…' : 'Generar informe de resultados (7.7)'}
           </Button>
-          {error79 && (
+          {error77 && (
             <p role="alert" className="text-sm text-peligro">
-              {error79}
+              {error77}
             </p>
           )}
         </div>

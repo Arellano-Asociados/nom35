@@ -45,7 +45,7 @@ export default async function PaginaInformes({
     sha256: r.sha256,
   }));
 
-  const generarInforme79 = accionGenerarInforme79.bind(null, empresa, ciclo);
+  const generarInforme77 = accionGenerarInforme79.bind(null, empresa, ciclo);
   const generarExpediente = accionGenerarExpediente.bind(null, empresa, ciclo);
   const obtenerUrlDescarga = accionUrlDescargaInforme.bind(null, empresa);
 
@@ -57,7 +57,7 @@ export default async function PaginaInformes({
       <CardContent>
         <GenerarInforme
           informes={informes}
-          generarInforme79={generarInforme79}
+          generarInforme77={generarInforme77}
           generarExpediente={generarExpediente}
           obtenerUrlDescarga={obtenerUrlDescarga}
         />

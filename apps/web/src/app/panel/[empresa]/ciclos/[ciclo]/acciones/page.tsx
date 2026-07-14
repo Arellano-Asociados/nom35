@@ -87,7 +87,7 @@ export default async function PaginaPrograma({
         .maybeSingle(),
     ]);
 
-  // Mismo criterio que el dashboard y el informe 7.9 (regla inviolable 1): la
+  // Mismo criterio que el dashboard y el informe de resultados (regla inviolable 1): la
   // obligación del programa se determina solo con la fila VIGENTE por asignación.
   const vigentes = resultadosVigentesPorAsignacion(
     (resultados ?? []).map((r) => ({

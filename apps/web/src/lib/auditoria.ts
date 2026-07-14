@@ -59,6 +59,15 @@ export const EVENTOS_AUDITORIA = {
   programaActualizado: 'programa_actualizado',
   /** Se adjuntó evidencia de avance a una acción del Programa. */
   evidenciaAccionSubida: 'evidencia_accion_subida',
+  // Acontecimientos traumáticos severos y registros del 5.8 (Fase 4.5)
+  /** Se registró un acontecimiento traumático severo (5.3/5.5). */
+  eventoAtsRegistrado: 'evento_ats_registrado',
+  /** Se aplicó la GR-I a los trabajadores expuestos a un ATS (6.5). */
+  eventoAtsDistribuido: 'evento_ats_distribuido',
+  /** El RD generó el registro de resultados del 5.8 a) (datos de salud por persona). */
+  registro58aGenerado: 'registro_58a_generado',
+  /** El RD generó el registro de trabajadores examinados del 5.8 c). */
+  registro58cGenerado: 'registro_58c_generado',
 } as const;
 
 export type EventoAuditoria = (typeof EVENTOS_AUDITORIA)[keyof typeof EVENTOS_AUDITORIA];

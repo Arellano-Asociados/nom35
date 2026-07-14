@@ -7,7 +7,7 @@ import {
   type Distribucion,
 } from './agregados';
 
-// Módulo PURO de armado de datos del informe 7.9: no hace I/O, no llama a
+// Módulo PURO de armado de datos del informe de resultados (7.7): no hace I/O, no llama a
 // Date.now()/new Date() (el caller inyecta `generadoEl`) y reutiliza las
 // convenciones existentes de la app: la supresión n<3 de `agregados.ts` y el
 // criterio de "fila vigente" de `risk_results.supersedes_id` (regla inviolable 1,
@@ -30,7 +30,7 @@ const ETIQUETA_NIVEL: Record<NivelRiesgo, string> = {
   muy_alto: 'Muy alto',
 };
 
-export interface DatosInforme79 {
+export interface DatosInforme77 {
   empresa: { razonSocial: string; rfc: string };
   /** Personalización de organización (Fase 3, company_settings): logo del cliente
    * (data URI, validado por magic bytes), contacto para el reporte y zona horaria.
@@ -130,7 +130,7 @@ export interface EntradaAccion {
   estatus: string;
 }
 
-export interface EntradaInforme79 {
+export interface EntradaInforme77 {
   empresa: EntradaEmpresa;
   centros: readonly EntradaCentro[];
   ciclo: EntradaCiclo;
@@ -159,7 +159,7 @@ export interface FilaConVigencia {
  * nunca UPDATE).
  *
  * Genérica sobre `T` (en vez de fija a `EntradaResultado`) para que tanto el informe
- * 7.9 como el dashboard administrativo apliquen el MISMO criterio de vigencia sobre
+ * 7.7 como el dashboard administrativo apliquen el MISMO criterio de vigencia sobre
  * sus propias formas de fila, sin que uno tenga que rellenar campos que no usa
  * (`categorias`/`dominios`/`engineVersion`/`nivelFinal`) solo para satisfacer el tipo.
  */
@@ -206,7 +206,7 @@ function ameritaAccionesCapitulo8(nivel: string): boolean {
 }
 
 /**
- * Conclusiones deterministas (numeral 7.9): nivel predominante global (la sentencia de
+ * Conclusiones deterministas (numeral 7.7 g): nivel predominante global (la sentencia de
  * "nivel predominante" es explícitamente sobre el nivel GLOBAL); obligación de acciones
  * del Capítulo 8 si hay algún nivel medio/alto/muy alto, ya sea a nivel global O en
  * cualquier categoría/dominio (`nivelesCategoriasDominios`) — un ciclo puede tener
@@ -239,15 +239,26 @@ function construirConclusiones(
     );
   }
 
+  // El 7.9 es la PERIODICIDAD (reevaluar al menos cada dos años). No se renombró a 7.7 con
+  // el resto del informe: es el único numeral correcto aquí.
   conclusiones.push(
     'Esta evaluación debe repetirse en un plazo no mayor a dos años, conforme al numeral ' +
       '7.9 de la NOM-035-STPS-2018.',
   );
 
+  // Numeral 7.6: los resultados de la identificación/análisis y de la evaluación del
+  // entorno organizacional se integran al diagnóstico de seguridad y salud en el trabajo
+  // (NOM-030-STPS-2009). La integración es obligación del patrón; este informe es su insumo.
+  conclusiones.push(
+    'Los resultados de este informe deben integrarse al diagnóstico de seguridad y salud en ' +
+      'el trabajo del centro (numeral 7.6 de la NOM-035-STPS-2018, en relación con la ' +
+      'NOM-030-STPS-2009).',
+  );
+
   return conclusiones;
 }
 
-export function armarDatosInforme79(entrada: EntradaInforme79): DatosInforme79 {
+export function armarDatosInforme77(entrada: EntradaInforme77): DatosInforme77 {
   const vigentes = resultadosVigentesPorAsignacion(entrada.resultadosVigentes);
   const niveles = vigentes.map((r) => r.nivelFinal);
 
