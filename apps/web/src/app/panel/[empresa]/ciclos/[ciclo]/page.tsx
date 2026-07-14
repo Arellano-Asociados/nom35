@@ -3,10 +3,10 @@ import { accionDistribuir, accionRecordatorios } from '@/acciones/panel';
 import { BotonAccion } from '@/components/panel/boton-accion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { autorizarEmpresa } from '@/lib/autorizacion';
+import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
 import { fechaEsMx } from '@/lib/fechas';
 import { GUIAS_POR_CATEGORIA, type NomCategory } from '@/lib/informe';
-import { clienteAdmin } from '@/lib/supabase-admin';
+import { clienteSesion } from '@/lib/supabase-servidor';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,7 @@ export default async function PaginaCiclo({
   const { empresa, ciclo } = await params;
   const acceso = await autorizarEmpresa(empresa);
 
-  const supabase = clienteAdmin();
+  const supabase = await clienteSesion();
   const { data: datosCiclo } = await supabase
     .from('compliance_cycles')
     .select(
@@ -75,29 +75,31 @@ export default async function PaginaCiclo({
             {fechaEsMx(datosCiclo.date_start)}
             {datosCiclo.date_end ? ` · termina ${fechaEsMx(datosCiclo.date_end)}` : ' · en curso'}
           </p>
-          <div className="flex flex-wrap gap-3">
-            <BotonAccion
-              etiqueta="Distribuir cuestionarios"
-              accion={distribuir}
-              testid="distribuir"
-              confirmacion={{
-                titulo: '¿Distribuir cuestionarios?',
-                descripcion: `Se enviarán ${correosDistribuir} correos, uno por cada cuestionario aún no asignado a un empleado activo del centro, cada uno con su enlace personal. Los correos no se pueden cancelar una vez enviados.`,
-                etiquetaConfirmar: `Enviar ${correosDistribuir} correos`,
-              }}
-            />
-            <BotonAccion
-              etiqueta="Enviar recordatorios a pendientes"
-              accion={recordar}
-              variante="outline"
-              testid="recordatorios"
-              confirmacion={{
-                titulo: '¿Enviar recordatorios?',
-                descripcion: `Se enviarán ${pendientes} correos a quienes aún no responden. Los enlaces anteriores dejarán de funcionar: cada recordatorio trae un enlace nuevo que sustituye al que el empleado ya tenía.`,
-                etiquetaConfirmar: `Enviar ${pendientes} recordatorios`,
-              }}
-            />
-          </div>
+          {puedeGestionar(acceso.membresia) && (
+            <div className="flex flex-wrap gap-3">
+              <BotonAccion
+                etiqueta="Distribuir cuestionarios"
+                accion={distribuir}
+                testid="distribuir"
+                confirmacion={{
+                  titulo: '¿Distribuir cuestionarios?',
+                  descripcion: `Se enviarán ${correosDistribuir} correos, uno por cada cuestionario aún no asignado a un empleado activo del centro, cada uno con su enlace personal. Los correos no se pueden cancelar una vez enviados.`,
+                  etiquetaConfirmar: `Enviar ${correosDistribuir} correos`,
+                }}
+              />
+              <BotonAccion
+                etiqueta="Enviar recordatorios a pendientes"
+                accion={recordar}
+                variante="outline"
+                testid="recordatorios"
+                confirmacion={{
+                  titulo: '¿Enviar recordatorios?',
+                  descripcion: `Se enviarán ${pendientes} correos a quienes aún no responden. Los enlaces anteriores dejarán de funcionar: cada recordatorio trae un enlace nuevo que sustituye al que el empleado ya tenía.`,
+                  etiquetaConfirmar: `Enviar ${pendientes} recordatorios`,
+                }}
+              />
+            </div>
+          )}
           {acceso.membresia.rol === 'consultor' && (
             <p className="text-xs text-texto-terciario">Operando como consultor asignado.</p>
           )}

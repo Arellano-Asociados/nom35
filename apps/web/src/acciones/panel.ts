@@ -10,7 +10,7 @@ import { parsearCsvEmpleados } from '@/lib/csv-empleados';
 import { escrituraOk } from '@/lib/escrituras';
 import { rutaDeObjeto, validarPdf } from '@/lib/subidas';
 import { clienteAdmin } from '@/lib/supabase-admin';
-import { usuarioActual } from '@/lib/supabase-servidor';
+import { clienteSesion, usuarioActual } from '@/lib/supabase-servidor';
 import { generarToken, hashDeToken } from '@/lib/tokens';
 
 // Acciones del panel administrativo. TODAS verifican la membresía real del usuario en la
@@ -33,6 +33,8 @@ export async function accionCrearEmpresa(formData: FormData): Promise<void> {
   const rfc = String(formData.get('rfc') ?? '').trim();
   if (razonSocial === '') redirect('/panel/nueva?error=razon');
 
+  // service_role legítimo (Fase 2.5): quien crea la empresa aún no tiene membresía,
+  // así que ninguna política RLS puede autorizar este bootstrap (empresa + primer admin).
   const supabase = clienteAdmin();
   const { data: empresa, error } = await supabase
     .from('companies')
@@ -71,15 +73,13 @@ export async function accionCrearCentro(companyId: string, formData: FormData): 
 
   const centroCreado = await escrituraOk(
     'crear centro de trabajo',
-    clienteAdmin()
-      .from('work_centers')
-      .insert({
-        company_id: companyId,
-        name: nombre,
-        address: String(formData.get('direccion') ?? '').trim() || null,
-        main_activity: String(formData.get('actividad') ?? '').trim() || null,
-        headcount,
-      }),
+    (await clienteSesion()).from('work_centers').insert({
+      company_id: companyId,
+      name: nombre,
+      address: String(formData.get('direccion') ?? '').trim() || null,
+      main_activity: String(formData.get('actividad') ?? '').trim() || null,
+      headcount,
+    }),
   );
   if (!centroCreado.ok) redirect(`${ruta}?error=crear`);
   revalidatePath(ruta);
@@ -100,17 +100,15 @@ export async function accionCrearEmpleado(companyId: string, formData: FormData)
   const centroId = String(formData.get('centro') ?? '');
   if (nombre === '' || email === '' || centroId === '') redirect(`${ruta}?error=datos`);
 
-  const { error } = await clienteAdmin()
-    .from('employees')
-    .insert({
-      company_id: companyId,
-      work_center_id: centroId,
-      full_name: nombre,
-      email,
-      area: String(formData.get('area') ?? '').trim() || null,
-      attends_customers: formData.get('atiende') === 'si',
-      supervises_others: formData.get('supervisa') === 'si',
-    });
+  const { error } = await (await clienteSesion()).from('employees').insert({
+    company_id: companyId,
+    work_center_id: centroId,
+    full_name: nombre,
+    email,
+    area: String(formData.get('area') ?? '').trim() || null,
+    attends_customers: formData.get('atiende') === 'si',
+    supervises_others: formData.get('supervisa') === 'si',
+  });
   if (error) redirect(`${ruta}?error=duplicado`);
   revalidatePath(ruta);
   redirect(ruta);
@@ -132,7 +130,7 @@ export async function accionImportarCsv(
   const { validos, errores } = parsearCsvEmpleados(contenido);
   const detalle = errores.map((e) => `Línea ${e.linea}: ${e.error}`);
 
-  const supabase = clienteAdmin();
+  const supabase = await clienteSesion();
   const { data: existentes } = await supabase
     .from('employees')
     .select('email')
@@ -190,7 +188,7 @@ export async function accionDesignarmeRD(
   // La bitácora NO debe afirmar que hay RD designado si el UPDATE no ocurrió.
   const designado = await escrituraOk(
     'designar Responsable Designado',
-    clienteAdmin()
+    (await clienteSesion())
       .from('role_assignments')
       .update({ is_designated_responsible: true })
       .eq('company_id', companyId)
@@ -221,8 +219,10 @@ export async function accionAgregarConsultor(
   if (acceso.membresia.rol !== 'admin_org')
     return { ok: false, error: 'Solo el Admin de Organización' };
 
-  const supabase = clienteAdmin();
-  const { data } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  // service_role legítimo (Fase 2.5): localizar al usuario por correo requiere la API
+  // de administración de Auth. El INSERT de la asignación, en cambio, va con la sesión.
+  const admin = clienteAdmin();
+  const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
   const consultor = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
   if (!consultor) {
     return {
@@ -245,7 +245,7 @@ export async function accionAgregarConsultor(
     };
   }
 
-  const { error } = await supabase.from('consultant_assignments').insert({
+  const { error } = await (await clienteSesion()).from('consultant_assignments').insert({
     company_id: companyId,
     consultant_user_id: consultor.id,
   });
@@ -274,7 +274,9 @@ export async function accionCrearCiclo(companyId: string, formData: FormData): P
   const cedula = String(formData.get('cedula') ?? '').trim();
   if (!centroId || !nombre || !inicio || !evaluador || !cedula) redirect(`${ruta}?error=datos`);
 
-  const { data: ciclo, error: errorCiclo } = await clienteAdmin()
+  const { data: ciclo, error: errorCiclo } = await (
+    await clienteSesion()
+  )
     .from('compliance_cycles')
     .insert({
       company_id: companyId,
@@ -324,6 +326,8 @@ export async function accionDistribuir(
     .maybeSingle();
   if (!ciclo) return { ok: false, error: 'Ciclo no encontrado' };
 
+  // service_role legítimo (Fase 2.5): esta acción genera y escribe token_hash (la
+  // capacidad del empleado) y envía correos; el secreto no debe depender de la sesión.
   const categoria = (ciclo.work_centers as unknown as { nom_category: string }).nom_category;
   const codigos = GUIAS_POR_CATEGORIA[categoria] ?? ['GR-I'];
 
@@ -490,6 +494,9 @@ export async function accionActualizarCanalizacion(
     return { ok: false, error: 'Solo el Responsable Designado' };
   }
 
+  // service_role legítimo (Fase 2.5): gr1_results no tiene GRANT para authenticated
+  // (regla 5: datos de salud solo por la app). La guardia de RD está arriba y el
+  // cambio queda auditado abajo.
   const { error } = await clienteAdmin()
     .from('gr1_results')
     .update({ canalizacion_estatus: estatus, canalizacion_fecha: fecha })
@@ -529,16 +536,14 @@ export async function accionCrearAccion(
 
   const accionCreada = await escrituraOk(
     'registrar acción del Capítulo 8',
-    clienteAdmin()
-      .from('action_items')
-      .insert({
-        company_id: companyId,
-        cycle_id: cicloId,
-        description: descripcion,
-        origin_level: nivel,
-        responsible: responsable,
-        due_date: String(formData.get('fecha') ?? '') || null,
-      }),
+    (await clienteSesion()).from('action_items').insert({
+      company_id: companyId,
+      cycle_id: cicloId,
+      description: descripcion,
+      origin_level: nivel,
+      responsible: responsable,
+      due_date: String(formData.get('fecha') ?? '') || null,
+    }),
   );
   if (!accionCreada.ok) redirect(`${ruta}?error=crear`);
   revalidatePath(ruta);
@@ -559,7 +564,7 @@ export async function accionActualizarAccion(
     };
   const estatusActualizado = await escrituraOk(
     'actualizar estatus de la acción',
-    clienteAdmin()
+    (await clienteSesion())
       .from('action_items')
       .update({ status: estatus })
       .eq('company_id', companyId)
@@ -590,10 +595,12 @@ export async function accionSubirPolitica(companyId: string, formData: FormData)
   const validado = await validarPdf(archivo);
   if (!validado.ok) redirect(`${ruta}?error=archivo`);
 
-  const supabase = clienteAdmin();
+  // service_role legítimo (Fase 2.5) SOLO para Storage: los buckets son privados y no
+  // tienen políticas de escritura para authenticated. La fila de la política se
+  // inserta con la sesión (RLS).
   const rutaArchivo = rutaDeObjeto(companyId, validado.archivo.extension);
-  const { error: errorSubida } = await supabase.storage
-    .from('politicas')
+  const { error: errorSubida } = await clienteAdmin()
+    .storage.from('politicas')
     .upload(rutaArchivo, validado.archivo.bytes, {
       contentType: validado.archivo.contentType,
     });
@@ -603,7 +610,7 @@ export async function accionSubirPolitica(companyId: string, formData: FormData)
   // "publicada" no existía para acuses ni expediente — con redirect de éxito.
   const politicaCreada = await escrituraOk(
     'publicar política de prevención',
-    supabase.from('policies').insert({
+    (await clienteSesion()).from('policies').insert({
       company_id: companyId,
       title: titulo,
       version,
@@ -633,10 +640,10 @@ export async function accionSubirCapacitacion(
   const validado = await validarPdf(archivo);
   if (!validado.ok) redirect(`${ruta}?error=archivo`);
 
-  const supabase = clienteAdmin();
+  // Igual que la política: Storage con service_role (bucket privado), fila con sesión.
   const rutaArchivo = rutaDeObjeto(companyId, validado.archivo.extension);
-  const { error } = await supabase.storage
-    .from('capacitacion')
+  const { error } = await clienteAdmin()
+    .storage.from('capacitacion')
     .upload(rutaArchivo, validado.archivo.bytes, {
       contentType: validado.archivo.contentType,
     });
@@ -644,7 +651,7 @@ export async function accionSubirCapacitacion(
 
   const capacitacionCreada = await escrituraOk(
     'publicar contenido de capacitación',
-    supabase.from('training_contents').insert({
+    (await clienteSesion()).from('training_contents').insert({
       company_id: companyId,
       title: titulo,
       storage_path: rutaArchivo,
@@ -668,7 +675,7 @@ export async function accionRegistrarCapacitacion(
         'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
     };
 
-  const supabase = clienteAdmin();
+  const supabase = await clienteSesion();
   let registrados = 0;
   for (const employeeId of employeeIds) {
     const { error } = await supabase.from('training_records').insert({

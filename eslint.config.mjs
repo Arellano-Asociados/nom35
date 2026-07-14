@@ -26,6 +26,39 @@ export default tseslint.config(
     },
   },
   {
+    // Fase 2.5 (auditoría v0, dimensión 10 [Alto]): el panel opera con el cliente de
+    // SESIÓN para que RLS sea la defensa real. service_role (supabase-admin) queda
+    // prohibido en las páginas del panel salvo en los consumidores de resultados
+    // individuales (reglas 4/5: la agregación/lectura auditada es del servidor y esas
+    // tablas no tienen GRANT para authenticated). Una página nueva que lo necesite
+    // debe justificarse aquí, no colarse.
+    files: ['apps/web/src/app/panel/**/*.tsx'],
+    // OJO: los segmentos [empresa]/[ciclo] son clases de caracteres para minimatch,
+    // así que las excepciones se expresan con comodines. Son los consumidores de
+    // resultados individuales (dashboard/acciones agregan; gr1/individual son del RD).
+    ignores: [
+      'apps/web/src/app/panel/**/dashboard/page.tsx',
+      'apps/web/src/app/panel/**/acciones/page.tsx',
+      'apps/web/src/app/panel/**/gr1/page.tsx',
+      'apps/web/src/app/panel/**/individual/page.tsx',
+      'apps/web/src/app/panel/**/individual/*/page.tsx',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/lib/supabase-admin',
+              message:
+                'Las páginas del panel usan clienteSesion() (RLS real). service_role solo en los consumidores de resultados listados en eslint.config.mjs.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Scripts de Node puro (fuera de apps/web y de los paquetes TypeScript): no hay tipos que
     // documenten los globals del runtime, así que se declaran explícitamente para el propio
     // ESLint (a diferencia de los .ts, aquí "no-undef" sí aplica).

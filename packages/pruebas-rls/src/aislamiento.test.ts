@@ -20,7 +20,6 @@ const EMPLEADO_A1 = '11111111-0000-4000-8000-000000000004';
 const ADMIN_B = '22222222-0000-4000-8000-000000000001';
 const CONSULTOR_LIBRE = '33333333-0000-4000-8000-000000000001';
 const WC_A1 = 'aaaaaaaa-0000-4000-8000-000000000011';
-const EMP_A1 = 'aaaaaaaa-0000-4000-8000-000000000021';
 const QA_A1 = 'aaaaaaaa-0000-4000-8000-000000000061';
 const QA_A2 = 'aaaaaaaa-0000-4000-8000-000000000062';
 const RESP_A = 'aaaaaaaa-0000-4000-8000-000000000081';
@@ -217,11 +216,26 @@ describe('aislamiento entre tenants (usuario del tenant A vs. filas del tenant B
 
   it('claims manipulados sin membresía real no dan acceso (JWT con company_id de B)', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_B }, async (q) => {
-      expect(await contar(q, 'select count(*) n from companies')).toBe(0);
-      expect(await contar(q, 'select count(*) n from work_centers')).toBe(0);
-      expect(await contar(q, 'select count(*) n from employees')).toBe(0);
+      // La membresía real es la única fuente de verdad (Fase 2.5): el claim de B no
+      // abre B… pero tampoco cierra A, donde ADMIN_A SÍ es miembro.
+      expect(await contar(q, 'select count(*) n from companies where id = $1', [TENANT_B])).toBe(0);
+      expect(
+        await contar(q, 'select count(*) n from work_centers where company_id = $1', [TENANT_B]),
+      ).toBe(0);
+      expect(
+        await contar(q, 'select count(*) n from employees where company_id = $1', [TENANT_B]),
+      ).toBe(0);
       // risk_results ya ni siquiera tiene GRANT de SELECT (Fase 2.5): rechazo duro
       await esperarRechazo(q, 'select count(*) n from risk_results');
+    });
+  });
+
+  it('un JWT SIN claim (recién creada la empresa, antes del refresh) no bloquea al miembro real', async () => {
+    await como({ sub: ADMIN_A }, async (q) => {
+      expect(await contar(q, 'select count(*) n from companies where id = $1', [TENANT_A])).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from work_centers where company_id = $1', [TENANT_A]),
+      ).toBe(2);
     });
   });
 
@@ -319,9 +333,17 @@ describe('resultados individuales: SOLO por la app auditada — ni el RD los lee
     });
   });
 
-  it('el DR (rol miembro con flag) NO administra: no ve work_centers', async () => {
+  it('el DR (rol miembro con flag) navega en SOLO lectura: ve centros y ciclos, jamás los escribe', async () => {
     await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
-      expect(await contar(q, 'select count(*) n from work_centers')).toBe(0);
+      // Lectura de estructura no sensible para llegar a canalizaciones (Fase 2.5)
+      expect(await contar(q, 'select count(*) n from work_centers')).toBeGreaterThan(0);
+      expect(await contar(q, 'select count(*) n from compliance_cycles')).toBeGreaterThanOrEqual(0);
+      // …pero sin ninguna escritura de gestión
+      await esperarBloqueo(q, `update work_centers set name = name where company_id = $1`, [
+        TENANT_A,
+      ]);
+      // …y sin ver el padrón ni la política (no son suyas)
+      expect(await contar(q, 'select count(*) n from employees')).toBe(0);
     });
   });
 });
@@ -411,11 +433,9 @@ describe('capacidades del panel con RLS (Fase 2.5: el panel opera como el usuari
         `insert into work_centers (company_id, name, headcount) values ($1, 'X', 8)`,
         [TENANT_A],
       );
-      await esperarBloqueo(
-        q,
-        `update compliance_cycles set name = 'x' where company_id = $1`,
-        [TENANT_A],
-      );
+      await esperarBloqueo(q, `update compliance_cycles set name = 'x' where company_id = $1`, [
+        TENANT_A,
+      ]);
     });
   });
 

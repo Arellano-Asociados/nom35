@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
-import { clienteAdmin } from '@/lib/supabase-admin';
+import { clienteSesion } from '@/lib/supabase-servidor';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +17,7 @@ export default async function PaginaInicioEmpresa({
   const { empresa } = await params;
   await autorizarEmpresa(empresa);
 
-  const supabase = clienteAdmin();
+  const supabase = await clienteSesion();
   const contar = async (tabla: string) => {
     const { count } = await supabase
       .from(tabla)

@@ -7,7 +7,7 @@ import {
 import { GenerarInforme, type InformeFila } from '@/components/panel/generar-informe';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
-import { clienteAdmin } from '@/lib/supabase-admin';
+import { clienteSesion } from '@/lib/supabase-servidor';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +19,7 @@ export default async function PaginaInformes({
   const { empresa, ciclo } = await params;
   await autorizarEmpresa(empresa);
 
-  const supabase = clienteAdmin();
+  const supabase = await clienteSesion();
   const { data: cicloExiste } = await supabase
     .from('compliance_cycles')
     .select('id')

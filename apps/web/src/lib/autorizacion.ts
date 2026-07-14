@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation';
-import { clienteAdmin } from './supabase-admin';
-import { usuarioActual } from './supabase-servidor';
+import { clienteSesion, usuarioActual } from './supabase-servidor';
 
 // Autorización del panel. La membresía REAL (role_assignments / consultant_assignments)
 // es la única fuente de verdad: los identificadores de empresa que llegan en la URL solo
 // se usan DESPUÉS de verificar la membresía del usuario autenticado (regla inviolable 6).
+// Fase 2.5: estas lecturas van con el CLIENTE DE SESIÓN (anon key + JWT), así que las
+// políticas RLS de "fila propia" son una segunda verificación a nivel de base de datos.
 
 export type RolPanel = 'admin_org' | 'consultor' | 'miembro';
 
@@ -16,7 +17,7 @@ export interface Membresia {
 }
 
 export async function membresiasDe(userId: string): Promise<Membresia[]> {
-  const supabase = clienteAdmin();
+  const supabase = await clienteSesion();
   const [roles, consultorias] = await Promise.all([
     supabase
       .from('role_assignments')

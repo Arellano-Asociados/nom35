@@ -39,6 +39,8 @@ export default async function PaginaIndividual({
     );
   }
 
+  // service_role legítimo (Fase 2.5): risk_results no tiene GRANT para authenticated
+  // (regla 5). Guardia de RD arriba; cada consulta del detalle queda auditada fail-closed.
   const { data: resultados } = await clienteAdmin()
     .from('risk_results')
     .select('employee_id, employees (full_name, area)')

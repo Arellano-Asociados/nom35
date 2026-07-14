@@ -42,6 +42,8 @@ export default async function PaginaGR1({
     );
   }
 
+  // service_role legítimo (Fase 2.5): gr1_results no tiene GRANT para authenticated
+  // (regla 5). Guardia de RD arriba; el acceso queda en la superficie exclusiva del RD.
   const { data: canalizaciones } = await clienteAdmin()
     .from('gr1_results')
     .select(

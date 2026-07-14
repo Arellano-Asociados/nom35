@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CampoSelect, CampoTexto } from '@/components/ui/input';
 import { TablaDatos } from '@/components/ui/tabla-datos';
-import { autorizarEmpresa } from '@/lib/autorizacion';
-import { clienteAdmin } from '@/lib/supabase-admin';
+import { AvisoRolSinGestion } from '@/components/panel/aviso-rol';
+import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
+import { clienteSesion } from '@/lib/supabase-servidor';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,9 +21,10 @@ export default async function PaginaEmpleados({
 }) {
   const { empresa } = await params;
   const { error } = await searchParams;
-  await autorizarEmpresa(empresa);
+  const acceso = await autorizarEmpresa(empresa);
+  if (!puedeGestionar(acceso.membresia)) return <AvisoRolSinGestion />;
 
-  const supabase = clienteAdmin();
+  const supabase = await clienteSesion();
   const [{ data: empleados }, { data: centros }] = await Promise.all([
     supabase
       .from('employees')
