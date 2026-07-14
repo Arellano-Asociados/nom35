@@ -407,4 +407,42 @@ describe('expediente completo (Fase 4)', () => {
       entrada.cuestionariosAplicados![0]!.sha256,
     );
   });
+
+  it('eventos-traumaticos.csv trae SOLO conteos por evento: ningún nombre', async () => {
+    const { zip } = await armarExpediente({
+      ...entradaFase4(),
+      eventosTraumaticos: [
+        {
+          fecha: '10/07/2026',
+          descripcion: 'Asalto a mano armada en el turno nocturno',
+          expuestos: 4,
+          completados: 3,
+          requierenValoracion: 2,
+          canalizacionesAtendidas: 1,
+        },
+      ],
+    });
+    const leido = await JSZip.loadAsync(zip);
+    const csv = await leido.file('eventos-traumaticos.csv')!.async('text');
+    const lineas = csv.replace(/^\uFEFF/, '').split('\r\n');
+    expect(lineas[0]).toBe(
+      'fecha,descripcion,trabajadores_expuestos,cuestionarios_completados,requieren_valoracion,canalizaciones_atendidas',
+    );
+    expect(lineas[1]).toBe('10/07/2026,Asalto a mano armada en el turno nocturno,4,3,2,1');
+
+    // Quién requirió valoración es resultado individual (regla 4): va en el registro
+    // 5.8 c) del RD, jamás en el expediente que ve el patrón y la STPS.
+    const indice = await leido.file('INDICE.txt')!.async('text');
+    expect(indice).toContain('eventos-traumaticos.csv');
+    expect(indice).toContain('sin nombres');
+  });
+
+  it('sin acontecimientos, la ausencia se DECLARA en el índice (no se omite en silencio)', async () => {
+    const { zip } = await armarExpediente(entradaFase4());
+    const leido = await JSZip.loadAsync(zip);
+    expect(leido.file('eventos-traumaticos.csv')).toBeNull();
+    const indice = await leido.file('INDICE.txt')!.async('text');
+    expect(indice).toContain('PIEZAS NO INCLUIDAS');
+    expect(indice).toContain('Acontecimientos traumáticos severos (5.3/5.5/6.5): ninguno');
+  });
 });

@@ -25,6 +25,7 @@ import {
   type EntradaAcusePolitica,
   type EntradaAvancePrograma,
   type EntradaBuzonAgregado,
+  type EntradaEventoTraumatico,
   type EntradaCapacitacion,
   type EntradaCuestionarioAplicado,
   type EntradaDifusionExpediente,
@@ -358,6 +359,7 @@ async function piezasCicloNormativoDesdeBd(
   programa: EntradaProgramaExpediente | null;
   buzonAgregado: EntradaBuzonAgregado[];
   cuestionariosAplicados: EntradaCuestionarioAplicado[];
+  eventosTraumaticos: EntradaEventoTraumatico[];
 }> {
   // Constancia de difusión vigente (última versión) + sus acuses.
   const { data: difusionFila } = await supabase
@@ -492,7 +494,71 @@ async function piezasCicloNormativoDesdeBd(
   }
   cuestionariosAplicados.sort((a, b) => a.guia.localeCompare(b.guia));
 
-  return { difusion, programa, buzonAgregado, cuestionariosAplicados };
+  // Acontecimientos traumáticos severos del CENTRO del ciclo (5.3/5.5/6.5). Su aplicación
+  // de GR-I es reactiva y vive en un ciclo ATS propio, así que no aparece en la
+  // participación del ciclo ordinario: el expediente la declara aparte. SOLO CONTEOS —
+  // los nombres de quienes requirieron valoración son resultado individual (regla 4).
+  const { data: cicloFila } = await supabase
+    .from('compliance_cycles')
+    .select('work_center_id')
+    .eq('company_id', companyId)
+    .eq('id', cycleId)
+    .maybeSingle();
+
+  const eventosTraumaticos: EntradaEventoTraumatico[] = [];
+  if (cicloFila) {
+    const { data: eventos } = await supabase
+      .from('traumatic_events')
+      .select('id, occurred_on, description')
+      .eq('company_id', companyId)
+      .eq('work_center_id', cicloFila.work_center_id)
+      .order('occurred_on');
+
+    for (const evento of eventos ?? []) {
+      const { data: cicloAts } = await supabase
+        .from('compliance_cycles')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('traumatic_event_id', evento.id)
+        .maybeSingle();
+
+      let expuestos = 0;
+      let completados = 0;
+      let requierenValoracion = 0;
+      let canalizacionesAtendidas = 0;
+
+      if (cicloAts) {
+        const { data: asignacionesAts } = await supabase
+          .from('questionnaire_assignments')
+          .select('completed_at')
+          .eq('company_id', companyId)
+          .eq('cycle_id', cicloAts.id);
+        expuestos = (asignacionesAts ?? []).length;
+        completados = (asignacionesAts ?? []).filter((a) => a.completed_at !== null).length;
+
+        const { data: gr1Ats } = await supabase
+          .from('gr1_results')
+          .select('requiere_valoracion, canalizacion_estatus')
+          .eq('company_id', companyId)
+          .eq('cycle_id', cicloAts.id);
+        requierenValoracion = (gr1Ats ?? []).filter((g) => g.requiere_valoracion).length;
+        canalizacionesAtendidas = (gr1Ats ?? []).filter(
+          (g) => g.requiere_valoracion && g.canalizacion_estatus !== 'pendiente',
+        ).length;
+      }
+
+      eventosTraumaticos.push({
+        fecha: fechaEsMx(evento.occurred_on),
+        descripcion: evento.description,
+        expuestos,
+        completados,
+        requierenValoracion,
+        canalizacionesAtendidas,
+      });
+    }
+  }
+
+  return { difusion, programa, buzonAgregado, cuestionariosAplicados, eventosTraumaticos };
 }
 
 export async function accionGenerarExpediente(
@@ -601,6 +667,7 @@ export async function accionGenerarExpediente(
     programa: piezas.programa,
     buzonAgregado: piezas.buzonAgregado,
     cuestionariosAplicados: piezas.cuestionariosAplicados,
+    eventosTraumaticos: piezas.eventosTraumaticos,
     generadoEl: new Date().toISOString(),
   });
   const sha256 = createHash('sha256').update(zip).digest('hex');

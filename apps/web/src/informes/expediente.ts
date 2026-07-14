@@ -81,6 +81,20 @@ export interface EntradaProgramaExpediente {
   avances: readonly EntradaAvancePrograma[];
 }
 
+/**
+ * Acontecimiento traumático severo del centro del ciclo (5.3/5.5/6.5), con conteos.
+ * SIN nombres: quién requirió valoración y cómo se le canalizó es resultado individual
+ * (regla 4) y vive en el registro 5.8 c) que solo el Responsable Designado genera.
+ */
+export interface EntradaEventoTraumatico {
+  fecha: string;
+  descripcion: string;
+  expuestos: number;
+  completados: number;
+  requierenValoracion: number;
+  canalizacionesAtendidas: number;
+}
+
 /** SOLO conteos agregados del buzón: jamás folios, contenido ni identidad. */
 export interface EntradaBuzonAgregado {
   categoria: string;
@@ -116,6 +130,8 @@ export interface EntradaExpediente {
   programa?: EntradaProgramaExpediente | null;
   /** Registro agregado del buzón (8.1 b); vacío/ausente si no hay quejas. */
   buzonAgregado?: readonly EntradaBuzonAgregado[];
+  /** Acontecimientos traumáticos del centro del ciclo (5.3/5.5/6.5); vacío si no hubo. */
+  eventosTraumaticos?: readonly EntradaEventoTraumatico[];
   /** Instrumentos aplicados en el ciclo, sellados por guía. */
   cuestionariosAplicados?: readonly EntradaCuestionarioAplicado[];
   /** ISO; lo inyecta el caller (este módulo no llama a Date.now/new Date). */
@@ -231,6 +247,30 @@ function csvBuzonAgregado(filas: readonly EntradaBuzonAgregado[]): Buffer {
   return construirCsv(
     ['categoria', 'estatus', 'mes', 'conteo'],
     filas.map((f) => [f.categoria, f.estatus, f.mes, String(f.conteo)]),
+  );
+}
+
+// Solo CONTEOS por evento: el expediente lo lee el patrón y la STPS, y ninguno de los dos
+// puede ver quién requirió valoración clínica (regla inviolable 4). Los nombres están en
+// el registro 5.8 c), exclusivo del Responsable Designado.
+function csvEventosTraumaticos(filas: readonly EntradaEventoTraumatico[]): Buffer {
+  return construirCsv(
+    [
+      'fecha',
+      'descripcion',
+      'trabajadores_expuestos',
+      'cuestionarios_completados',
+      'requieren_valoracion',
+      'canalizaciones_atendidas',
+    ],
+    filas.map((f) => [
+      f.fecha,
+      f.descripcion,
+      String(f.expuestos),
+      String(f.completados),
+      String(f.requierenValoracion),
+      String(f.canalizacionesAtendidas),
+    ]),
   );
 }
 
@@ -353,6 +393,18 @@ export async function armarExpediente(
     );
   } else {
     ausentes.push('Registro agregado del buzón de quejas: sin quejas registradas');
+  }
+
+  if ((entrada.eventosTraumaticos ?? []).length > 0) {
+    preparar(
+      'eventos-traumaticos.csv',
+      csvEventosTraumaticos(entrada.eventosTraumaticos ?? []),
+      'Acontecimientos traumáticos severos del centro (5.3/5.5/6.5): aplicación de la Guía I a los expuestos y conteo de canalizaciones — sin nombres',
+    );
+  } else {
+    ausentes.push(
+      'Acontecimientos traumáticos severos (5.3/5.5/6.5): ninguno registrado en el centro',
+    );
   }
 
   const archivos: ArchivoManifiesto[] = pendientes.map((p) => ({
