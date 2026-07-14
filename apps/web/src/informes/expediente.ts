@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto';
 import { extname } from 'node:path';
 import JSZip from 'jszip';
 import { construirCsv } from '../lib/csv';
-import type { DatosInforme79 } from '../lib/informe';
+import type { DatosInforme77 } from '../lib/informe';
 
-// Armado PURO del expediente de inspección (numeral 7.9 + evidencia documental,
+// Armado PURO del expediente de inspección (informe 7.7 + evidencia documental,
 // CLAUDE.md §1): no hace I/O (no llama a Supabase), recibe filas YA leídas por el caller
 // y solo empaqueta un ZIP. Única excepción a "puro": jszip expone una API de generación
 // asíncrona (compresión), no implica llamadas externas.
@@ -99,8 +99,8 @@ export interface EntradaCuestionarioAplicado {
 }
 
 export interface EntradaExpediente {
-  /** Ya armado por armarDatosInforme79: se reutiliza para el contexto empresa/ciclo y Tabla 7. */
-  datos: Pick<DatosInforme79, 'empresa' | 'ciclo' | 'acciones'>;
+  /** Ya armado por armarDatosInforme77: se reutiliza para el contexto empresa/ciclo y Tabla 7. */
+  datos: Pick<DatosInforme77, 'empresa' | 'ciclo' | 'acciones'>;
   pdfInforme: Buffer;
   /** null si no hay política de prevención publicada (el manifiesto la marca "ausente"). */
   politica: EntradaPoliticaArchivo | null;
@@ -166,7 +166,7 @@ function csvParticipacion(filas: readonly EntradaParticipacionCentro[]): Buffer 
   );
 }
 
-function csvAcciones(filas: DatosInforme79['acciones']): Buffer {
+function csvAcciones(filas: DatosInforme77['acciones']): Buffer {
   return construirCsv(
     ['descripcion', 'nivel_origen', 'responsable', 'fecha_compromiso', 'estatus'],
     filas.map((f) => [
@@ -247,7 +247,7 @@ interface ArchivoPendiente {
 
 /**
  * Arma el expediente de inspección: un ZIP con TODAS las piezas del ciclo — informe
- * 7.9, política + acuses, instrumentos aplicados sellados, constancia de difusión con
+ * 7.7, política + acuses, instrumentos aplicados sellados, constancia de difusión con
  * sus acuses, Programa de intervención con avances, registro agregado del buzón,
  * evidencia de proceso — más un `INDICE.txt` legible (PRIMERA entrada) y el
  * `manifiesto.json` con el sha256 de cada archivo. Las piezas faltantes se declaran
@@ -265,9 +265,9 @@ export async function armarExpediente(
   }
 
   preparar(
-    'informe-7-9.pdf',
+    'informe-7-7.pdf',
     entrada.pdfInforme,
-    'Informe normativo de resultados (secciones a-g)',
+    'Informe normativo de resultados del numeral 7.7 (incisos a-i)',
   );
 
   let politicaPublicada: 'presente' | 'ausente' = 'ausente';

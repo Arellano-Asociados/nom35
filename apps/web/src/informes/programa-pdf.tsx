@@ -4,7 +4,7 @@ import type { EntradaAvancePrograma } from './expediente';
 // Documento "Programa de intervención" (numeral 8.4 de la NOM-035-STPS-2018):
 // el artefacto que el inspector pide (la auditoría v0 señaló que una lista suelta
 // de acciones no acredita el Programa). Se estructura por los seis incisos del
-// 8.4. Server-side con @react-pdf/renderer, igual que el informe 7.9. Solo
+// 8.4. Server-side con @react-pdf/renderer, igual que el informe de resultados. Solo
 // contiene el plan y su avance: nada de resultados individuales (regla 4).
 
 const ETIQUETAS_NIVEL_ACCION: Record<string, string> = {

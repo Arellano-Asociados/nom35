@@ -1,15 +1,16 @@
 import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 import type { CeldaAgregado, Distribucion } from '../lib/agregados';
-import type { DatosInforme79 } from '../lib/informe';
+import type { DatosInforme77 } from '../lib/informe';
 
-// Plantilla del informe del numeral 7.9 de la NOM-035-STPS-2018.
+// Plantilla del informe de resultados del numeral 7.7 de la NOM-035-STPS-2018.
+// (El 7.9 es la PERIODICIDAD bienal de la evaluación, no el informe: ver alerta de ciclo.)
 //
 // NO es un componente cliente de Next.js: vive fuera de `app/` y se ejecuta
 // del lado servidor con `@react-pdf/renderer`, una implementación de React
 // independiente del DOM/navegador que renderiza a PDF (Helvetica soporta
 // acentos/es-MX de forma nativa, sin fuentes externas).
 //
-// Contiene ÚNICAMENTE datos ya agregados en `DatosInforme79` (regla inviolable
+// Contiene ÚNICAMENTE datos ya agregados en `DatosInforme77` (regla inviolable
 // 4: ningún rol patronal ve respuestas crudas ni resultados individuales). Las
 // celdas suprimidas por anti-reidentificación (n < 3, regla inviolable 3) se
 // muestran como "— (n<3)", nunca como 0 ni en blanco, para no confundir
@@ -22,6 +23,21 @@ const ETIQUETAS_NIVEL: Record<string, string> = {
   alto: 'Alto',
   muy_alto: 'Muy alto',
 };
+
+/**
+ * Objetivo del informe (7.7 b), DETERMINISTA a partir de las guías efectivamente
+ * aplicadas: el alcance normativo lo fija la categoría del centro (numerales 7.1 a 7.3).
+ * Solo los centros de más de 50 trabajadores (GR-III) evalúan además el entorno
+ * organizacional; afirmarlo en un centro que no lo evaluó sería falsear el informe.
+ */
+export function objetivoDeGuias(guias: readonly string[]): string {
+  const evaluaEntorno = guias.includes('GR-III');
+  const identifica =
+    'Identificar y analizar los factores de riesgo psicosocial presentes en el centro de trabajo';
+  return evaluaEntorno
+    ? `${identifica} y evaluar el entorno organizacional, conforme a los numerales 7.1, 7.2 y 7.3 de la NOM-035-STPS-2018, para determinar el nivel de riesgo y las acciones que correspondan.`
+    : `${identifica}, conforme a los numerales 7.1 y 7.2 de la NOM-035-STPS-2018, para determinar el nivel de riesgo y las acciones que correspondan.`;
+}
 
 const ETIQUETAS_CATEGORIA: Record<string, string> = {
   solo_gr1: 'Solo Guía de Referencia I',
@@ -149,7 +165,7 @@ function formatoFechaPie(timezone: string): Intl.DateTimeFormat {
   }
 }
 
-// `datos.generadoEl` permanece ISO en `DatosInforme79` (no se reformatea en el tipo ni en
+// `datos.generadoEl` permanece ISO en `DatosInforme77` (no se reformatea en el tipo ni en
 // las acciones de servidor): el formateo es puramente de presentación, al renderizar.
 function formatearFechaPie(iso: string, timezone: string): string {
   return formatoFechaPie(timezone).format(new Date(iso));
@@ -197,10 +213,10 @@ function TablaDistribucion({ titulo, dist }: { titulo: string; dist: Distribucio
   );
 }
 
-export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
+export function Informe77Pdf({ datos }: { datos: DatosInforme77 }) {
   return (
     <Document
-      title={`Informe NOM-035 numeral 7.9 — ${datos.empresa.razonSocial}`}
+      title={`Informe NOM-035 numeral 7.7 — ${datos.empresa.razonSocial}`}
       author="Constata — Cumplimiento NOM-035-STPS-2018"
     >
       <Page size="LETTER" style={styles.page}>
@@ -209,7 +225,7 @@ export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
         >
           <View style={{ flexShrink: 1 }}>
             <Text style={styles.tituloInforme}>
-              Informe de resultados — Numeral 7.9 NOM-035-STPS-2018
+              Informe de resultados — Numeral 7.7 NOM-035-STPS-2018
             </Text>
             <Text style={styles.subtituloInforme}>
               {datos.empresa.razonSocial} — RFC: {datos.empresa.rfc || 'No especificado'}
@@ -256,12 +272,36 @@ export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
           ))}
         </View>
 
-        {/* b) Método utilizado */}
+        {/* b) Objetivo — determinista según las guías efectivamente aplicadas (7.1/7.2/7.3) */}
         <View style={styles.seccion}>
-          <Text style={styles.tituloSeccion}>b) Método utilizado</Text>
+          <Text style={styles.tituloSeccion}>b) Objetivo de la evaluación</Text>
+          <Text>{objetivoDeGuias([...new Set(datos.centros.flatMap((c) => c.guias))])}</Text>
+        </View>
+
+        {/* c) Principales actividades del centro de trabajo */}
+        <View style={styles.seccion}>
+          <Text style={styles.tituloSeccion}>c) Principales actividades del centro de trabajo</Text>
+          {datos.centros.map((centro) => (
+            <View key={centro.nombre} style={styles.filaEtiquetaValor}>
+              <Text style={styles.etiqueta}>{centro.nombre}</Text>
+              <Text style={styles.valor}>{centro.actividad || 'No especificada'}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* d) Método utilizado — incluye la forma de aplicación del 7.4 b) a d) */}
+        <View style={styles.seccion}>
+          <Text style={styles.tituloSeccion}>d) Método utilizado</Text>
           <Text>
             Guías de referencia aplicadas:{' '}
             {[...new Set(datos.centros.flatMap((c) => c.guias))].join(', ') || 'No especificado'}.
+          </Text>
+          <Text style={{ marginTop: 4 }}>
+            Forma de aplicación (numeral 7.4): los cuestionarios se aplicaron a la totalidad de los
+            trabajadores del centro (censo, no muestra), de forma individual y electrónica mediante
+            un enlace personal, y en condiciones que garantizan la confidencialidad de las
+            respuestas: ninguna persona del centro de trabajo tiene acceso a las respuestas
+            individuales, que se procesan de forma automatizada.
           </Text>
           <Text style={{ marginTop: 4 }}>
             Ciclo de evaluación: {datos.ciclo.nombre}. Cuestionarios asignados:{' '}
@@ -270,9 +310,9 @@ export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
           </Text>
         </View>
 
-        {/* c) Resultados obtenidos */}
+        {/* e) Resultados obtenidos */}
         <View style={styles.seccion}>
-          <Text style={styles.tituloSeccion}>c) Resultados obtenidos</Text>
+          <Text style={styles.tituloSeccion}>e) Resultados obtenidos</Text>
           <Text style={{ marginBottom: 4, fontFamily: 'Helvetica-Bold' }}>
             Distribución global de nivel de riesgo
           </Text>
@@ -317,9 +357,9 @@ export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
           </View>
         </View>
 
-        {/* d) Conclusiones */}
+        {/* f) Conclusiones — incluye la integración al diagnóstico de SST (7.6 / NOM-030) */}
         <View style={styles.seccion}>
-          <Text style={styles.tituloSeccion}>d) Conclusiones</Text>
+          <Text style={styles.tituloSeccion}>f) Conclusiones</Text>
           {datos.conclusiones.map((c, i) => (
             <Text key={i} style={styles.listaItem}>
               • {c}
@@ -327,9 +367,9 @@ export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
           ))}
         </View>
 
-        {/* e) Recomendaciones y acciones de intervención */}
+        {/* g) Recomendaciones y acciones de intervención */}
         <View style={styles.seccion} break={datos.acciones.length > 3}>
-          <Text style={styles.tituloSeccion}>e) Recomendaciones y acciones de intervención</Text>
+          <Text style={styles.tituloSeccion}>g) Recomendaciones y acciones de intervención</Text>
           {datos.acciones.length === 0 ? (
             <Text>No se registraron acciones de intervención para este ciclo.</Text>
           ) : (
@@ -361,9 +401,9 @@ export function Informe79Pdf({ datos }: { datos: DatosInforme79 }) {
           )}
         </View>
 
-        {/* f) Datos del evaluador y g) fecha de evaluación */}
+        {/* h) Datos del evaluador e i) fecha de evaluación */}
         <View style={styles.seccion}>
-          <Text style={styles.tituloSeccion}>f) Datos del evaluador y g) fecha de evaluación</Text>
+          <Text style={styles.tituloSeccion}>h) Datos del evaluador e i) fecha de evaluación</Text>
           <View style={styles.filaEtiquetaValor}>
             <Text style={styles.etiqueta}>Evaluador</Text>
             <Text style={styles.valor}>{datos.ciclo.evaluadorNombre}</Text>

@@ -1,12 +1,12 @@
 import { MOTOR_NOM035_VERSION } from '@nom35/motor-nom035';
 import { describe, expect, it } from 'vitest';
 import {
-  armarDatosInforme79,
+  armarDatosInforme77,
   resultadosVigentesPorAsignacion,
   type EntradaAccion,
   type EntradaAsignacion,
   type EntradaCentro,
-  type EntradaInforme79,
+  type EntradaInforme77,
   type EntradaResultado,
   type EntradaResultadoGr1,
 } from './informe';
@@ -15,12 +15,12 @@ import {
 // y "nada normativo hardcodeado" — este módulo solo arma datos ya calculados por el
 // motor y por las tablas de agregados; no vuelve a calificar nada.
 
-const EMPRESA_BASE: EntradaInforme79['empresa'] = {
+const EMPRESA_BASE: EntradaInforme77['empresa'] = {
   razonSocial: 'Acme S.A. de C.V.',
   rfc: 'ACM010101AAA',
 };
 
-const CICLO_BASE: EntradaInforme79['ciclo'] = {
+const CICLO_BASE: EntradaInforme77['ciclo'] = {
   nombre: 'Ciclo 2026',
   fechaInicio: '2026-01-01',
   fechaFin: null,
@@ -46,7 +46,7 @@ function asignaciones(n: number, completadas = n): EntradaAsignacion[] {
   return Array.from({ length: n }, (_, i) => ({ id: `asig-${i}`, completada: i < completadas }));
 }
 
-function baseEntrada(overrides: Partial<EntradaInforme79>): EntradaInforme79 {
+function baseEntrada(overrides: Partial<EntradaInforme77>): EntradaInforme77 {
   return {
     empresa: EMPRESA_BASE,
     centros: [
@@ -68,7 +68,7 @@ function baseEntrada(overrides: Partial<EntradaInforme79>): EntradaInforme79 {
   };
 }
 
-describe('armarDatosInforme79', () => {
+describe('armarDatosInforme77', () => {
   it('(a) arma el informe feliz con 5 resultados mezclados y distribución correcta', () => {
     const resultadosVigentes: EntradaResultado[] = [
       resultado({
@@ -107,7 +107,7 @@ describe('armarDatosInforme79', () => {
       resultadosVigentes,
     });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     expect(informe.participacion).toEqual({ asignados: 5, completados: 5 });
     // 3 nulo + 1 alto + 1 medio. Las celdas de alto y medio caen en 0 < n < 3, así que
@@ -140,7 +140,7 @@ describe('armarDatosInforme79', () => {
     ];
     const entrada = baseEntrada({ asignaciones: asignaciones(3), resultadosGr1 });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     expect(informe.gr1.evaluados).toBe(3);
     expect(informe.gr1.requierenValoracion).toBeNull();
@@ -154,7 +154,7 @@ describe('armarDatosInforme79', () => {
     ];
     const entrada = baseEntrada({ asignaciones: asignaciones(3), resultadosGr1 });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     expect(informe.gr1.evaluados).toBe(3);
     expect(informe.gr1.requierenValoracion).toBe(0);
@@ -180,7 +180,7 @@ describe('armarDatosInforme79', () => {
     ];
     const entrada = baseEntrada({ asignaciones: asignaciones(3), resultadosVigentes });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     // Si r1-viejo (muy_alto) no se excluyera, el total sería 4 y muy_alto aparecería con n=1.
     expect(informe.resultados.global.total).toBe(3);
@@ -204,7 +204,7 @@ describe('armarDatosInforme79', () => {
     ];
     const entrada = baseEntrada({ asignaciones: asignaciones(3), resultadosVigentes });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     expect(informe.conclusiones.some((c) => c.includes('Capítulo 8'))).toBe(true);
     // El recordatorio de reevaluación a 2 años siempre está presente.
@@ -219,7 +219,7 @@ describe('armarDatosInforme79', () => {
     ];
     const entrada = baseEntrada({ asignaciones: asignaciones(3), resultadosVigentes });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     expect(informe.conclusiones.some((c) => c.includes('Capítulo 8'))).toBe(false);
   });
@@ -237,7 +237,7 @@ describe('armarDatosInforme79', () => {
     ];
     const entrada = baseEntrada({ asignaciones: asignaciones(3), resultadosVigentes });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     // El nivel predominante sigue siendo sobre el GLOBAL (bajo), pero la obligación del
     // Capítulo 8 se dispara igual por la categoría en alto (evidencia internamente
@@ -260,7 +260,7 @@ describe('armarDatosInforme79', () => {
     ];
     const entrada = baseEntrada({ asignaciones: asignaciones(3), resultadosVigentes });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     expect(informe.conclusiones.some((c) => c.includes('Capítulo 8'))).toBe(false);
   });
@@ -272,7 +272,7 @@ describe('armarDatosInforme79', () => {
     ];
     const entrada = baseEntrada({ asignaciones: asignaciones(2), resultadosVigentes });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     expect(informe.motorVersion).toBe('0.1.0, 0.2.0');
   });
@@ -280,7 +280,7 @@ describe('armarDatosInforme79', () => {
   it('motorVersion cae al fallback del paquete cuando no hay vigentes', () => {
     const entrada = baseEntrada({ asignaciones: [], resultadosVigentes: [] });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     expect(informe.motorVersion).toBe(MOTOR_NOM035_VERSION);
   });
@@ -305,7 +305,7 @@ describe('armarDatosInforme79', () => {
     ];
     const entrada = baseEntrada({ centros });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     expect(informe.centros).toEqual([
       {
@@ -350,7 +350,7 @@ describe('armarDatosInforme79', () => {
       acciones,
     });
 
-    const informe = armarDatosInforme79(entrada);
+    const informe = armarDatosInforme77(entrada);
 
     expect(informe.empresa).toEqual({ razonSocial: 'Sin RFC S.A.', rfc: '' });
     expect(informe.acciones).toEqual(acciones);
@@ -361,7 +361,7 @@ describe('armarDatosInforme79', () => {
 describe('resultadosVigentesPorAsignacion (exportada, genérica)', () => {
   // El dashboard administrativo consume filas de risk_results con una forma propia
   // (nivel_final/categorias/dominios/employees, sin engineVersion ni nivelFinal): la
-  // función debe filtrar por vigencia sin exigir los campos que el informe 7.9 sí usa.
+  // función debe filtrar por vigencia sin exigir los campos que el informe 7.7 sí usa.
   it('filtra por vigencia sobre una forma mínima ajena a EntradaResultado', () => {
     interface FilaDashboard {
       id: string;

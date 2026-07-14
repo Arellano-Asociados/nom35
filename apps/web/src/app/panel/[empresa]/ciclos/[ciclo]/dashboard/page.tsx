@@ -58,7 +58,7 @@ export default async function PaginaDashboard({
       .eq('cycle_id', ciclo),
   ]);
 
-  // Mismo criterio que el informe 7.9 (regla inviolable 1): con cualquier recálculo,
+  // Mismo criterio que el informe de resultados (regla inviolable 1): con cualquier recálculo,
   // el dashboard y el informe deben coincidir en la distribución del mismo ciclo.
   const vigentes = resultadosVigentesPorAsignacion(
     (resultados ?? []).map((r) => ({

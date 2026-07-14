@@ -85,7 +85,7 @@ function entradaCompleta(overrides?: Partial<EntradaExpediente>): EntradaExpedie
 }
 
 describe('armarExpediente', () => {
-  it('(a) el ZIP contiene manifiesto.json, informe-7-9.pdf y los CSVs esperados', async () => {
+  it('(a) el ZIP contiene manifiesto.json, informe-7-7.pdf y los CSVs esperados', async () => {
     const { zip } = await armarExpediente(entradaCompleta());
     const leido = await JSZip.loadAsync(zip);
 
@@ -93,7 +93,7 @@ describe('armarExpediente', () => {
       [
         'INDICE.txt',
         'manifiesto.json',
-        'informe-7-9.pdf',
+        'informe-7-7.pdf',
         'politica-prevencion.pdf',
         'acuses-politica.csv',
         'participacion.csv',
@@ -174,7 +174,7 @@ describe('armarExpediente', () => {
     expect(Object.keys(leido.files).some((n) => n.startsWith('politica-prevencion'))).toBe(false);
     // El resto del expediente se genera igual.
     expect(leido.file('manifiesto.json')).not.toBeNull();
-    expect(leido.file('informe-7-9.pdf')).not.toBeNull();
+    expect(leido.file('informe-7-7.pdf')).not.toBeNull();
   });
 
   it('escapa correctamente comas, comillas y acentos en los campos CSV', async () => {

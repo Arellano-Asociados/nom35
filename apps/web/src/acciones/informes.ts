@@ -7,8 +7,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
 import { registrarAuditoria } from '@/lib/auditoria';
 import {
-  armarDatosInforme79,
-  type DatosInforme79,
+  armarDatosInforme77,
+  type DatosInforme77,
   type EntradaAccion,
   type EntradaAsignacion,
   type EntradaCentro,
@@ -19,7 +19,7 @@ import {
 import { selloCanonico } from '@/lib/cuestionarios-sello';
 import { fechaEsMx } from '@/lib/fechas';
 import { clienteAdmin } from '@/lib/supabase-admin';
-import { generarPdfInforme79, generarPdfPrograma } from '@/informes/generar-pdf';
+import { generarPdfInforme77, generarPdfPrograma } from '@/informes/generar-pdf';
 import {
   armarExpediente,
   type EntradaAcusePolitica,
@@ -34,7 +34,7 @@ import {
   type EntradaResumenAuditoria,
 } from '@/informes/expediente';
 
-// Acciones de servidor del informe normativo 7.9. Igual que en panel.ts: TODA acción
+// Acciones de servidor del informe normativo de resultados (7.7). Igual que en panel.ts: TODA acción
 // verifica la membresía real del usuario en la empresa (autorizarEmpresa) antes de tocar
 // datos, y el cicloId que llega de la URL/caller se valida contra companyId (regla
 // inviolable 6). El informe solo contiene datos agregados (distribuciones, conteos) —
@@ -46,16 +46,16 @@ export type ResultadoGenerarInforme =
   { ok: true; reporteId: string } | { ok: false; error: string };
 export type ResultadoUrlDescarga = { ok: true; url: string } | { ok: false; error: string };
 
-type ResultadoArmadoDatos = { ok: true; datos: DatosInforme79 } | { ok: false; error: string };
+type ResultadoArmadoDatos = { ok: true; datos: DatosInforme77 } | { ok: false; error: string };
 
 /**
- * Lee de BD todo lo necesario para `armarDatosInforme79` y lo arma. Compartido por
+ * Lee de BD todo lo necesario para `armarDatosInforme77` y lo arma. Compartido por
  * `accionGenerarInforme79` y `accionGenerarExpediente` (el expediente incluye el mismo
- * informe 7.9 más evidencia de proceso) para no duplicar las ~10 consultas de tenant.
+ * informe 7.7 más evidencia de proceso) para no duplicar las ~10 consultas de tenant.
  * companyId Y cycleId se validan juntos en cada consulta (regla inviolable 6): un
  * cycleId de otra empresa nunca produce fila (FK compuesta company_id+id).
  */
-async function armarDatosInforme79DesdeBd(
+async function armarDatosInforme77DesdeBd(
   supabase: SupabaseClient,
   companyId: string,
   cycleId: string,
@@ -104,7 +104,7 @@ async function armarDatosInforme79DesdeBd(
     completada: a.completed_at !== null,
   }));
 
-  // Historial completo de risk_results del ciclo (incluye superseded): armarDatosInforme79
+  // Historial completo de risk_results del ciclo (incluye superseded): armarDatosInforme77
   // hace su propio filtrado de vigencia (supersedes_id), así que no se pre-filtra aquí.
   const { data: resultadosFilas } = await supabase
     .from('risk_results')
@@ -164,7 +164,7 @@ async function armarDatosInforme79DesdeBd(
     }
   }
 
-  const datos = armarDatosInforme79({
+  const datos = armarDatosInforme77({
     empresa: { razonSocial: empresa.legal_name, rfc: empresa.rfc },
     centros,
     ciclo: {
@@ -216,13 +216,13 @@ export async function accionGenerarInforme79(
 
   const supabase = clienteAdmin();
 
-  const armado = await armarDatosInforme79DesdeBd(supabase, companyId, cycleId);
+  const armado = await armarDatosInforme77DesdeBd(supabase, companyId, cycleId);
   if (!armado.ok) return { ok: false, error: armado.error };
   const { datos } = armado;
 
   let pdf: Buffer;
   try {
-    pdf = await generarPdfInforme79(datos);
+    pdf = await generarPdfInforme77(datos);
   } catch {
     return { ok: false, error: 'No se pudo generar el PDF del informe' };
   }
@@ -239,6 +239,8 @@ export async function accionGenerarInforme79(
     .insert({
       company_id: companyId,
       cycle_id: cycleId,
+      // 'informe_79' es un CÓDIGO DE TIPO interno, no el numeral: las filas existentes son
+      // evidencia inmutable protegida por un CHECK. El informe es del 7.7; el valor no se toca.
       report_type: 'informe_79',
       storage_path: rutaArchivo,
       sha256,
@@ -505,7 +507,7 @@ export async function accionGenerarExpediente(
         'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
     };
 
-  // Idempotencia práctica (mini-fase 3): mismo criterio que el informe 7.9.
+  // Idempotencia práctica (mini-fase 3): mismo criterio que el informe de resultados.
   if (!(await permitido(`expediente:${cycleId}`, { ventanaSegundos: 300, maximo: 1 }))) {
     return {
       ok: false,
@@ -516,13 +518,13 @@ export async function accionGenerarExpediente(
 
   const supabase = clienteAdmin();
 
-  const armado = await armarDatosInforme79DesdeBd(supabase, companyId, cycleId);
+  const armado = await armarDatosInforme77DesdeBd(supabase, companyId, cycleId);
   if (!armado.ok) return { ok: false, error: armado.error };
   const { datos } = armado;
 
   let pdf: Buffer;
   try {
-    pdf = await generarPdfInforme79(datos);
+    pdf = await generarPdfInforme77(datos);
   } catch {
     return { ok: false, error: 'No se pudo generar el PDF del informe' };
   }
@@ -555,7 +557,7 @@ export async function accionGenerarExpediente(
     estatus: 'completado',
   }));
 
-  // Un ciclo tiene un único centro de trabajo (ver armarDatosInforme79DesdeBd): la
+  // Un ciclo tiene un único centro de trabajo (ver armarDatosInforme77DesdeBd): la
   // participación ya agregada en `datos.participacion` aplica a ese centro.
   const participacion: EntradaParticipacionCentro[] = datos.centros.map((c) => ({
     nombreCentro: c.nombre,
