@@ -1,7 +1,9 @@
 'use server';
 
 import { escrituraOk } from '@/lib/escrituras';
+import { ipCliente, permitido } from '@/lib/limites';
 import { clienteAdmin } from '@/lib/supabase-admin';
+import { verificarTurnstile } from '@/lib/turnstile';
 
 // Derechos ARCO (arts. 22-34 LFPDPPP) — no existía ningún mecanismo (auditoría v0).
 // El titular es un trabajador SIN cuenta en la plataforma: su solicitud se recibe desde
@@ -19,6 +21,20 @@ export interface ResultadoArco {
 const TIPOS: TipoArco[] = ['acceso', 'rectificacion', 'cancelacion', 'oposicion', 'revocacion'];
 
 export async function accionSolicitudArco(formData: FormData): Promise<ResultadoArco> {
+  // Formulario público: límite por IP (Fase 2.5) + anti-bot. 5 solicitudes/hora
+  // bastan para cualquier titular real y frenan el volcado automatizado.
+  const ip = await ipCliente();
+  if (!(await permitido(`arco:${ip}`, { ventanaSegundos: 3600, maximo: 5 }))) {
+    return {
+      ok: false,
+      error: 'Recibimos demasiadas solicitudes desde tu conexión. Intenta de nuevo en una hora.',
+    };
+  }
+  const bot = await verificarTurnstile(String(formData.get('cf-turnstile-response') ?? ''), ip);
+  if (!bot.ok) {
+    return { ok: false, error: bot.error };
+  }
+
   const empresaNombre = String(formData.get('empresa') ?? '').trim();
   const tipo = String(formData.get('tipo') ?? '') as TipoArco;
   const nombre = String(formData.get('nombre') ?? '').trim();

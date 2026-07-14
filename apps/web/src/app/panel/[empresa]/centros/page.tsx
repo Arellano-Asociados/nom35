@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CampoTexto } from '@/components/ui/input';
-import { autorizarEmpresa } from '@/lib/autorizacion';
-import { clienteAdmin } from '@/lib/supabase-admin';
+import { AvisoRolSinGestion } from '@/components/panel/aviso-rol';
+import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
+import { clienteSesion } from '@/lib/supabase-servidor';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,9 +25,11 @@ export default async function PaginaCentros({
 }) {
   const { error: errorFormulario } = await searchParams;
   const { empresa } = await params;
-  await autorizarEmpresa(empresa);
+  const acceso = await autorizarEmpresa(empresa);
+  if (!puedeGestionar(acceso.membresia)) return <AvisoRolSinGestion />;
 
-  const { data: centros } = await clienteAdmin()
+  const supabase = await clienteSesion();
+  const { data: centros } = await supabase
     .from('work_centers')
     .select('id, name, headcount, nom_category, address')
     .eq('company_id', empresa)

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Tabs } from '@/components/ui/tabs';
 import { autorizarEmpresa } from '@/lib/autorizacion';
-import { clienteAdmin } from '@/lib/supabase-admin';
+import { clienteSesion } from '@/lib/supabase-servidor';
 
 // Las pestañas del ciclo viven en ESTE layout compartido: antes existían solo en la
 // página raíz del ciclo, así que desde cualquier subsección no había forma de saltar
@@ -19,7 +19,7 @@ export default async function LayoutCiclo({
   const { empresa, ciclo } = await params;
   await autorizarEmpresa(empresa);
 
-  const supabase = clienteAdmin();
+  const supabase = await clienteSesion();
   const { data: datosCiclo } = await supabase
     .from('compliance_cycles')
     .select('id, name, work_centers (name)')

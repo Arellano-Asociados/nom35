@@ -4,8 +4,10 @@ import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { distribucionPorNombre } from '@/lib/agregados';
-import { autorizarEmpresa } from '@/lib/autorizacion';
+import { AvisoRolSinGestion } from '@/components/panel/aviso-rol';
+import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
 import { fechaEsMx } from '@/lib/fechas';
+import { clienteSesion } from '@/lib/supabase-servidor';
 import { resultadosVigentesPorAsignacion } from '@/lib/informe';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
@@ -31,9 +33,15 @@ export default async function PaginaAcciones({
   params: Promise<{ empresa: string; ciclo: string }>;
 }) {
   const { empresa, ciclo } = await params;
-  await autorizarEmpresa(empresa);
+  const acceso = await autorizarEmpresa(empresa);
+  if (!puedeGestionar(acceso.membresia)) return <AvisoRolSinGestion />;
 
-  const supabase = clienteAdmin();
+  // Fase 2.5: las lecturas de gestión van con el cliente de sesión (RLS real).
+  // ÚNICA excepción: risk_results se agrega con service_role porque el rol patronal
+  // no tiene (ni debe tener) SELECT sobre resultados individuales — reglas 4/5;
+  // de aquí solo salen distribuciones por categoría, jamás filas individuales.
+  const supabase = await clienteSesion();
+  const admin = clienteAdmin();
   const [{ data: acciones }, { data: resultados }, { data: config }] = await Promise.all([
     supabase
       .from('action_items')
@@ -41,7 +49,7 @@ export default async function PaginaAcciones({
       .eq('company_id', empresa)
       .eq('cycle_id', ciclo)
       .order('created_at'),
-    supabase
+    admin
       .from('risk_results')
       .select('id, assignment_id, supersedes_id, created_at, categorias')
       .eq('company_id', empresa)

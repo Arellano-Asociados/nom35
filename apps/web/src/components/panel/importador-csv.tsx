@@ -8,6 +8,14 @@ import { claseCampo } from '@/components/panel/campos';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+// Plantilla descargable (fila 4 de la tabla de copy de la auditoría v0): RH abre
+// Excel, no "pega CSVs" — la plantilla enseña el formato con un ejemplo real.
+const PLANTILLA_CSV = [
+  'nombre,email,area,atiende_clientes,supervisa_personal',
+  'Ana López,ana.lopez@empresa.mx,Ventas,si,no',
+  'Juan Pérez,juan.perez@empresa.mx,Producción,no,si',
+].join('\n');
+
 export function ImportadorCsv({
   importar,
   centros,
@@ -26,8 +34,15 @@ export function ImportadorCsv({
       <p className="text-texto-secundario">
         Copia desde Excel las columnas <strong>Nombre, Correo, Área, ¿Atiende clientes?</strong> y{' '}
         <strong>¿Supervisa personal?</strong> (sí/no, separadas por comas), con una fila por
-        persona, y pégalas abajo. Primera fila:{' '}
-        <code>nombre,email,area,atiende_clientes,supervisa_personal</code>.
+        persona, y pégalas abajo.{' '}
+        <a
+          download="plantilla-empleados.csv"
+          href={`data:text/csv;charset=utf-8,${encodeURIComponent(PLANTILLA_CSV)}`}
+          className="font-medium text-marca-700 underline hover:text-marca-800"
+        >
+          Descarga la plantilla
+        </a>{' '}
+        para ver el formato exacto.
       </p>
       <select
         aria-label="Centro de trabajo destino"

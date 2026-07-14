@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { claseControl, CampoTexto } from '@/components/ui/input';
-import { autorizarEmpresa } from '@/lib/autorizacion';
-import { clienteAdmin } from '@/lib/supabase-admin';
+import { AvisoRolSinGestion } from '@/components/panel/aviso-rol';
+import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
+import { clienteSesion } from '@/lib/supabase-servidor';
 import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -19,9 +20,10 @@ export default async function PaginaPolitica({
 }) {
   const { empresa } = await params;
   const { error: errorFormulario } = await searchParams;
-  await autorizarEmpresa(empresa);
+  const acceso = await autorizarEmpresa(empresa);
+  if (!puedeGestionar(acceso.membresia)) return <AvisoRolSinGestion />;
 
-  const supabase = clienteAdmin();
+  const supabase = await clienteSesion();
   const [{ data: politicas }, { count: totalEmpleados }] = await Promise.all([
     supabase
       .from('policies')

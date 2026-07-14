@@ -2,7 +2,7 @@ import { accionAgregarConsultor, accionDesignarmeRD } from '@/acciones/panel';
 import { AgregarConsultor, DesignarmeRD } from '@/components/panel/formulario-equipo';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
-import { clienteAdmin } from '@/lib/supabase-admin';
+import { clienteSesion } from '@/lib/supabase-servidor';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +10,7 @@ export default async function PaginaEquipo({ params }: { params: Promise<{ empre
   const { empresa } = await params;
   const acceso = await autorizarEmpresa(empresa);
 
-  const supabase = clienteAdmin();
+  const supabase = await clienteSesion();
   const [{ data: roles }, { data: consultores }] = await Promise.all([
     supabase
       .from('role_assignments')

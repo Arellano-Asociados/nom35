@@ -8,6 +8,7 @@ import {
   registrarConsultaResultadoPropio,
   respuestasVigentes,
 } from '@/lib/flujo';
+import { ipCliente, permitido } from '@/lib/limites';
 import { PoliticaPendiente } from '@/components/responder/politica';
 import { Consentimiento } from '@/components/responder/consentimiento';
 import { Cuestionario, type SeccionUI } from '@/components/responder/cuestionario';
@@ -40,6 +41,21 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
   const ctx = await obtenerContexto(token);
 
   if (!ctx) {
+    // Superficie de fuerza bruta de tokens (Fase 2.5): cada intento fallido cuenta
+    // contra la IP; pasado el límite, ni siquiera se distingue "inválido" de nada.
+    const ip = await ipCliente();
+    const dentroDelLimite = await permitido(`token-miss:${ip}`, {
+      ventanaSegundos: 600,
+      maximo: 30,
+    });
+    if (!dentroDelLimite) {
+      return (
+        <Mensaje titulo="Demasiados intentos">
+          Recibimos demasiados intentos desde tu conexión. Espera unos minutos e intenta de nuevo
+          con el enlace de tu correo.
+        </Mensaje>
+      );
+    }
     return (
       <Mensaje titulo="Enlace inválido">
         Este enlace no corresponde a ningún cuestionario. Verifica que lo hayas copiado completo o

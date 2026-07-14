@@ -23,8 +23,10 @@ function construirCsp(nonce: string): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
-    // Supabase (API, Auth, Storage) es el único destino de red del cliente.
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co http://127.0.0.1:54321",
+    // Supabase (API, Auth, Storage) + Turnstile (anti-bot) son los únicos destinos de red.
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co http://127.0.0.1:54321 https://challenges.cloudflare.com",
+    // El reto de Turnstile vive en un iframe propio; nada más es enmarcable.
+    'frame-src https://challenges.cloudflare.com',
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",

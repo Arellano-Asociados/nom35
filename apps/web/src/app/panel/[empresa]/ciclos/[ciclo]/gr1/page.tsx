@@ -42,6 +42,8 @@ export default async function PaginaGR1({
     );
   }
 
+  // service_role legítimo (Fase 2.5): gr1_results no tiene GRANT para authenticated
+  // (regla 5). Guardia de RD arriba; el acceso queda en la superficie exclusiva del RD.
   const { data: canalizaciones } = await clienteAdmin()
     .from('gr1_results')
     .select(
@@ -70,11 +72,21 @@ export default async function PaginaGR1({
             <table className="w-full text-sm" data-testid="tabla-gr1">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs tracking-wide text-slate-500 uppercase">
-                  <th className="py-2 font-medium">Trabajador</th>
-                  <th className="py-2 font-medium">Área</th>
-                  <th className="py-2 font-medium">Fecha de resultado</th>
-                  <th className="py-2 font-medium">Canalización</th>
-                  <th className="py-2 font-medium">Fecha de canalización</th>
+                  <th scope="col" className="py-2 font-medium">
+                    Trabajador
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    Área
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    Fecha de resultado
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    Canalización
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    Fecha de canalización
+                  </th>
                 </tr>
               </thead>
               <tbody>
