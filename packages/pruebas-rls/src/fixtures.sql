@@ -175,6 +175,29 @@ insert into dissemination_records (id, company_id, cycle_id, version, summary, s
    '22222222-0000-4000-8000-000000000001')
 on conflict do nothing;
 
+-- Buzón de quejas (Fase 4): enlace por empresa + una queja con su evento por tenant.
+insert into complaint_boxes (company_id, token, token_hash) values
+  ('aaaaaaaa-0000-4000-8000-000000000001', 'token-buzon-a', 'hash-buzon-a'),
+  ('bbbbbbbb-0000-4000-8000-000000000001', 'token-buzon-b', 'hash-buzon-b')
+on conflict do nothing;
+
+insert into complaints (id, company_id, folio, folio_key_hash, category, body, is_identified) values
+  ('aaaaaaaa-0000-4000-8000-000000000141', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'QJ-FIXTURE-A', 'hash-clave-a', 'violencia_laboral', 'Contenido confidencial A', false),
+  ('bbbbbbbb-0000-4000-8000-000000000141', 'bbbbbbbb-0000-4000-8000-000000000001',
+   'QJ-FIXTURE-B', 'hash-clave-b', 'practicas_opuestas_eof', 'Contenido confidencial B', false)
+on conflict do nothing;
+
+insert into complaint_events
+  (id, company_id, complaint_id, from_status, to_status, note, actor_user_id) values
+  ('aaaaaaaa-0000-4000-8000-000000000151', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000141', 'recibida', 'en_revision', 'Nota A',
+   '11111111-0000-4000-8000-000000000001'),
+  ('bbbbbbbb-0000-4000-8000-000000000151', 'bbbbbbbb-0000-4000-8000-000000000001',
+   'bbbbbbbb-0000-4000-8000-000000000141', 'recibida', 'en_revision', 'Nota B',
+   '22222222-0000-4000-8000-000000000001')
+on conflict do nothing;
+
 insert into dissemination_receipts (id, company_id, dissemination_id, employee_id) values
   ('aaaaaaaa-0000-4000-8000-000000000131', 'aaaaaaaa-0000-4000-8000-000000000001',
    'aaaaaaaa-0000-4000-8000-000000000121', 'aaaaaaaa-0000-4000-8000-000000000021'),

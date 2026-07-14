@@ -642,6 +642,70 @@ describe('difusión de resultados (Fase 4): constancia sellada append-only', () 
   });
 });
 
+describe('buzón de quejas (Fase 4): el contenido tiene estándar de dato sensible', () => {
+  const QUEJA_A = 'aaaaaaaa-0000-4000-8000-000000000141';
+
+  it('NADIE del lado patronal toca complaints por la API: sin GRANT ni para su propio tenant', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(q, 'select count(*) n from complaints');
+      await esperarRechazo(
+        q,
+        `insert into complaints (company_id, folio, folio_key_hash, category, body)
+         values ($1, 'QJ-HACK', 'x', 'violencia_laboral', 'x')`,
+        [TENANT_A],
+      );
+      await esperarRechazo(q, `update complaints set status = 'cerrada' where id = $1`, [QUEJA_A]);
+      await esperarRechazo(q, 'select count(*) n from complaint_events');
+    });
+  });
+
+  it('el enlace del buzón: gestión y RD lo VEN (para difundirlo), nadie lo escribe como authenticated', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from complaint_boxes where company_id = $1', [TENANT_A]),
+      ).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from complaint_boxes where company_id = $1', [TENANT_B]),
+      ).toBe(0);
+      await esperarRechazo(
+        q,
+        `update complaint_boxes set token = 'robado', token_hash = 'robado' where company_id = $1`,
+        [TENANT_A],
+      );
+    });
+    await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from complaint_boxes where company_id = $1', [TENANT_A]),
+      ).toBe(1);
+    });
+  });
+
+  it('complaints: solo status es mutable; borrar está prohibido incluso para el dueño', async () => {
+    await comoPostgres(async (q) => {
+      const ok = await q(`update complaints set status = 'en_revision' where id = $1`, [QUEJA_A]);
+      expect(ok.rowCount).toBe(1);
+    });
+    await comoPostgres(async (q) => {
+      await expect(
+        q(`update complaints set body = 'texto alterado' where id = $1`, [QUEJA_A]),
+      ).rejects.toThrow(/solo puede actualizarse status/);
+    });
+    await comoPostgres(async (q) => {
+      await expect(
+        q(`update complaints set contact_name = 'reidentificado' where id = $1`, [QUEJA_A]),
+      ).rejects.toThrow(/solo puede actualizarse status/);
+    });
+    await comoPostgres(async (q) => {
+      await expect(q(`delete from complaints where id = $1`, [QUEJA_A])).rejects.toThrow(
+        /append-only/,
+      );
+    });
+    await comoPostgres(async (q) => {
+      await expect(q(`update complaint_events set note = 'x'`)).rejects.toThrow(/append-only/);
+    });
+  });
+});
+
 describe('limitador de tasa (Fase 2.5): solo la app', () => {
   it('ni authenticated ni anon pueden leer, escribir o ejecutar el limitador', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
