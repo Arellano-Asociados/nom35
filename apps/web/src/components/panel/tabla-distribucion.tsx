@@ -15,13 +15,17 @@ export function TablaDistribucion({
       <table className="w-full text-sm" data-testid={testid}>
         <thead>
           <tr className="border-b border-slate-200 text-left text-xs tracking-wide text-slate-500 uppercase">
-            <th className="py-2 pr-4 font-medium"> </th>
+            <th scope="col" className="py-2 pr-4 font-medium">
+              {' '}
+            </th>
             {NIVELES.map((nivel) => (
-              <th key={nivel} className="py-2 pr-4 font-medium">
+              <th key={nivel} scope="col" className="py-2 pr-4 font-medium">
                 <BadgeNivel nivel={nivel} />
               </th>
             ))}
-            <th className="py-2 text-right font-medium">n</th>
+            <th scope="col" className="py-2 text-right font-medium">
+              n
+            </th>
           </tr>
         </thead>
         <tbody>

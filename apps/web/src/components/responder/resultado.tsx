@@ -94,9 +94,15 @@ export async function Resultado({
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-xs font-medium uppercase tracking-wide text-slate-500">
-                  <th className="py-2 text-left font-medium">Categoría</th>
-                  <th className="py-2 pl-4 text-right font-medium">Puntaje</th>
-                  <th className="py-2 pl-4 text-right font-medium">Nivel</th>
+                  <th scope="col" className="py-2 text-left font-medium">
+                    Categoría
+                  </th>
+                  <th scope="col" className="py-2 pl-4 text-right font-medium">
+                    Puntaje
+                  </th>
+                  <th scope="col" className="py-2 pl-4 text-right font-medium">
+                    Nivel
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -124,9 +130,15 @@ export async function Resultado({
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-xs font-medium uppercase tracking-wide text-slate-500">
-                  <th className="py-2 text-left font-medium">Dominio</th>
-                  <th className="py-2 pl-4 text-right font-medium">Puntaje</th>
-                  <th className="py-2 pl-4 text-right font-medium">Nivel</th>
+                  <th scope="col" className="py-2 text-left font-medium">
+                    Dominio
+                  </th>
+                  <th scope="col" className="py-2 pl-4 text-right font-medium">
+                    Puntaje
+                  </th>
+                  <th scope="col" className="py-2 pl-4 text-right font-medium">
+                    Nivel
+                  </th>
                 </tr>
               </thead>
               <tbody>
