@@ -4,7 +4,7 @@ import { permitido } from '@/lib/limites';
 import { createHash } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
+import { autorizarEmpresa, empresaOperable, puedeGestionar } from '@/lib/autorizacion';
 import { registrarAuditoria } from '@/lib/auditoria';
 import {
   armarDatosInforme77,
@@ -204,6 +204,10 @@ export async function accionGenerarInforme79(
       error:
         'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
     };
+  // Fase 5: generar informes NUEVOS está bloqueado en suspensión; la DESCARGA de los
+  // existentes (accionUrlDescargaInforme) sigue permitida — la evidencia es del cliente.
+  const operable = empresaOperable(acceso.membresia);
+  if (!operable.ok) return { ok: false, error: operable.error };
 
   // Idempotencia práctica (mini-fase 3): un doble clic no archiva dos informes
   // idénticos en compliance_reports (cada uno es evidencia con hash).
@@ -572,6 +576,8 @@ export async function accionGenerarExpediente(
       error:
         'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
     };
+  const operable = empresaOperable(acceso.membresia);
+  if (!operable.ok) return { ok: false, error: operable.error };
 
   // Idempotencia práctica (mini-fase 3): mismo criterio que el informe de resultados.
   if (!(await permitido(`expediente:${cycleId}`, { ventanaSegundos: 300, maximo: 1 }))) {

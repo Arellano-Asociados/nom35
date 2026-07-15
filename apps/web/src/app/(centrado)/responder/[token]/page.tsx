@@ -84,6 +84,20 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
     );
   }
 
+  // Tenant no activo (Fase 5): ni responder NI consultar resultados — la pantalla es
+  // neutra a propósito (el trabajador no es parte del contrato en disputa) y no se
+  // registra ninguna respuesta.
+  if (!ctx.empresaActiva) {
+    return (
+      <Mensaje titulo="Cuestionario no disponible temporalmente">
+        <span data-testid="empresa-no-activa">
+          El cuestionario de tu centro de trabajo no está disponible por el momento. Consulta al
+          responsable de tu centro de trabajo.
+        </span>
+      </Mensaje>
+    );
+  }
+
   // La expiración se evalúa ANTES que "completado" (corrección de la auditoría v0):
   // antes, un enlace ya usado seguía mostrando el resultado de salud del trabajador
   // PARA SIEMPRE, incluso vencido — y el enlace vive en un correo que el patrón

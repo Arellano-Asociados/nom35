@@ -37,6 +37,10 @@ export interface Contexto {
   completado: boolean;
   consentido: boolean;
   filtrosCapturados: boolean;
+  /** false si el tenant está suspendido o en baja (Fase 5): el flujo del empleado corre
+   * con service_role, así que este check de capa app es el que impide que un tenant no
+   * activo siga acumulando datos de salud. */
+  empresaActiva: boolean;
   empleado: { nombre: string; atiendeClientes: boolean; supervisaPersonal: boolean };
   empresa: { razonSocial: string; versionAvisoPrivacidad: string };
 }
@@ -49,7 +53,7 @@ export async function obtenerContexto(token: string): Promise<Contexto | null> {
       `id, company_id, cycle_id, employee_id, questionnaire_id, expires_at, completed_at,
        filters_captured_at,
        employees (full_name, attends_customers, supervises_others),
-       companies (legal_name, privacy_notice_version),
+       companies (legal_name, privacy_notice_version, status),
        questionnaires (code)`,
     )
     .eq('token_hash', hashDeToken(token))
@@ -65,6 +69,7 @@ export async function obtenerContexto(token: string): Promise<Contexto | null> {
   const empresa = data.companies as unknown as {
     legal_name: string;
     privacy_notice_version: string | null;
+    status: string;
   };
   const guia = (data.questionnaires as unknown as { code: CodigoGuia }).code;
 
@@ -86,6 +91,7 @@ export async function obtenerContexto(token: string): Promise<Contexto | null> {
     completado: data.completed_at !== null,
     consentido: consentimiento !== null,
     filtrosCapturados: data.filters_captured_at !== null,
+    empresaActiva: empresa.status === 'active',
     empleado: {
       nombre: empleado.full_name,
       atiendeClientes: empleado.attends_customers,

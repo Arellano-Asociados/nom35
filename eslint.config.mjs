@@ -26,6 +26,48 @@ export default tseslint.config(
     },
   },
   {
+    // Fase 5, guardia (b) del spec §8: lib/soporte-datos es la allow-list de la vista
+    // de soporte y NO se consume fuera de app/admin/**/soporte/** — que la frontera no
+    // se cruce ni por accidente. (Los bloques posteriores que redefinen
+    // no-restricted-imports para archivos específicos repiten esta ruta.)
+    files: ['apps/web/src/**/*.{ts,tsx}'],
+    ignores: ['apps/web/src/app/admin/**/soporte/**', 'apps/web/src/lib/soporte-datos.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/lib/soporte-datos',
+              message:
+                'La allow-list de soporte solo se consume desde app/admin/**/soporte/** (spec Fase 5 §8).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Fase 5, guardia (a): las páginas de la vista de soporte consumen EXCLUSIVAMENTE
+    // lib/soporte-datos (columnas explícitas, jamás select('*')). service_role directo
+    // queda prohibido ahí — el camino pavimentado es angosto a propósito (§7.1).
+    files: ['apps/web/src/app/admin/**/soporte/**/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/lib/supabase-admin',
+              message:
+                'Las páginas de soporte consumen SOLO lib/soporte-datos (allow-list de columnas explícitas).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Fase 2.5 (auditoría v0, dimensión 10 [Alto]): el panel opera con el cliente de
     // SESIÓN para que RLS sea la defensa real. service_role (supabase-admin) queda
     // prohibido en las páginas del panel salvo en los consumidores de resultados
@@ -49,6 +91,10 @@ export default tseslint.config(
       'apps/web/src/app/panel/**/difusion/page.tsx',
       'apps/web/src/app/panel/**/buzon/page.tsx',
       'apps/web/src/app/panel/**/buzon/*/page.tsx',
+      // Fase 5 (spec §6.3): la página de soporte resuelve id→email del operador con una
+      // lectura puntual de platform_users (el tenant no puede leerla y el display JAMÁS
+      // confía en el query string). El grant en sí se INSERTA con la sesión (RLS).
+      'apps/web/src/app/panel/**/soporte/page.tsx',
     ],
     rules: {
       'no-restricted-imports': [
@@ -64,6 +110,55 @@ export default tseslint.config(
               name: '@/lib/difusion-datos',
               message:
                 'Este módulo agrega con service_role: solo las páginas exceptuadas en eslint.config.mjs pueden consumirlo.',
+            },
+            // Fase 5, guardia (c): las fronteras plataforma↔tenant no se cruzan.
+            {
+              name: '@/lib/autorizacion-plataforma',
+              message:
+                'La identidad de plataforma no entra al panel del tenant (Fase 5 §8): las fronteras no se cruzan ni por accidente.',
+            },
+            {
+              name: '@/lib/soporte-datos',
+              message:
+                'La allow-list de soporte solo se consume desde app/admin/**/soporte/** (spec Fase 5 §8).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Fase 5, guardia (c) para las páginas del panel EXCEPTUADAS del bloque anterior
+    // (consumidores de resultados): también ellas tienen prohibido cruzar la frontera
+    // de plataforma. (Este bloque redefine no-restricted-imports para esos archivos,
+    // que conservan su permiso de supabase-admin/difusion-datos.)
+    files: [
+      'apps/web/src/app/panel/**/dashboard/page.tsx',
+      'apps/web/src/app/panel/**/acciones/page.tsx',
+      'apps/web/src/app/panel/**/gr1/page.tsx',
+      'apps/web/src/app/panel/**/individual/page.tsx',
+      'apps/web/src/app/panel/**/individual/*/page.tsx',
+      'apps/web/src/app/panel/**/cuestionarios/*/resultados/page.tsx',
+      'apps/web/src/app/panel/**/configuracion/page.tsx',
+      'apps/web/src/app/panel/**/difusion/page.tsx',
+      'apps/web/src/app/panel/**/buzon/page.tsx',
+      'apps/web/src/app/panel/**/buzon/*/page.tsx',
+      'apps/web/src/app/panel/**/soporte/page.tsx',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/lib/autorizacion-plataforma',
+              message:
+                'La identidad de plataforma no entra al panel del tenant (Fase 5 §8): las fronteras no se cruzan ni por accidente.',
+            },
+            {
+              name: '@/lib/soporte-datos',
+              message:
+                'La allow-list de soporte solo se consume desde app/admin/**/soporte/** (spec Fase 5 §8).',
             },
           ],
         },

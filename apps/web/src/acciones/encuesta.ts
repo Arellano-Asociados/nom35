@@ -22,6 +22,8 @@ export interface ContextoEncuesta {
   definicion: DefinicionCuestionario;
   expiraEl: string;
   completado: boolean;
+  /** false si el tenant está suspendido o en baja (Fase 5): mismo check que el flujo oficial. */
+  empresaActiva: boolean;
   empleadoNombre: string;
 }
 
@@ -31,6 +33,7 @@ export async function contextoEncuesta(token: string): Promise<ContextoEncuesta 
     .select(
       `id, company_id, questionnaire_id, expires_at, completed_at,
        employees (full_name),
+       companies (status),
        custom_questionnaires (title, definition, status)`,
     )
     .eq('token_hash', hashDeToken(token))
@@ -49,6 +52,7 @@ export async function contextoEncuesta(token: string): Promise<ContextoEncuesta 
     definicion: cuestionario.definition,
     expiraEl: data.expires_at,
     completado: data.completed_at !== null,
+    empresaActiva: (data.companies as unknown as { status: string }).status === 'active',
     empleadoNombre: (data.employees as unknown as { full_name: string }).full_name,
   };
 }
@@ -66,6 +70,7 @@ async function contextoActivo(token: string): Promise<ContextoEncuesta | { error
     await permitido(`token-miss:${ip}`, { ventanaSegundos: 600, maximo: 30 });
     return { error: 'Enlace inválido' };
   }
+  if (!ctx.empresaActiva) return { error: 'Cuestionario no disponible temporalmente' };
   if (ctx.completado) return { error: 'Este cuestionario ya fue enviado' };
   if (new Date(ctx.expiraEl).getTime() < Date.now()) return { error: 'Este enlace ha expirado' };
   return ctx;

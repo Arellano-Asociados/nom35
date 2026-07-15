@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   const supabase = clienteAdmin();
   const { data: ciclos } = await supabase
     .from('compliance_cycles')
-    .select('id, company_id, reminder_interval_days, companies (legal_name)')
+    .select('id, company_id, reminder_interval_days, companies (legal_name, status)')
     .not('reminder_interval_days', 'is', null);
 
   const ahora = new Date().toISOString();
@@ -32,6 +32,11 @@ export async function GET(request: NextRequest) {
   let totalEnviados = 0;
 
   for (const ciclo of ciclos ?? []) {
+    // Fase 5: un tenant no activo no genera NI UN correo (spec §2.2.3). Los avisos de
+    // retención de la baja NO pasan por este cron: tienen su job propio (§2.5).
+    const empresa = ciclo.companies as unknown as { legal_name: string; status: string };
+    if (empresa.status !== 'active') continue;
+
     const ultimo = await ultimoRecordatorioDe(ciclo.id);
     if (
       !debeRecordar({ intervaloDias: ciclo.reminder_interval_days, ultimoEnvio: ultimo, ahora })
@@ -54,7 +59,7 @@ export async function GET(request: NextRequest) {
     totalEnviados += await enviarRecordatoriosDeCiclo({
       companyId: ciclo.company_id,
       cicloId: ciclo.id,
-      razonSocial: (ciclo.companies as unknown as { legal_name: string }).legal_name,
+      razonSocial: empresa.legal_name,
       actorUserId: ACTOR_SISTEMA,
     });
     procesados++;

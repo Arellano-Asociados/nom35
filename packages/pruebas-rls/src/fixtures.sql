@@ -9,6 +9,9 @@
 --   22222222-0000-4000-8000-000000000001  admin_org de B
 --   22222222-0000-4000-8000-000000000002  empleado B1 (con cuenta)
 --   33333333-0000-4000-8000-000000000001  consultor sin asignaciones
+--   44444444-0000-4000-8000-000000000001  operador de plataforma (sin membresías de tenant)
+--   55555555-0000-4000-8000-000000000001  admin_org de C (tenant SUSPENDIDO)
+--   55555555-0000-4000-8000-000000000002  empleado C1 (con cuenta, tenant suspendido)
 
 insert into companies (id, legal_name) values
   ('aaaaaaaa-0000-4000-8000-000000000001', 'Tenant A, S.A. de C.V.'),
@@ -227,6 +230,67 @@ insert into compliance_cycles
   ('aaaaaaaa-0000-4000-8000-000000000181', 'aaaaaaaa-0000-4000-8000-000000000001',
    'aaaaaaaa-0000-4000-8000-000000000012', 'Evento ATS — fixture', current_date,
    'Eval A', 'CED-A-1', 'aaaaaaaa-0000-4000-8000-000000000171')
+on conflict do nothing;
+
+-- Tenant C SUSPENDIDO (Fase 5, amenaza 11): admin propio, un centro, un empleado con
+-- cuenta y una asignación vigente — todo para probar que la escritura muere y la
+-- lectura sobrevive.
+insert into companies (id, legal_name, status, status_changed_at, suspension_reason) values
+  ('cccccccc-0000-4000-8000-000000000001', 'Tenant C Suspendido, S.A. de C.V.',
+   'suspended', now(), 'impago (fixture)')
+on conflict do nothing;
+
+insert into work_centers (id, company_id, name, headcount) values
+  ('cccccccc-0000-4000-8000-000000000011', 'cccccccc-0000-4000-8000-000000000001', 'Centro C1', 40)
+on conflict do nothing;
+
+insert into role_assignments (id, company_id, auth_user_id, role, is_designated_responsible) values
+  ('cccccccc-0000-4000-8000-000000000031', 'cccccccc-0000-4000-8000-000000000001',
+   '55555555-0000-4000-8000-000000000001', 'admin_org', false)
+on conflict do nothing;
+
+insert into employees (id, company_id, work_center_id, auth_user_id, full_name, email) values
+  ('cccccccc-0000-4000-8000-000000000021', 'cccccccc-0000-4000-8000-000000000001',
+   'cccccccc-0000-4000-8000-000000000011', '55555555-0000-4000-8000-000000000002',
+   'Empleado C1', 'c1@tenant-c.mx')
+on conflict do nothing;
+
+insert into compliance_cycles
+  (id, company_id, work_center_id, name, date_start, evaluator_name, evaluator_license) values
+  ('cccccccc-0000-4000-8000-000000000051', 'cccccccc-0000-4000-8000-000000000001',
+   'cccccccc-0000-4000-8000-000000000011', 'Ciclo C 2026', current_date - 10, 'Eval C', 'CED-C-1')
+on conflict do nothing;
+
+insert into questionnaire_assignments
+  (id, company_id, cycle_id, employee_id, questionnaire_id, token_hash, expires_at) values
+  ('cccccccc-0000-4000-8000-000000000061', 'cccccccc-0000-4000-8000-000000000001',
+   'cccccccc-0000-4000-8000-000000000051', 'cccccccc-0000-4000-8000-000000000021',
+   (select id from questionnaires where code = 'GR-II'), 'hash-c1', now() + interval '30 days')
+on conflict do nothing;
+
+-- Operador de plataforma (Fase 5): activo, SIN membresías de tenant (amenaza 9 del spec).
+insert into platform_users (id, auth_user_id, email, status, display_name) values
+  ('dddddddd-0000-4000-8000-000000000001', '44444444-0000-4000-8000-000000000001',
+   'operador@fixture.constata.mx', 'active', 'Operadora Fixture')
+on conflict do nothing;
+
+-- Grants de soporte (Fase 5): vigente, expirado y revocado en el tenant A, todos
+-- nominativos a la operadora fixture y otorgados por el admin de A.
+insert into support_access_grants
+  (id, company_id, operator_user_id, operator_email, granted_by_user_id, reason,
+   created_at, expires_at, revoked_at, revoked_by_user_id) values
+  ('aaaaaaaa-0000-4000-8000-000000000201', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'dddddddd-0000-4000-8000-000000000001', 'operador@fixture.constata.mx',
+   '11111111-0000-4000-8000-000000000001', 'Soporte fixture vigente',
+   now(), now() + interval '24 hours', null, null),
+  ('aaaaaaaa-0000-4000-8000-000000000202', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'dddddddd-0000-4000-8000-000000000001', 'operador@fixture.constata.mx',
+   '11111111-0000-4000-8000-000000000001', 'Soporte fixture expirado',
+   now() - interval '3 days', now() - interval '2 days', null, null),
+  ('aaaaaaaa-0000-4000-8000-000000000203', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'dddddddd-0000-4000-8000-000000000001', 'operador@fixture.constata.mx',
+   '11111111-0000-4000-8000-000000000001', 'Soporte fixture revocado',
+   now(), now() + interval '24 hours', now(), '11111111-0000-4000-8000-000000000001')
 on conflict do nothing;
 
 insert into dissemination_receipts (id, company_id, dissemination_id, employee_id) values

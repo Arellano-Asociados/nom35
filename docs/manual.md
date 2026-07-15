@@ -15,7 +15,8 @@ el cuestionario. No requiere conocimientos técnicos.
 3. [Guía del Administrador](#3-guía-del-administrador)
 4. [Guía del empleado](#4-guía-del-empleado)
 5. [Prueba end-to-end en local](#5-prueba-end-to-end-en-local)
-6. [Preguntas frecuentes](#6-preguntas-frecuentes)
+6. [Portal de operación de plataforma (equipo Constata)](#6-portal-de-operación-de-plataforma-equipo-constata)
+7. [Preguntas frecuentes](#7-preguntas-frecuentes)
 
 ## 1. Qué es y cómo funciona
 
@@ -375,6 +376,28 @@ Notas sobre esta tabla, derivadas directamente de cómo la plataforma aplica per
   cuestionario. Esa tabla ni siquiera concede permiso de lectura a usuarios autenticados a
   nivel de base de datos.
 
+### 3.13 Acceso de soporte de Constata (tú tienes el control)
+
+Nadie del equipo de Constata puede ver la información de tu organización por defecto — ni
+siquiera para darte soporte. Cuando el equipo necesite revisar algo contigo:
+
+1. **Te llega un correo** con la solicitud: quién (una persona concreta, con nombre y
+   correo), para qué (el motivo) y por cuánto tiempo. El correo NO otorga nada: solo lleva
+   un enlace a la sección **Soporte** de tu panel.
+2. **Tú decides en tu panel.** El formulario llega pre-llenado y te muestra el alcance
+   completo antes de confirmar: el acceso es de **solo lectura** (estructura, estados de
+   participación, conteos, bitácora), exclusivo para esa persona, con vigencia máxima de
+   72 horas (24 por defecto) y revocable en un clic. Solo un Administrador de la
+   organización puede otorgarlo.
+3. **Lo que el soporte NUNCA ve**, con o sin tu permiso: respuestas de cuestionarios,
+   resultados individuales, registros del 5.8 ni el contenido de quejas del buzón. Estas
+   reglas no tienen excepciones ni "modo especial".
+4. **Todo queda en tu bitácora**: el otorgamiento, cada página que la persona consulta y la
+   revocación. Mientras el acceso esté vigente, tu panel lo muestra con un aviso permanente.
+
+Si nadie de tu organización otorga el acceso, el soporte no entra: no existe ningún camino
+de excepción del lado de Constata.
+
 ## 4. Guía del empleado
 
 Si te llegó un correo pidiéndote responder el cuestionario NOM-035, esto es todo lo que
@@ -460,7 +483,34 @@ start`, `.env.local`, `pnpm demo:seed`, `pnpm --filter @nom35/web dev`).
    una fila nueva cada vez, con la misma persona (`employee_id` en `details`) — la prueba de
    que ninguna consulta de un resultado sensible pasa sin dejar rastro.
 
-## 6. Preguntas frecuentes
+## 6. Portal de operación de plataforma (equipo Constata)
+
+Superficie exclusiva del equipo de operación, en `/admin`. No existe registro público: el
+primer operador se crea con `pnpm operador:crear` (bootstrap manual por entorno) y los
+siguientes por invitación desde `/admin/operadores`. Reglas de la casa:
+
+- **Identidad separada.** Una cuenta de operador no puede pertenecer a ninguna empresa (y
+  viceversa): la base de datos rechaza la identidad dual. La autorización se resuelve por
+  fila real en cada petición — deshabilitar a un operador surte efecto inmediato.
+- **MFA obligatorio y fresco.** El portal exige contraseña + código TOTP siempre; sin app
+  autenticadora no hay acceso (el alta la fuerza), y cada 4 horas pide re-verificar.
+- **Organizaciones.** Alta operada (crea la empresa e invita a su primer administrador por
+  correo), suspensión con motivo (el cliente queda en solo lectura CON descarga de su
+  evidencia; sus empleados no pueden responder y no se le envía ningún correo),
+  reactivación y baja con retención de 90 días (avisos automáticos los días 1, 30, 60 y 85
+  para que el cliente descargue su expediente). La purga física es un script manual
+  (`scripts/purgar-empresa.mjs`) que exige el plazo vencido, los 4 avisos probados y deja
+  un acta con inventario y huellas que sobrevive a la eliminación.
+- **Soporte solo con consentimiento.** El operador SOLICITA acceso (correo con deep link al
+  panel del cliente); solo un admin del cliente lo otorga, es nominativo (el grant de una
+  persona no abre nada a otra), de solo lectura, expira y es revocable. Cada página
+  consultada queda en la bitácora del cliente. Sin consentimiento no hay soporte dentro
+  del tenant — sin excepciones.
+- **Todo auditado.** Cada acto de plataforma queda en la bitácora de plataforma
+  (`/admin/bitacora`, filtrable) y, si afecta a una organización, también en la bitácora de
+  esa organización.
+
+## 7. Preguntas frecuentes
 
 **¿Por qué no puedo ver las respuestas individuales de un empleado?**
 Porque la norma trata esas respuestas como datos personales sensibles de salud, y la

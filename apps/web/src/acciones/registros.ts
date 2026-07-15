@@ -2,7 +2,7 @@
 
 import { createHash } from 'node:crypto';
 import { registrarAuditoriaEstricta } from '@/lib/auditoria';
-import { autorizarEmpresa } from '@/lib/autorizacion';
+import { autorizarEmpresa, empresaOperable } from '@/lib/autorizacion';
 import { fechaEsMx } from '@/lib/fechas';
 import {
   csvRegistro58a,
@@ -48,6 +48,10 @@ export async function accionRegistro58a(
 ): Promise<ResultadoRegistro> {
   const acceso = await autorizarEmpresa(companyId);
   if (!acceso.membresia.esResponsableDesignado) return { ok: false, error: SOLO_RD };
+  // Fase 5: genera evidencia nueva con service_role — bloqueado en suspensión (la
+  // excepción clínica es SOLO la canalización, no la generación de registros).
+  const operable = empresaOperable(acceso.membresia);
+  if (!operable.ok) return { ok: false, error: operable.error };
 
   // service_role legítimo: risk_results no tiene GRANT para authenticated (regla 5);
   // el único camino al dato individual es esta app, con guardia de RD y auditoría.
@@ -121,6 +125,8 @@ export async function accionRegistro58a(
 export async function accionRegistro58c(companyId: string): Promise<ResultadoRegistro> {
   const acceso = await autorizarEmpresa(companyId);
   if (!acceso.membresia.esResponsableDesignado) return { ok: false, error: SOLO_RD };
+  const operable = empresaOperable(acceso.membresia);
+  if (!operable.ok) return { ok: false, error: operable.error };
 
   // service_role legítimo: gr1_results no tiene GRANT para authenticated (regla 5).
   const supabase = clienteAdmin();

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
+import { autorizarEmpresa, empresaOperable, puedeGestionar } from '@/lib/autorizacion';
 import { registrarAuditoria } from '@/lib/auditoria';
 import { plantillaCorreo, proveedorCorreo } from '@/lib/correo';
 import { fechaEsMx } from '@/lib/fechas';
@@ -357,6 +357,10 @@ export async function accionDistribuir(
       error:
         'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
     };
+  // Fase 5: la distribución corre con service_role (tokens + correos); este check de
+  // capa app es su única guardia de suspensión.
+  const operable = empresaOperable(acceso.membresia);
+  if (!operable.ok) return { ok: false, error: operable.error };
 
   const supabase = clienteAdmin();
   const { data: ciclo } = await supabase

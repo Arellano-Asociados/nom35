@@ -187,27 +187,32 @@ tiene derecho a ver en su propia bitácora que fue suspendido):
 
 ### 2.2 Enforcement — BD-primero sin recrear las ~18 políticas
 
+> **RESUELTO EN IMPLEMENTACIÓN (2026-07-14, acordado con el propietario).** El mecanismo
+> originalmente especificado (inyectar `tenant_activo` DENTRO de
+> `gestiona_tenant`/`es_admin_org`) era inviable: la verificación en `pg_policies` mostró
+> **26 políticas de SELECT** que también delegan en esos helpers — la inyección habría
+> dejado al tenant suspendido sin LECTURA, contra la decisión sellada 2. Mecanismo
+> sustituto con la misma intención BD-primero: **políticas RESTRICTIVE por comando de
+> escritura** (INSERT/UPDATE/DELETE) sobre toda tabla de tenant, generadas en un DO-loop
+> (`as restrictive … using/with check (app.tenant_activo(company_id))`). Postgres las
+> combina con AND sobre las permisivas existentes: helpers y políticas intactos, lecturas
+> intactas, toda escritura de tenant no activo muere con 42501. Consecuencias: (a) toda
+> tabla de tenant NUEVA (p. ej. `support_access_grants`, §6.2) debe añadir sus propias
+> RESTRICTIVE en su migración — la nota d de §6.2 se cumple así, no vía `es_admin_org`;
+> (b) `companies` lleva su RESTRICTIVE de UPDATE aparte (`tenant_activo(id)`).
+
 ```sql
 create function app.tenant_activo(cid uuid) returns boolean
   language sql stable security definer set search_path = public
   as $$ select exists (select 1 from companies where id = cid and status = 'active') $$;
-
--- create or replace de app.gestiona_tenant y app.es_admin_org: '... and app.tenant_activo(cid)'
--- app.es_mi_tenant NO se toca: la LECTURA sobrevive a la suspensión.
 ```
 
-Las políticas de escritura ya delegan en esas funciones `security definer`: inyectar el
-estado DENTRO de ellas hace que todas las políticas de INSERT/UPDATE/DELETE hereden el
-bloqueo (42501 en BD — "RLS es la defensa real", Fase 2.5) y las de SELECT queden intactas
-→ **suspendido = solo lectura a nivel de BD** con una migración de ~30 líneas.
-
-⚠️ Paso obligatorio al implementar: `grep` de TODAS las políticas de escritura existentes
-para confirmar que ninguna usa `es_mi_tenant` a secas ni `es_responsable_designado` como
-única guardia de escritura; la que lo haga se recrea individualmente (costo acotado a las
-excepciones reales). OJO: el UPDATE de canalizaciones del RD (`gr1_results`) es una
-escritura del RD — decidir en implementación si la canalización clínica debe sobrevivir a
-la suspensión (recomendación: SÍ sobrevive — es atención a la salud del trabajador, no
-operación comercial; se documenta como excepción explícita).
+Excepciones documentadas del candado: `platform_audit_log` (tabla de plataforma, su
+`company_id` es dato, no tenancy) y `gr1_results` — la canalización clínica del RD
+**SOBREVIVE a la suspensión** (atención a la salud del trabajador, no operación
+comercial; recomendación del spec aceptada). Amenaza 12 cerrada con GRANT por columnas:
+`revoke update on companies from authenticated; grant update (legal_name, rfc,
+privacy_notice_version) …` — el estado es exclusivo de service_role.
 
 **Capa app encima (caminos que RLS no cubre por ser service_role):**
 

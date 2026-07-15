@@ -197,6 +197,28 @@ de cumplimiento obligatorio»). El dato «área» ya se captura; ampliar la fich
 de producto, no un requisito. El resto de la dimensión 9 queda **cerrado**: las únicas deudas
 abiertas del documento son las de dependencia externa (ver «Deuda abierta reconocida»).
 
+## Remediación — Fase 5 «portal de plataforma» (2026-07-14, rama `fase-5-implementacion`)
+
+Ataca la dimensión 10 en su hallazgo estructural de OPERACIÓN: hasta ahora administrar la
+plataforma (alta de organizaciones, flags, soporte, suspensiones) era **SQL a mano con
+service_role** — inviable e inauditable para la meta de ~200 organizaciones. Spec con 7
+decisiones selladas y modelo de amenazas (15 vectores + riesgo residual declarado) en
+`docs/superpowers/specs/2026-07-14-fase-5-portal-plataforma-design.md`. Validación al
+cierre: motor 59/59, web 178/178 (creció de 129), **RLS 85/85** (creció de 64), **E2E
+22/22** (spec nuevo `portal-plataforma.spec.ts`).
+
+| Frente                                                                                                                            | Estado                                                                                                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Identidad de plataforma (operadores con ciclo de vida, exclusión dual operador↔tenant en BD, MFA TOTP FORZADO con frescura de 4h) | ✅ `/admin` con fila real por `auth.uid()` (sin claim JWT); `platform_audit_log` append-only separada del tenant                                                                                       |
+| Estados de organización (suspensión = solo lectura EN BD, baja con retención de 90 días, purga manual con acta-inventario)        | ✅ Políticas RESTRICTIVE por comando de escritura (las lecturas y descargas del cliente sobreviven — decisión 2); job propio de retención con avisos 1/30/60/85 probados en bitácora ANTES de enviarse |
+| Soporte con consentimiento NOMINATIVO del cliente (grant por deep link, ≤72h, revocable, SIN break-glass)                         | ✅ `autorizarSoporte` compara el operador de la sesión contra el del grant (amenaza 15) y deja evento estricto POR PÁGINA en la bitácora del tenant; allow-list `soporte-datos` + lint bidireccional   |
+| Métricas cross-tenant solo operativas                                                                                             | ✅ Vistas SQL con GRANT exclusivo a service_role; snapshot de columnas en la suite RLS — ni una columna derivada de salud, ni con supresión                                                            |
+
+**Riesgo residual declarado (se mantiene):** `service_role` sigue siendo omnipotente; la
+mitigación es el camino pavimentado angosto (allow-list + lint + vistas + doble bitácora).
+El endurecimiento futuro barato (rol Postgres `plataforma_lector`) queda preparado por las
+vistas de §5 del spec.
+
 ## Los 9 hallazgos críticos
 
 ### C-01 · Los cuestionarios no contienen las preguntas oficiales (NOM-035 · Código)

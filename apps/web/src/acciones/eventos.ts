@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { registrarAuditoria } from '@/lib/auditoria';
-import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
+import { autorizarEmpresa, empresaOperable, puedeGestionar } from '@/lib/autorizacion';
 import { plantillaCorreo, proveedorCorreo } from '@/lib/correo';
 import { fechaEsMx } from '@/lib/fechas';
 import { plantillaVigente, renderPlantilla } from '@/lib/plantillas';
@@ -72,6 +72,9 @@ export async function accionDistribuirEvento(
       error:
         'Tu rol no permite esta acción. Pídele al Administrador de la organización que la realice o que te asigne el permiso.',
     };
+  // Fase 5: distribución con service_role — guardia de suspensión en capa app.
+  const operable = empresaOperable(acceso.membresia);
+  if (!operable.ok) return { ok: false, error: operable.error };
   if (empleadoIds.length === 0)
     return { ok: false, error: 'Selecciona al menos un trabajador expuesto al acontecimiento.' };
 

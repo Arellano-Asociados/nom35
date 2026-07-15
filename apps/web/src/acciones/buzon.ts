@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { registrarAuditoria } from '@/lib/auditoria';
-import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
+import { autorizarEmpresa, empresaOperable, puedeGestionar } from '@/lib/autorizacion';
 import { ESTADOS_QUEJA, validarQueja, type DatosQueja } from '@/lib/buzon';
 import { generarClave, generarFolio } from '@/lib/buzon-folio';
 import { proveedorCorreo, plantillaCorreo } from '@/lib/correo';
@@ -200,6 +200,9 @@ const SIN_PERMISOS =
 export async function accionCrearORotarEnlaceBuzon(companyId: string): Promise<ResultadoPanel> {
   const acceso = await autorizarEmpresa(companyId);
   if (!puedeGestionar(acceso.membresia)) return { ok: false, error: SIN_PERMISOS };
+  // Fase 5: escribe con service_role — guardia de suspensión en capa app.
+  const operable = empresaOperable(acceso.membresia);
+  if (!operable.ok) return { ok: false, error: operable.error };
 
   const token = generarToken();
   const guardado = await escrituraOk(

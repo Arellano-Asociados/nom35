@@ -47,8 +47,13 @@ export async function middleware(request: NextRequest) {
   respuesta.headers.set('Content-Security-Policy', csp);
 
   // El flujo del empleado (/, /responder/…) no necesita sesión: su capacidad es el token.
+  // /admin y /cuenta (Fase 5) también necesitan el refresco de sesión: sus páginas de
+  // servidor leen la sesión de las cookies.
   const esRutaDePanel =
-    request.nextUrl.pathname.startsWith('/panel') || request.nextUrl.pathname === '/ingresar';
+    request.nextUrl.pathname.startsWith('/panel') ||
+    request.nextUrl.pathname.startsWith('/admin') ||
+    request.nextUrl.pathname.startsWith('/cuenta') ||
+    request.nextUrl.pathname === '/ingresar';
   if (!esRutaDePanel) return respuesta;
 
   const supabase = createServerClient(

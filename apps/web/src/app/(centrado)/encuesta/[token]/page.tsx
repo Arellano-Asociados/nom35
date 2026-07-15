@@ -40,6 +40,16 @@ export default async function PaginaEncuesta({ params }: { params: Promise<{ tok
     );
   }
 
+  // Tenant no activo (Fase 5): sin capturas nuevas, pantalla neutra.
+  if (!ctx.empresaActiva) {
+    return (
+      <Mensaje titulo="Cuestionario no disponible temporalmente">
+        El cuestionario de tu centro de trabajo no está disponible por el momento. Consulta al
+        responsable de tu centro de trabajo.
+      </Mensaje>
+    );
+  }
+
   if (new Date(ctx.expiraEl).getTime() < Date.now()) {
     return (
       <Mensaje titulo="Enlace expirado">

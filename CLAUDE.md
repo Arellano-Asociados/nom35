@@ -97,7 +97,13 @@ Estas reglas no admiten excepciones, flags de configuración ni "casos especiale
 pnpm exec supabase db reset              # Re-aplica migraciones + seeds desde cero
 pnpm --filter @nom35/pruebas-rls test:rls # Aislamiento multi-tenant (requiere BD local arriba)
 pnpm demo:seed                            # Siembra datos de demo (guion en docs/demo.md)
+pnpm operador:crear <correo> <contraseña> # Bootstrap del primer operador de /admin (una vez por entorno)
+node scripts/purgar-empresa.mjs <id>      # Purga física tras retención (acta-inventario; doble confirmación)
 ```
+
+OJO local: si GoTrue responde `mfa_totp_enroll_not_enabled` pese a `[auth.mfa.totp]` en
+`config.toml`, el contenedor de auth es viejo: `supabase stop && supabase start` (el
+`db reset` no recrea el contenedor de auth).
 
 Los estándar (`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm exec supabase start`) están en
 los scripts del `package.json`. Manual de uso completo (guías de Administrador y de empleado,
@@ -139,8 +145,18 @@ Bitácora detallada de lo construido en cada uno: **`docs/historia-milestones.md
 | F3        | Configurabilidad (cuestionarios propios, plantillas, cron)   | ✅                                                       |
 | F4        | Ciclo normativo completo (difusión, buzón, programa 8.3–8.5) | ✅ (2026-07-14)                                          |
 | F4.5      | Remates normativos (eventos ATS, informe 7.7, registros 5.8) | ✅ (2026-07-14) — deuda normativa VACÍA                  |
+| F5        | Portal super-admin de plataforma (/admin)                    | ✅ (2026-07-14) — v0.7.0                                 |
 
-Estado de validación tras F4.5: motor 59/59, web 129/129, RLS 64/64, E2E 19/19.
+Estado de validación tras F5: motor 59/59, web 178/178, RLS 85/85, E2E 22/22.
+
+**Frontera plataforma/tenant (F5, no reabrir):** la identidad de plataforma es una FILA en
+`platform_users` consultada por `auth.uid()` (sin claim JWT, sin `app.es_plataforma()` en
+BD — a propósito); el acceso de plataforma a datos de tenant es service_role tras helpers
+fail-closed (`autorizarPlataforma`/`autorizarSoporte`). Suspensión = solo lectura vía
+políticas RESTRICTIVE por comando de escritura (toda tabla de tenant NUEVA debe añadir las
+suyas en su migración). El soporte exige grant NOMINATIVO del cliente, SIN break-glass
+(decisión sellada). La purga física es solo por `scripts/purgar-empresa.mjs`: sin acta con
+inventario escrita y verificada no hay purga.
 
 **El informe de resultados es del numeral 7.7.** El 7.9 es la PERIODICIDAD bienal: se usa
 solo en la alerta de reevaluación y en la conclusión de repetir cada dos años.
@@ -162,6 +178,12 @@ histórica protegida por CHECK), no el numeral: no se renombra.
 - Seed de demo: primera corrida real verificada (2026-07-12) — ver `docs/demo.md`. Los
   tokens de asignaciones pendientes solo se imprimen en la primera corrida (re-sembrar
   requiere `db reset`).
+- **Limitador de tasa en fail-open permanente (detectado al cierre de F5, PREEXISTENTE):**
+  `lib/limites.ts` llama `rpc('golpe_limite')` pero la función solo existe como
+  `app.golpe_limite` y PostgREST solo expone `public` (`config.toml`), así que TODA llamada
+  cae en el fail-open documentado. Arreglo: wrapper `public.golpe_limite` (solo
+  service_role) o exponer el esquema con GRANTs mínimos + test que ejercite el camino
+  cerrado vía REST.
 
 ### Dependencias externas abiertas
 
