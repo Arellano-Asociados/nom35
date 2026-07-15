@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { ResumenIA } from '@/components/panel/resumen-ia';
 import { TablaDistribucion } from '@/components/panel/tabla-distribucion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { FLAGS, flagActiva } from '@/lib/flags';
+import { ultimoBorrador } from '@/lib/ia/borradores';
+import { proveedorIA } from '@/lib/ia/proveedor';
 import { clienteSesion } from '@/lib/supabase-servidor';
 import { exigePrograma, type CriteriosTomaAcciones } from '@/lib/programa';
 import { cicloActivoDe, clasificarVencimiento, type CicloTablero } from '@/lib/tablero';
@@ -172,6 +176,13 @@ export async function DashboardEjecutivo({ empresa }: { empresa: string }) {
     proximo: 'Próxima',
   };
 
+  // Franja de resumen ejecutivo IA: solo con el flag activo (spec §5).
+  const iaActiva = await flagActiva(empresa, FLAGS.iaAsistida, false);
+  const borradorResumen = iaActiva
+    ? await ultimoBorrador(empresa, activo.id, 'resumen_ejecutivo')
+    : null;
+  const iaDisponible = proveedorIA().disponible();
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -320,6 +331,15 @@ export async function DashboardEjecutivo({ empresa }: { empresa: string }) {
           )}
         </CardContent>
       </Card>
+
+      {iaActiva && (
+        <ResumenIA
+          companyId={empresa}
+          cycleId={activo.id}
+          disponible={iaDisponible}
+          borrador={borradorResumen}
+        />
+      )}
     </div>
   );
 }
