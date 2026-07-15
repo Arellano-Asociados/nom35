@@ -24,7 +24,12 @@ export default async function PaginaEncuesta({ params }: { params: Promise<{ tok
   if (!ctx) {
     // Misma defensa anti-adivinación que el flujo oficial (Fase 2.5).
     const ip = await ipCliente();
-    const dentro = await permitido(`token-miss:${ip}`, { ventanaSegundos: 600, maximo: 30 });
+    // fail-closed: único freno a la adivinación de tokens.
+    const dentro = await permitido(`token-miss:${ip}`, {
+      ventanaSegundos: 600,
+      maximo: 30,
+      alFallar: 'rechazar',
+    });
     if (!dentro) {
       return (
         <Mensaje titulo="Demasiados intentos">

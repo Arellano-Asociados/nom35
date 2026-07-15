@@ -178,12 +178,10 @@ histórica protegida por CHECK), no el numeral: no se renombra.
 - Seed de demo: primera corrida real verificada (2026-07-12) — ver `docs/demo.md`. Los
   tokens de asignaciones pendientes solo se imprimen en la primera corrida (re-sembrar
   requiere `db reset`).
-- **Limitador de tasa en fail-open permanente (detectado al cierre de F5, PREEXISTENTE):**
-  `lib/limites.ts` llama `rpc('golpe_limite')` pero la función solo existe como
-  `app.golpe_limite` y PostgREST solo expone `public` (`config.toml`), así que TODA llamada
-  cae en el fail-open documentado. Arreglo: wrapper `public.golpe_limite` (solo
-  service_role) o exponer el esquema con GRANTs mínimos + test que ejercite el camino
-  cerrado vía REST.
+- Limitador de tasa: RESUELTO post-F5 (wrapper `public.golpe_limite` + spec E2E
+  `limites.spec.ts` por la vía REST real). Política de fallo POR ENDPOINT documentada en
+  `lib/limites.ts`: fail-closed donde el límite ES la protección (ARCO, buzón,
+  `token-miss`); fail-open donde es idempotencia de usuarios ya autorizados.
 
 ### Dependencias externas abiertas
 

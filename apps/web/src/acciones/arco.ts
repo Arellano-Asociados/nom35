@@ -24,7 +24,10 @@ export async function accionSolicitudArco(formData: FormData): Promise<Resultado
   // Formulario público: límite por IP (Fase 2.5) + anti-bot. 5 solicitudes/hora
   // bastan para cualquier titular real y frenan el volcado automatizado.
   const ip = await ipCliente();
-  if (!(await permitido(`arco:${ip}`, { ventanaSegundos: 3600, maximo: 5 }))) {
+  // fail-closed: formulario público sin auth — el límite ES la protección.
+  if (
+    !(await permitido(`arco:${ip}`, { ventanaSegundos: 3600, maximo: 5, alFallar: 'rechazar' }))
+  ) {
     return {
       ok: false,
       error: 'Recibimos demasiadas solicitudes desde tu conexión. Intenta de nuevo en una hora.',

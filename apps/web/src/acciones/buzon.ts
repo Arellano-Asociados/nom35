@@ -95,7 +95,10 @@ export async function accionEnviarQueja(
 
   // Anti-abuso: pocas quejas legítimas salen de una misma conexión en una hora.
   const ip = await ipCliente();
-  if (!(await permitido(`buzon:${ip}`, { ventanaSegundos: 3600, maximo: 5 }))) {
+  // fail-closed: envío público anónimo — el límite ES la protección contra el flood.
+  if (
+    !(await permitido(`buzon:${ip}`, { ventanaSegundos: 3600, maximo: 5, alFallar: 'rechazar' }))
+  ) {
     return {
       ok: false,
       error: 'Recibimos demasiados envíos desde tu conexión. Intenta de nuevo más tarde.',
@@ -154,7 +157,14 @@ export async function accionConsultarFolio(
   if ('error' in ctx) return { ok: false, error: ctx.error };
 
   const ip = await ipCliente();
-  if (!(await permitido(`buzon-folio:${ip}`, { ventanaSegundos: 600, maximo: 30 }))) {
+  // fail-closed: fuerza bruta de claves de folio hacia contenido sensible de quejas.
+  if (
+    !(await permitido(`buzon-folio:${ip}`, {
+      ventanaSegundos: 600,
+      maximo: 30,
+      alFallar: 'rechazar',
+    }))
+  ) {
     return { ok: false, error: 'Demasiadas consultas. Espera unos minutos.' };
   }
 

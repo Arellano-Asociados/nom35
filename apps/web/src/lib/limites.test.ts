@@ -28,10 +28,21 @@ describe('permitido (limitador de tasa)', () => {
     expect(await permitido('token:1.2.3.4', { ventanaSegundos: 600, maximo: 20 })).toBe(false);
   });
 
-  it('fail-open: si el limitador falla, la operación se permite (y se reporta)', async () => {
-    // Un limitador caído no debe tirar el producto; la disponibilidad gana y el
-    // error queda en el log del servidor (nunca datos del usuario).
+  it('fail-open (default): si el limitador falla, la operación se permite (y se reporta)', async () => {
+    // Donde el límite es idempotencia/anti doble-clic de usuarios ya autorizados, un
+    // limitador caído no debe tirar el producto; la disponibilidad gana y el error
+    // queda en el log del servidor (nunca datos del usuario).
     rpcMock.mockResolvedValue({ data: null, error: { message: 'boom' } });
-    expect(await permitido('arco:1.2.3.4', { ventanaSegundos: 3600, maximo: 5 })).toBe(true);
+    expect(await permitido('informe:ciclo-1', { ventanaSegundos: 300, maximo: 1 })).toBe(true);
+  });
+
+  it("fail-closed (alFallar: 'rechazar'): si el limitador falla, la operación se RECHAZA", async () => {
+    // Donde el límite ES la protección (ARCO, buzón, adivinación de tokens), un
+    // limitador caído cierra la superficie en vez de dejarla sin freno — la avería
+    // total ya no puede quedar enmascarada como "todo permitido".
+    rpcMock.mockResolvedValue({ data: null, error: { message: 'boom' } });
+    expect(
+      await permitido('arco:1.2.3.4', { ventanaSegundos: 3600, maximo: 5, alFallar: 'rechazar' }),
+    ).toBe(false);
   });
 });
