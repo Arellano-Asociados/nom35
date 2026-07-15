@@ -1104,6 +1104,87 @@ describe('alerta de ciclo vencido (numeral 7.9)', () => {
   });
 });
 
+describe('suspensión de tenant (Fase 5): solo lectura a nivel de BD (amenaza 11)', () => {
+  const TENANT_C = 'cccccccc-0000-4000-8000-000000000001';
+  const ADMIN_C = '55555555-0000-4000-8000-000000000001';
+  const EMPLEADO_C1 = '55555555-0000-4000-8000-000000000002';
+  const WC_C = 'cccccccc-0000-4000-8000-000000000011';
+  const QA_C = 'cccccccc-0000-4000-8000-000000000061';
+
+  it('las LECTURAS del admin de C sobreviven (decisión 2: su evidencia sigue disponible)', async () => {
+    await como({ sub: ADMIN_C, company_id: TENANT_C }, async (q) => {
+      expect(await contar(q, 'select count(*) n from companies where id = $1', [TENANT_C])).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from work_centers where company_id = $1', [TENANT_C]),
+      ).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from compliance_cycles where company_id = $1', [
+          TENANT_C,
+        ]),
+      ).toBe(1);
+      expect(
+        await contar(q, 'select count(*) n from questionnaire_assignments where company_id = $1', [
+          TENANT_C,
+        ]),
+      ).toBe(1);
+    });
+  });
+
+  it('las ESCRITURAS del admin de C mueren en BD (RESTRICTIVE + tenant_activo)', async () => {
+    await como({ sub: ADMIN_C, company_id: TENANT_C }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into work_centers (company_id, name, headcount) values ($1, 'X', 10)`,
+        [TENANT_C],
+      );
+      await esperarRechazo(
+        q,
+        `insert into compliance_cycles (company_id, work_center_id, name, date_start, evaluator_name, evaluator_license)
+         values ($1, $2, 'Ciclo intruso', current_date, 'Eval', 'CED-X')`,
+        [TENANT_C, WC_C],
+      );
+      // Ni siquiera su propia bitácora: suspendido = solo lectura TOTAL
+      await esperarRechazo(
+        q,
+        `insert into audit_log (company_id, actor_user_id, event_type) values ($1, $2, 'fixture')`,
+        [TENANT_C, ADMIN_C],
+      );
+      await esperarBloqueo(q, `update work_centers set name = 'x' where company_id = $1`, [
+        TENANT_C,
+      ]);
+      await esperarBloqueo(q, `update companies set legal_name = 'x' where id = $1`, [TENANT_C]);
+      await esperarBloqueo(q, `delete from work_centers where company_id = $1`, [TENANT_C]);
+    });
+  });
+
+  it('el empleado de C con cuenta NO puede responder (no se acumulan datos de salud)', async () => {
+    await como({ sub: EMPLEADO_C1, company_id: TENANT_C }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into responses (company_id, assignment_id, item_number, answer)
+         values ($1, $2, 1, 'nunca')`,
+        [TENANT_C, QA_C],
+      );
+    });
+  });
+
+  it('amenaza 12: NINGÚN admin_org actualiza companies.status (ni activo ni suspendido)', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(q, `update companies set status = 'suspended' where id = $1`, [
+        TENANT_A,
+      ]);
+      // Las columnas de siempre siguen siendo editables por gestión del tenant ACTIVO
+      const legal = await q(`update companies set legal_name = legal_name where id = $1`, [
+        TENANT_A,
+      ]);
+      expect(legal.rowCount).toBe(1);
+    });
+    await como({ sub: ADMIN_C, company_id: TENANT_C }, async (q) => {
+      await esperarRechazo(q, `update companies set status = 'active' where id = $1`, [TENANT_C]);
+    });
+  });
+});
+
 describe('identidad de plataforma (Fase 5): frontera operador↔tenant', () => {
   const OPERADOR = '44444444-0000-4000-8000-000000000001';
   const EMPLEADO_A2_ID = 'aaaaaaaa-0000-4000-8000-000000000022'; // sin cuenta (auth null)
