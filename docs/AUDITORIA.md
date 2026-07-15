@@ -242,6 +242,39 @@ pantalla — no hay datos personales sensibles en el insumo por construcción �
 con el cliente debe mencionar el subencargo del proveedor de IA, junto al aviso de privacidad y
 el DPA general ya pendientes.
 
+## Estado v1.0 (cierre del MVP, 2026-07-15)
+
+Con la Fase 8 se cierra el MVP. Esta sección resume, sobre esta auditoría, qué quedó
+**remediado** (todo lo interno) y qué **permanece abierto** (solo lo externo).
+
+**Remediado — todo lo que dependía de nosotros.** Los **9 hallazgos críticos** están cerrados
+(el único con matiz es C-02, corregido en código y a la espera solo de la firma del consultor).
+La **deuda normativa de la dimensión 9 está VACÍA**: no queda ningún incumplimiento de la
+NOM-035 identificado por esta auditoría. Las dimensiones 1–8 y 10 (UX, copy, identidad,
+navegación, accesibilidad, seguridad/LFPDPPP en su parte técnica, notificaciones, reportes y
+deuda técnica) se cerraron a lo largo de las fases 1.5 a 7. El endurecimiento estructural llevó
+el panel a **RLS real** (fuera de `service_role`), se añadieron límite de tasa, Turnstile y MFA
+TOTP, y las fases 5 y 6 incorporaron el portal de plataforma y la asistencia por IA **sin abrir
+ninguna frontera de datos**. Validación al cierre: motor 59/59, web 202/202, RLS 91/91,
+E2E 29/29 — todos gates de CI.
+
+**Abierto — solo dependencias externas**, ninguna resoluble desde el código (detalle en
+[«Deuda abierta reconocida»](#deuda-abierta-reconocida-actualizado-al-cierre-de-la-fase-45-2026-07-14)
+y como checklist en [docs/DESPLIEGUE.md](DESPLIEGUE.md)):
+
+1. **Validación del motor por consultor certificado** (cierra C-02 en definitiva y la validación
+   de lanzamiento de M1). Camino crítico; los casos de referencia están en gestión.
+2. **Texto legal del aviso de privacidad + DPA por cliente** (C-07): trabajo de abogado, antes
+   de cualquier piloto con datos reales; el DPA debe mencionar el subencargo del proveedor de IA.
+3. **Criterio legal de retención, bloqueo y disociación** (C-08): el canal ARCO existe; la salida
+   del dato requiere definición legal.
+
+Más una **limitación de producto declarada**, no un defecto pendiente: la inferencia temporal
+sobre agregados en vivo, que solo se cierra con instantáneas en lugar de agregados en vivo.
+
+**Conclusión:** el software del MVP está terminado y validado; lo que separa a Constata de un
+piloto con datos reales es exclusivamente externo (consultor y abogado), no de ingeniería.
+
 ## Los 9 hallazgos críticos
 
 ### C-01 · Los cuestionarios no contienen las preguntas oficiales (NOM-035 · Código)

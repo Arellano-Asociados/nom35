@@ -129,27 +129,28 @@ diagramas, tabla de permisos por rol, FAQ): `docs/manual.md`.
 
 Bitácora detallada de lo construido en cada uno: **`docs/historia-milestones.md`**.
 
-| Milestone | Descripción                                                  | Estado                                                   |
-| --------- | ------------------------------------------------------------ | -------------------------------------------------------- |
-| M0        | Init repo, monorepo, CI, Supabase local                      | ✅                                                       |
-| M1        | Motor de cálculo + suite de validación                       | 🟡 Cerrado _para desarrollo_ (ver dependencias abiertas) |
-| M2        | Base de datos, multi-tenancy y auth (RLS)                    | ✅                                                       |
-| M3        | Flujo del empleado + captura inmutable                       | ✅                                                       |
-| M4        | Panel administrativo                                         | ✅                                                       |
-| M5        | Informe de resultados y expediente de inspección             | ✅                                                       |
-| M6        | Endurecimiento y demo                                        | ✅                                                       |
-| M7        | Manual de uso y UI premium                                   | ✅                                                       |
-| F1.5      | Remediación de críticos de la auditoría v0                   | ✅ (`docs/AUDITORIA.md`)                                 |
-| F2        | Sistema de diseño e identidad **Constata**                   | ✅ (`docs/BRAND.md`)                                     |
-| F2.5      | Endurecimiento estructural (RLS real en el panel)            | ✅                                                       |
-| F3        | Configurabilidad (cuestionarios propios, plantillas, cron)   | ✅                                                       |
-| F4        | Ciclo normativo completo (difusión, buzón, programa 8.3–8.5) | ✅ (2026-07-14)                                          |
-| F4.5      | Remates normativos (eventos ATS, informe 7.7, registros 5.8) | ✅ (2026-07-14) — deuda normativa VACÍA                  |
-| F5        | Portal super-admin de plataforma (/admin)                    | ✅ (2026-07-14) — v0.7.0                                 |
-| F6        | Inteligencia y experiencia ejecutiva (dashboard + IA)        | ✅ (2026-07-15) — v0.8.0                                 |
-| F7        | Empaque de demo y QA manual (`seed:demo`, MANUAL_QA)         | ✅ (2026-07-15) — v0.9.0                                 |
+| Milestone | Descripción                                                   | Estado                                                   |
+| --------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| M0        | Init repo, monorepo, CI, Supabase local                       | ✅                                                       |
+| M1        | Motor de cálculo + suite de validación                        | 🟡 Cerrado _para desarrollo_ (ver dependencias abiertas) |
+| M2        | Base de datos, multi-tenancy y auth (RLS)                     | ✅                                                       |
+| M3        | Flujo del empleado + captura inmutable                        | ✅                                                       |
+| M4        | Panel administrativo                                          | ✅                                                       |
+| M5        | Informe de resultados y expediente de inspección              | ✅                                                       |
+| M6        | Endurecimiento y demo                                         | ✅                                                       |
+| M7        | Manual de uso y UI premium                                    | ✅                                                       |
+| F1.5      | Remediación de críticos de la auditoría v0                    | ✅ (`docs/AUDITORIA.md`)                                 |
+| F2        | Sistema de diseño e identidad **Constata**                    | ✅ (`docs/BRAND.md`)                                     |
+| F2.5      | Endurecimiento estructural (RLS real en el panel)             | ✅                                                       |
+| F3        | Configurabilidad (cuestionarios propios, plantillas, cron)    | ✅                                                       |
+| F4        | Ciclo normativo completo (difusión, buzón, programa 8.3–8.5)  | ✅ (2026-07-14)                                          |
+| F4.5      | Remates normativos (eventos ATS, informe 7.7, registros 5.8)  | ✅ (2026-07-14) — deuda normativa VACÍA                  |
+| F5        | Portal super-admin de plataforma (/admin)                     | ✅ (2026-07-14) — v0.7.0                                 |
+| F6        | Inteligencia y experiencia ejecutiva (dashboard + IA)         | ✅ (2026-07-15) — v0.8.0                                 |
+| F7        | Empaque de demo y QA manual (`seed:demo`, MANUAL_QA)          | ✅ (2026-07-15) — v0.9.0                                 |
+| F8        | Documentación final y cierre v1.0 (README, manuales, cambios) | ✅ (2026-07-15) — v1.0-mvp                               |
 
-Estado de validación tras F7: motor 59/59, web 202/202, RLS 91/91, E2E 29/29.
+Estado de validación tras F8: motor 59/59, web 202/202, RLS 91/91, E2E 29/29.
 
 **Empaque de demo (F7):** `pnpm seed:demo` (`scripts/seed-demo.mjs`) siembra el dataset
 comercial "Constata Demo" (2 organizaciones, 3 centros de los tres tamaños normativos,
