@@ -36,6 +36,9 @@ const TABLAS_GLOBALES = [
   'platform_users',
   'system_config',
   'rate_limits', // limitador de tasa (Fase 2.5): solo service_role, sin GRANT para nadie más
+  // Bitácora de plataforma (Fase 5): tiene company_id (sin FK: el acta sobrevive a la
+  // purga) pero es tabla de PLATAFORMA, no de tenant — solo service_role.
+  'platform_audit_log',
 ];
 
 let pool: pg.Pool;
@@ -126,6 +129,7 @@ beforeAll(async () => {
     from pg_class c
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public' and c.relkind = 'r'
+      and c.relname <> 'platform_audit_log' -- de plataforma pese a su company_id (ver TABLAS_GLOBALES)
       and exists (
         select 1 from pg_attribute a
         where a.attrelid = c.oid and a.attname = 'company_id' and not a.attisdropped
@@ -1096,6 +1100,124 @@ describe('alerta de ciclo vencido (numeral 7.9)', () => {
     await como({ sub: ADMIN_B, company_id: TENANT_B }, async (q) => {
       const r = await q(`select name, requiere_nueva_evaluacion from work_centers_alerta_ciclo`);
       expect(r.rows).toEqual([{ name: 'Centro B1', requiere_nueva_evaluacion: true }]);
+    });
+  });
+});
+
+describe('identidad de plataforma (Fase 5): frontera operador↔tenant', () => {
+  const OPERADOR = '44444444-0000-4000-8000-000000000001';
+  const EMPLEADO_A2_ID = 'aaaaaaaa-0000-4000-8000-000000000022'; // sin cuenta (auth null)
+
+  it('escalada tenant→plataforma: admin_org no escribe platform_users (amenaza 3)', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into platform_users (auth_user_id, email, status) values ($1, 'intruso@x.mx', 'active')`,
+        [ADMIN_A],
+      );
+      await esperarRechazo(q, `update platform_users set status = 'active'`);
+      await esperarRechazo(q, `delete from platform_users`);
+    });
+  });
+
+  it('platform_users es de fila propia: el usuario tenant ve 0 filas; el operador, la suya (amenaza 4)', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      expect(await contar(q, 'select count(*) n from platform_users')).toBe(0);
+    });
+    await como({ sub: OPERADOR }, async (q) => {
+      const r = await q('select email, status from platform_users');
+      expect(r.rows).toEqual([{ email: 'operador@fixture.constata.mx', status: 'active' }]);
+    });
+  });
+
+  it('platform_audit_log: ilegible e inescribible para authenticated y anon (amenaza 4)', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(q, 'select count(*) n from platform_audit_log');
+      await esperarRechazo(
+        q,
+        `insert into platform_audit_log (event_type) values ('forjado')`,
+      );
+    });
+    await como(
+      { sub: '00000000-0000-4000-8000-000000000000' },
+      async (q) => {
+        await esperarRechazo(q, 'select count(*) n from platform_audit_log');
+      },
+      'anon',
+    );
+  });
+
+  it('platform_audit_log es append-only incluso para el dueño de la tabla', async () => {
+    await comoPostgres(async (q) => {
+      await q(`insert into platform_audit_log (event_type) values ('fixture_prueba')`);
+      await expect(
+        q(`update platform_audit_log set event_type = 'alterado' where event_type = 'fixture_prueba'`),
+      ).rejects.toThrow(/append-only/);
+    });
+    await comoPostgres(async (q) => {
+      await q(`insert into platform_audit_log (event_type) values ('fixture_prueba')`);
+      await expect(
+        q(`delete from platform_audit_log where event_type = 'fixture_prueba'`),
+      ).rejects.toThrow(/append-only/);
+    });
+  });
+
+  it('identidad dual RECHAZADA: membresía de tenant para un operador (las tres tablas, amenaza 10)', async () => {
+    await comoPostgres(async (q) => {
+      await expect(
+        q(
+          `insert into role_assignments (company_id, auth_user_id, role) values ($1, $2, 'miembro')`,
+          [TENANT_A, OPERADOR],
+        ),
+      ).rejects.toThrow(/[Ii]dentidad dual/);
+    });
+    await comoPostgres(async (q) => {
+      await expect(
+        q(
+          `insert into employees (company_id, work_center_id, auth_user_id, full_name, email)
+           values ($1, $2, $3, 'Doble Identidad', 'dual@x.mx')`,
+          [TENANT_A, WC_A1, OPERADOR],
+        ),
+      ).rejects.toThrow(/[Ii]dentidad dual/);
+    });
+    await comoPostgres(async (q) => {
+      await expect(
+        q(`insert into consultant_assignments (company_id, consultant_user_id) values ($1, $2)`, [
+          TENANT_A,
+          OPERADOR,
+        ]),
+      ).rejects.toThrow(/[Ii]dentidad dual/);
+    });
+    // employees.auth_user_id se llena por UPDATE al usar el enlace: esa vía también cierra.
+    await comoPostgres(async (q) => {
+      await expect(
+        q(`update employees set auth_user_id = $1 where id = $2`, [OPERADOR, EMPLEADO_A2_ID]),
+      ).rejects.toThrow(/[Ii]dentidad dual/);
+    });
+  });
+
+  it('identidad dual RECHAZADA: operador para una cuenta con membresía de tenant (inversa)', async () => {
+    for (const uid of [ADMIN_A, EMPLEADO_A1, CONSULTOR_A]) {
+      await comoPostgres(async (q) => {
+        await expect(
+          q(`insert into platform_users (auth_user_id, email) values ($1, 'inverso@x.mx')`, [uid]),
+        ).rejects.toThrow(/[Ii]dentidad dual/);
+      });
+    }
+  });
+
+  it('el operador SIN membresías no lee nada de tenant con su sesión (amenazas 9 y 14)', async () => {
+    await como({ sub: OPERADOR }, async (q) => {
+      expect(await contar(q, 'select count(*) n from companies')).toBe(0);
+      expect(await contar(q, 'select count(*) n from work_centers')).toBe(0);
+      expect(await contar(q, 'select count(*) n from employees')).toBe(0);
+      await esperarRechazo(q, 'select count(*) n from responses');
+      await esperarRechazo(q, 'select count(*) n from risk_results');
+    });
+    // Ni con un claim forjado de company_id (no hay claim de plataforma ni membresía real)
+    await como({ sub: OPERADOR, company_id: TENANT_A }, async (q) => {
+      expect(await contar(q, 'select count(*) n from companies')).toBe(0);
+      expect(await contar(q, 'select count(*) n from employees')).toBe(0);
     });
   });
 });
