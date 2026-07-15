@@ -67,6 +67,8 @@ export default async function PaginaResponder({ params }: { params: Promise<{ to
     const dentroDelLimite = await permitido(`token-miss:${ip}`, {
       ventanaSegundos: 600,
       maximo: 30,
+      // fail-closed: este gate es el único freno a la adivinación de tokens.
+      alFallar: 'rechazar',
     });
     if (!dentroDelLimite) {
       return (

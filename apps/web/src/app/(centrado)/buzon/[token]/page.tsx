@@ -26,6 +26,8 @@ export default async function PaginaBuzon({ params }: { params: Promise<{ token:
     const dentroDelLimite = await permitido(`token-miss:${ip}`, {
       ventanaSegundos: 600,
       maximo: 30,
+      // fail-closed: único freno a la adivinación de tokens.
+      alFallar: 'rechazar',
     });
     return (
       <Card>
