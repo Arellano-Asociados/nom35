@@ -233,3 +233,84 @@ export async function accionAdoptarBorrador(
   );
   return { ok: true };
 }
+
+const NIVELES_ORIGEN = ['nulo', 'bajo', 'medio', 'alto', 'muy_alto'];
+const NIVELES_ACCION = ['primer_nivel', 'segundo_nivel', 'tercer_nivel'];
+
+export interface MedidaAdoptada {
+  descripcion: string;
+  nivelOrigen: string;
+  nivelAccion: string | null;
+}
+
+/**
+ * Adopción del plan EN EL PROGRAMA (spec §6): las medidas seleccionadas y editadas por el
+ * usuario se insertan como action_items con ai_assisted = true, CON LA SESIÓN del usuario
+ * (RLS). La IA jamás escribe en el programa: el INSERT es del cliente, como siempre. Marca
+ * el borrador adoptado (una sola vía) antes de insertar, así el reintento no duplica.
+ */
+export async function accionAdoptarPlanEnPrograma(
+  companyId: string,
+  cycleId: string,
+  draftId: string,
+  medidas: MedidaAdoptada[],
+): Promise<ResultadoIaAccion> {
+  const acceso = await autorizarEmpresa(companyId);
+  if (!puedeGestionar(acceso.membresia)) return { ok: false, error: SIN_PERMISO };
+  const operable = empresaOperable(acceso.membresia);
+  if (!operable.ok) return { ok: false, error: operable.error };
+  const seleccionadas = medidas.filter((m) => m.descripcion.trim() !== '');
+  if (seleccionadas.length === 0) {
+    return { ok: false, error: 'Selecciona al menos una medida para adoptar.' };
+  }
+
+  const supabase = await clienteSesion();
+  // Adopción de una sola vía primero: si ya estaba adoptado, no se reinsertan acciones.
+  const { data: adoptado, error: errorAdopcion } = await supabase
+    .from('ai_drafts')
+    .update({ adopted_by: acceso.userId, adopted_at: new Date().toISOString() })
+    .eq('id', draftId)
+    .eq('company_id', companyId)
+    .is('adopted_at', null)
+    .select('id')
+    .maybeSingle();
+  if (errorAdopcion || !adoptado) {
+    return { ok: false, error: 'No se pudo adoptar el borrador (¿ya estaba adoptado?).' };
+  }
+
+  const { data: programa } = await supabase
+    .from('intervention_programs')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('cycle_id', cycleId)
+    .maybeSingle();
+
+  const filas = seleccionadas.map((m) => ({
+    company_id: companyId,
+    cycle_id: cycleId,
+    program_id: programa?.id ?? null,
+    description: m.descripcion.trim(),
+    origin_level: NIVELES_ORIGEN.includes(m.nivelOrigen) ? m.nivelOrigen : 'medio',
+    responsible: acceso.email || 'Por asignar',
+    action_level: m.nivelAccion && NIVELES_ACCION.includes(m.nivelAccion) ? m.nivelAccion : null,
+    ai_assisted: true,
+  }));
+  const { error: errorInsert } = await supabase.from('action_items').insert(filas);
+  if (errorInsert) {
+    return {
+      ok: false,
+      error:
+        'El borrador se adoptó pero no se pudieron crear todas las acciones. Revisa el programa.',
+    };
+  }
+
+  await registrarAuditoria(
+    companyId,
+    acceso.userId,
+    EVENTOS_AUDITORIA.iaBorradorAdoptado,
+    'ai_drafts',
+    draftId,
+    { tipo: 'plan_accion', acciones: filas.length },
+  );
+  return { ok: true };
+}

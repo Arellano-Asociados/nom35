@@ -10,10 +10,15 @@ import { claseCampo, claseEstadoVacio } from '@/components/panel/campos';
 import { CrearPrograma } from '@/components/panel/crear-programa';
 import { ErrorFormulario } from '@/components/panel/error-formulario';
 import { AvisoRolSinGestion } from '@/components/panel/aviso-rol';
+import { PlanIA } from '@/components/panel/plan-ia';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
 import { fechaEsMx } from '@/lib/fechas';
+import { FLAGS, flagActiva } from '@/lib/flags';
+import { ultimoBorrador } from '@/lib/ia/borradores';
+import { proveedorIA } from '@/lib/ia/proveedor';
+import { validarPlan } from '@/lib/ia/validar-salida';
 import { resultadosVigentesPorAsignacion } from '@/lib/informe';
 import {
   accionesPrePobladas,
@@ -125,8 +130,37 @@ export default async function PaginaPrograma({
   const completadas = (acciones ?? []).filter((a) => a.status === 'completada').length;
   const crear = accionCrearAccion.bind(null, empresa, ciclo);
 
+  // Plan de acción asistido por IA (Fase 6 §6): solo con el flag activo y cuando el ciclo
+  // exige programa. El insumo/validación usan el mismo catálogo Tabla 4/7 de `criterios`.
+  const iaActiva = await flagActiva(empresa, FLAGS.iaAsistida, false);
+  const borradorPlan = iaActiva ? await ultimoBorrador(empresa, ciclo, 'plan_accion') : null;
+  const anclasCatalogo = criterios
+    ? criterios.exigenPrograma.flatMap(
+        (nivel) => criterios.niveles[nivel]?.accionesSugeridas.map((a) => a.descripcion) ?? [],
+      )
+    : [];
+  const medidasPlan =
+    borradorPlan && !borradorPlan.adoptado
+      ? validarPlan(borradorPlan.texto, anclasCatalogo).medidas
+      : [];
+  const nivelOrigenPlan = nivelesQueExigen[0] ?? 'medio';
+  const iaDisponible = proveedorIA().disponible();
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Plan de acción asistido por IA (Fase 6): borrador editable que se adopta al
+          programa. Solo con flag activo y cuando el ciclo exige programa. */}
+      {iaActiva && exige && (
+        <PlanIA
+          companyId={empresa}
+          cycleId={ciclo}
+          disponible={iaDisponible}
+          nivelOrigen={nivelOrigenPlan}
+          borrador={borradorPlan}
+          medidasIniciales={medidasPlan}
+        />
+      )}
+
       {/* Estado normativo del ciclo */}
       {!programa && exige && criterios && (
         <Card data-testid="banner-exige-programa">
