@@ -1,16 +1,19 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import {
+  accionActualizarFlag,
   accionReactivarEmpresa,
   accionRevertirBaja,
   accionSolicitarBaja,
   accionSuspenderEmpresa,
 } from '@/acciones/plataforma';
+import { FlagToggle } from '@/components/admin/flags-admin';
 import { TransicionConMotivo, TransicionSimple } from '@/components/admin/organizaciones-admin';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarPlataforma } from '@/lib/autorizacion-plataforma';
 import { ETIQUETA_ESTADO } from '@/lib/estados-empresa';
 import { fechaEsMx } from '@/lib/fechas';
+import { FLAGS } from '@/lib/flags';
 import { RETENCION_DIAS } from '@/lib/organizaciones';
 import { clienteAdmin } from '@/lib/supabase-admin';
 
@@ -37,7 +40,7 @@ export default async function PaginaFichaOrganizacion({
     .maybeSingle();
   if (!empresa) notFound();
 
-  const [{ count: centros }, { count: empleados }] = await Promise.all([
+  const [{ count: centros }, { count: empleados }, { data: flagsFilas }] = await Promise.all([
     admin
       .from('work_centers')
       .select('id', { count: 'exact', head: true })
@@ -47,7 +50,21 @@ export default async function PaginaFichaOrganizacion({
       .select('id', { count: 'exact', head: true })
       .eq('company_id', companyId)
       .eq('active', true),
+    admin.from('feature_flags').select('flag, enabled').eq('company_id', companyId),
   ]);
+  const flagsActuales = new Map((flagsFilas ?? []).map((f) => [f.flag as string, f.enabled]));
+
+  // Flags CONOCIDOS del código (lib/flags.ts) con su etiqueta y default; sin fila en
+  // feature_flags aplica el default (false para todos hoy).
+  const catalogoFlags = [
+    {
+      flag: FLAGS.cuestionariosPersonalizados,
+      etiqueta: 'Cuestionarios personalizados (encuestas propias de la organización)',
+      defecto: false,
+    },
+  ] as const;
+
+  const actualizarFlag = accionActualizarFlag.bind(null, companyId);
 
   const estado = ETIQUETA_ESTADO[empresa.status] ?? {
     texto: empresa.status,
@@ -132,6 +149,27 @@ export default async function PaginaFichaOrganizacion({
                 ejecutar={solicitarBaja}
               />
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Feature flags</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {catalogoFlags.map(({ flag, etiqueta, defecto }) => (
+              <FlagToggle
+                key={flag}
+                flag={flag}
+                etiqueta={etiqueta}
+                habilitado={(flagsActuales.get(flag) ?? defecto) === true}
+                actualizar={actualizarFlag}
+              />
+            ))}
+            <p className="text-xs text-texto-secundario">
+              Cada cambio queda en la bitácora de plataforma (estricta: sin evento no hay cambio) y
+              en la bitácora de la organización, con el valor anterior y el nuevo.
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -76,6 +76,8 @@ export const EVENTOS_AUDITORIA = {
   empresaReactivada: 'empresa_reactivada',
   /** Inició la baja: 90 días de retención en solo lectura antes de la purga. */
   empresaBajaSolicitada: 'empresa_baja_solicitada',
+  /** La plataforma cambió un feature flag de este tenant (valor anterior → nuevo). */
+  flagActualizado: 'flag_actualizado',
 } as const;
 
 export type EventoAuditoria = (typeof EVENTOS_AUDITORIA)[keyof typeof EVENTOS_AUDITORIA];

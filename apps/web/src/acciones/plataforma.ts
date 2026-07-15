@@ -7,6 +7,7 @@ import {
   type EventoPlataforma,
 } from '@/lib/auditoria-plataforma';
 import { autorizarPlataforma } from '@/lib/autorizacion-plataforma';
+import { FLAGS } from '@/lib/flags';
 import { puedeDeshabilitarOperador, transicionOperadorValida } from '@/lib/operadores';
 import { transicionEmpresaValida, type EstadoEmpresa } from '@/lib/organizaciones';
 import { clienteAdmin } from '@/lib/supabase-admin';
@@ -304,6 +305,68 @@ export async function accionRevertirBaja(companyId: string): Promise<ResultadoPl
   return transicionarEmpresa(companyId, 'suspended', {
     motivo: 'baja revertida (retención detenida)',
   });
+}
+
+// ─── Feature flags (spec §3) ─────────────────────────────────────────────────
+
+/**
+ * Cambia un feature flag del tenant desde la UI (reemplaza el SQL manual). Doble
+ * bitácora: plataforma ESTRICTA con valor anterior→nuevo (sin evento no hay mutación) +
+ * tenant fire-and-forget (el cliente ve que la plataforma le cambió un flag).
+ */
+export async function accionActualizarFlag(
+  companyId: string,
+  flag: string,
+  enabled: boolean,
+): Promise<ResultadoPlataforma> {
+  const operador = await autorizarPlataforma();
+  if (!Object.values(FLAGS).includes(flag as (typeof FLAGS)[keyof typeof FLAGS])) {
+    return { ok: false, error: 'Flag desconocido.' };
+  }
+
+  const admin = clienteAdmin();
+  const { data: empresa } = await admin
+    .from('companies')
+    .select('id')
+    .eq('id', companyId)
+    .maybeSingle();
+  if (!empresa) return { ok: false, error: 'La organización no existe.' };
+
+  const { data: actual } = await admin
+    .from('feature_flags')
+    .select('enabled')
+    .eq('company_id', companyId)
+    .eq('flag', flag)
+    .maybeSingle();
+  const anterior: boolean | null = actual?.enabled ?? null; // null = default del código
+
+  const registrado = await registrarAuditoriaPlataformaEstricta(
+    operador.operadorId,
+    EVENTOS_PLATAFORMA.flagActualizado,
+    companyId,
+    'feature_flags',
+    undefined,
+    { flag, anterior, nuevo: enabled },
+  );
+  if (!registrado)
+    return { ok: false, error: 'No se pudo registrar la bitácora. Intenta de nuevo.' };
+
+  // service_role justificado: feature_flags es "solo plataforma escribe" (sin GRANT de
+  // escritura para authenticated desde la Fase 3).
+  const { error } = await admin
+    .from('feature_flags')
+    .upsert({ company_id: companyId, flag, enabled }, { onConflict: 'company_id,flag' });
+  if (error) return { ok: false, error: 'No se pudo actualizar el flag.' };
+
+  await registrarAuditoria(
+    companyId,
+    operador.authUserId,
+    EVENTOS_AUDITORIA.flagActualizado,
+    'feature_flags',
+    undefined,
+    { flag, anterior, nuevo: enabled },
+  );
+  return { ok: true };
 }
 
 // ─── Operadores: activación ──────────────────────────────────────────────────
