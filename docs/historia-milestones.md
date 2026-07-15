@@ -181,3 +181,37 @@ de 5.7/7.7-7.9/8.1-8.5/PEC 10.2 y Tablas 4/7).
   categoría/estado/mes).
 
 9 eventos de auditoría nuevos. Suite RLS 50→58, E2E 15/15 (spec `ciclo-normativo`), web 120/120.
+
+## F4.5 — Remates normativos
+
+✅ Cerrado (2026-07-14): acontecimientos traumáticos severos (5.3/5.5/6.5) con sección propia
+(`traumatic_events` append-only, GR-I solo a expuestos vía ciclo ATS que no cuenta para la
+alerta bienal), registros del 5.8 a) y c) como CSV del RD con regla 5 estricta, informe
+renombrado a 7.7 con objetivo (b), actividades (c) y método 7.4, integración al diagnóstico
+SST (7.6/NOM-030) y expediente con eventos traumáticos declarados. Deuda normativa de la
+dimensión 9: VACÍA. RLS 58→64, E2E 19/19, web 129/129.
+
+## F5 — Portal super-admin de plataforma
+
+✅ Cerrado (2026-07-14): operar la plataforma desde `/admin` en vez de SQL a mano, sin abrir
+la frontera plataforma/tenant. Identidad de plataforma por FILA REAL en `platform_users`
+(sin claim JWT; exclusión de identidad dual operador↔tenant por trigger), MFA TOTP FORZADO
+con frescura de 4h por AMR, bootstrap por `pnpm operador:crear`. Organizaciones con estados
+(`active/suspended/pending_deletion`): suspensión = solo lectura A NIVEL DE BD con políticas
+RESTRICTIVE por comando de escritura (mecanismo acordado en sustitución de la inyección en
+helpers del spec, que habría matado 26 SELECTs), lecturas y DESCARGAS del cliente intactas,
+flujo del empleado cortado en capa app (service_role), cron de recordatorios intocado para
+no-activos. Alta operada con invitación (+`/cuenta` para fijar contraseña). Feature flags
+desde la ficha con doble bitácora. `platform_audit_log` append-only separada (sobrevive a la
+purga; company_id sin FK a propósito) con lector paginado/filtrable. Soporte con
+consentimiento NOMINATIVO del cliente: grant vía deep link pre-llenado que el admin confirma
+CON SU SESIÓN (RLS), ≤72h, revocable, SIN break-glass (decisión sellada 5c);
+`autorizarSoporte` exige grant del operador EXACTO (amenaza 15) + evento estricto POR PÁGINA
+en la bitácora del tenant; vista de soporte solo por allow-list `soporte-datos` (columnas
+explícitas, lint bidireccional). Métricas cross-tenant solo operativas en vistas con GRANT
+exclusivo a service_role (snapshot de columnas en la suite RLS). Retención de baja: job
+propio `/api/cron/retencion` (avisos días 1/30/60/85, evento estricto ANTES del envío,
+idempotente por bitácora) y purga física SOLO por `scripts/purgar-empresa.mjs` (verifica
+plazo + 4 avisos, acta CON INVENTARIO y huellas sha256 verificada ANTES de borrar; sin acta
+no hay purga). Suite RLS 64→85, E2E 22/22 (spec `portal-plataforma` con TOTP real), web
+178/178, motor 59/59. Versión 0.7.0.

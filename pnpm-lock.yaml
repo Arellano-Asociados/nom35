@@ -20,6 +20,9 @@ importers:
       eslint-config-prettier:
         specifier: ^10.1.0
         version: 10.1.8(eslint@9.39.5(jiti@2.7.0))
+      pg:
+        specifier: ^8.22.0
+        version: 8.22.0
       prettier:
         specifier: ^3.6.0
         version: 3.9.5
