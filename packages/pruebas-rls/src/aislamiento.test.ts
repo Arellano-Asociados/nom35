@@ -1431,6 +1431,65 @@ describe('identidad de plataforma (Fase 5): frontera operador↔tenant', () => {
   });
 });
 
+describe('métricas de plataforma (Fase 5): la frontera es el GRANT (amenaza 2)', () => {
+  it.each(['plataforma_metricas_organizaciones', 'plataforma_metricas_ciclos'])(
+    '%s es ilegible para authenticated y anon (solo service_role)',
+    async (vista) => {
+      await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+        await esperarRechazo(q, `select count(*) n from ${vista}`);
+      });
+      await como({ sub: '44444444-0000-4000-8000-000000000001' }, async (q) => {
+        // Ni siquiera el operador con SU sesión: las vistas son de service_role tras
+        // autorizarPlataforma() — no existe camino RLS a datos cross-tenant.
+        await esperarRechazo(q, `select count(*) n from ${vista}`);
+      });
+      await como(
+        { sub: '00000000-0000-4000-8000-000000000000' },
+        async (q) => {
+          await esperarRechazo(q, `select count(*) n from ${vista}`);
+        },
+        'anon',
+      );
+    },
+  );
+
+  it('las vistas exponen SOLO columnas operativas (revisión contra la lista PROHIBIDA de §5)', async () => {
+    await comoPostgres(async (q) => {
+      const r = await q(`
+        select table_name, column_name
+        from information_schema.columns
+        where table_name in ('plataforma_metricas_organizaciones', 'plataforma_metricas_ciclos')
+        order by 1, 2
+      `);
+      const columnas = r.rows.map(
+        (f) =>
+          `${(f as { table_name: string }).table_name}.${(f as { column_name: string }).column_name}`,
+      );
+      expect(columnas).toEqual([
+        'plataforma_metricas_ciclos.asignaciones',
+        'plataforma_metricas_ciclos.company_id',
+        'plataforma_metricas_ciclos.completadas',
+        'plataforma_metricas_ciclos.date_end',
+        'plataforma_metricas_ciclos.date_start',
+        'plataforma_metricas_ciclos.es_evento_ats',
+        'plataforma_metricas_ciclos.id',
+        'plataforma_metricas_organizaciones.centros',
+        'plataforma_metricas_organizaciones.created_at',
+        'plataforma_metricas_organizaciones.empleados',
+        'plataforma_metricas_organizaciones.id',
+        'plataforma_metricas_organizaciones.legal_name',
+        'plataforma_metricas_organizaciones.rfc',
+        'plataforma_metricas_organizaciones.status',
+      ]);
+      // Ni una columna derivada de salud: nada de nivel_final, cfinal, categorias,
+      // dominios, requiere_valoracion, ni referencias a responses/risk_results.
+      for (const c of columnas) {
+        expect(c).not.toMatch(/nivel|cfinal|categoria|dominio|valoracion|respuesta|result/);
+      }
+    });
+  });
+});
+
 describe('hook de emisión de JWT (app.custom_access_token)', () => {
   it('supabase_auth_admin tiene USAGE en el esquema app y EXECUTE en el hook', async () => {
     // Sin USAGE en el esquema, GoTrue falla al emitir TODO JWT administrativo
