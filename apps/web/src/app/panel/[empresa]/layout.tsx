@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { autorizarEmpresa } from '@/lib/autorizacion';
+import { clienteSesion } from '@/lib/supabase-servidor';
 
 // La navegación entre secciones de la empresa (Centros/Empleados/Ciclos/Política/
 // Capacitación/Equipo) vive en el sidebar (src/components/panel/sidebar.tsx), que
@@ -13,6 +15,17 @@ export default async function LayoutEmpresa({
 }) {
   const { empresa } = await params;
   const acceso = await autorizarEmpresa(empresa);
+
+  // Transparencia (Fase 5, §6.6): mientras haya un grant de soporte vigente, el panel
+  // lo dice. Lectura vía RLS con la sesión (todo el tenant puede verla).
+  const { data: grantsVigentes } = await (
+    await clienteSesion()
+  )
+    .from('support_access_grants')
+    .select('id, operator_email')
+    .eq('company_id', empresa)
+    .is('revoked_at', null)
+    .gt('expires_at', new Date().toISOString());
 
   return (
     <div className="flex flex-col gap-4">
@@ -48,6 +61,19 @@ export default async function LayoutEmpresa({
             </li>
           </ul>
         </div>
+      )}
+      {(grantsVigentes ?? []).length > 0 && (
+        <p
+          data-testid="aviso-soporte-vigente"
+          className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900"
+        >
+          Acceso de soporte vigente para{' '}
+          {(grantsVigentes ?? []).map((g) => g.operator_email).join(', ')} (solo lectura).{' '}
+          <Link href={`/panel/${empresa}/soporte`} className="underline">
+            Ver o revocar
+          </Link>
+          .
+        </p>
       )}
       {children}
     </div>

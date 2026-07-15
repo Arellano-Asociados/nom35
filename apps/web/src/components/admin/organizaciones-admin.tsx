@@ -152,6 +152,77 @@ export function TransicionConMotivo({
   );
 }
 
+/** Solicitud de acceso de soporte (decisión 5b): el operador pide, el cliente decide. */
+export function SolicitarAccesoSoporte({
+  solicitar,
+}: {
+  solicitar: (motivo: string, horas: number) => Promise<ResultadoPlataforma>;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const [horas, setHoras] = useState('24');
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pendiente, startTransition] = useTransition();
+
+  return (
+    <div className="flex flex-col gap-2 text-sm">
+      <label className="flex flex-col gap-1 font-medium text-slate-800">
+        Motivo (el cliente lo verá)
+        <input
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          data-testid="solicitud-motivo"
+          className={claseCampo}
+        />
+      </label>
+      <label className="flex flex-col gap-1 font-medium text-slate-800">
+        Duración solicitada (horas, máximo 72)
+        <input
+          type="number"
+          min={1}
+          max={72}
+          value={horas}
+          onChange={(e) => setHoras(e.target.value)}
+          data-testid="solicitud-horas"
+          className={claseCampo}
+        />
+      </label>
+      <Button
+        variant="secondary"
+        disabled={pendiente || motivo.trim() === ''}
+        data-testid="solicitar-acceso"
+        onClick={() =>
+          startTransition(async () => {
+            const r = await solicitar(motivo.trim(), Number(horas));
+            if (r.ok) {
+              setAviso('Solicitud enviada a los administradores del cliente.');
+              setError(null);
+              setMotivo('');
+              toast.success('Solicitud enviada');
+            } else {
+              setError(r.error ?? 'No se pudo enviar la solicitud');
+              setAviso(null);
+              toast.error(r.error ?? 'No se pudo enviar la solicitud');
+            }
+          })
+        }
+      >
+        Solicitar acceso de soporte
+      </Button>
+      {aviso && (
+        <p role="status" className="text-emerald-800">
+          {aviso}
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="text-peligro">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** Reactivación (o reversión de baja): sin motivo, con confirmación. */
 export function TransicionSimple({
   etiqueta,

@@ -4,11 +4,16 @@ import {
   accionActualizarFlag,
   accionReactivarEmpresa,
   accionRevertirBaja,
+  accionSolicitarAcceso,
   accionSolicitarBaja,
   accionSuspenderEmpresa,
 } from '@/acciones/plataforma';
 import { FlagToggle } from '@/components/admin/flags-admin';
-import { TransicionConMotivo, TransicionSimple } from '@/components/admin/organizaciones-admin';
+import {
+  SolicitarAccesoSoporte,
+  TransicionConMotivo,
+  TransicionSimple,
+} from '@/components/admin/organizaciones-admin';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarPlataforma } from '@/lib/autorizacion-plataforma';
 import { ETIQUETA_ESTADO } from '@/lib/estados-empresa';
@@ -65,6 +70,7 @@ export default async function PaginaFichaOrganizacion({
   ] as const;
 
   const actualizarFlag = accionActualizarFlag.bind(null, companyId);
+  const solicitarAcceso = accionSolicitarAcceso.bind(null, companyId);
 
   const estado = ETIQUETA_ESTADO[empresa.status] ?? {
     texto: empresa.status,
@@ -170,6 +176,29 @@ export default async function PaginaFichaOrganizacion({
               Cada cambio queda en la bitácora de plataforma (estricta: sin evento no hay cambio) y
               en la bitácora de la organización, con el valor anterior y el nuevo.
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Acceso de soporte</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {empresa.status === 'active' ? (
+              <>
+                <SolicitarAccesoSoporte solicitar={solicitarAcceso} />
+                <p className="text-xs text-texto-secundario">
+                  El acceso solo existe si un administrador del cliente lo otorga desde SU panel
+                  (nominativo, solo lectura, máximo 72 h, revocable). No hay camino de excepción:
+                  sin consentimiento no hay soporte dentro del tenant.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-texto-secundario">
+                Un tenant no activo no puede otorgar grants. Para soporte a esta organización usa
+                esta ficha y la bitácora — no la vista de tenant.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

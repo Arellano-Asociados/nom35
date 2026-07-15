@@ -7,6 +7,7 @@ import {
   type EventoPlataforma,
 } from '@/lib/auditoria-plataforma';
 import { autorizarPlataforma } from '@/lib/autorizacion-plataforma';
+import { plantillaCorreo, proveedorCorreo } from '@/lib/correo';
 import { FLAGS } from '@/lib/flags';
 import { puedeDeshabilitarOperador, transicionOperadorValida } from '@/lib/operadores';
 import { transicionEmpresaValida, type EstadoEmpresa } from '@/lib/organizaciones';
@@ -366,6 +367,85 @@ export async function accionActualizarFlag(
     undefined,
     { flag, anterior, nuevo: enabled },
   );
+  return { ok: true };
+}
+
+// ─── Soporte: solicitud con deep link (spec §6.3, decisión 5b) ───────────────
+
+/**
+ * El operador SOLICITA acceso; jamás se lo otorga. El correo a los admins del cliente
+ * lleva un deep link a su panel con el formulario pre-llenado (operador, alcance y
+ * duración visibles ANTES de confirmar); la confirmación ocurre SIEMPRE en el panel del
+ * cliente con su sesión, nunca desde el correo. SIN break-glass (decisión 5c).
+ */
+export async function accionSolicitarAcceso(
+  companyId: string,
+  motivo: string,
+  horas: number,
+): Promise<ResultadoPlataforma> {
+  const operador = await autorizarPlataforma();
+  const horasValidas = Math.min(72, Math.max(1, Math.trunc(horas) || 24));
+  if (motivo.trim() === '') return { ok: false, error: 'Escribe el motivo de la solicitud.' };
+
+  const admin = clienteAdmin();
+  const { data: empresa } = await admin
+    .from('companies')
+    .select('id, legal_name, status')
+    .eq('id', companyId)
+    .maybeSingle();
+  if (!empresa) return { ok: false, error: 'La organización no existe.' };
+  if (empresa.status !== 'active') {
+    return {
+      ok: false,
+      error:
+        'La organización no está activa: un tenant no activo no puede otorgar grants. Usa las superficies del portal (ficha) para lo que necesites.',
+    };
+  }
+
+  const registrado = await registrarAuditoriaPlataformaEstricta(
+    operador.operadorId,
+    EVENTOS_PLATAFORMA.soporteAccesoSolicitado,
+    companyId,
+    'support_access_grants',
+    undefined,
+    { motivo: motivo.trim(), horas: horasValidas, operador_email: operador.email },
+  );
+  if (!registrado)
+    return { ok: false, error: 'No se pudo registrar la bitácora. Intenta de nuevo.' };
+
+  const { data: admins } = await admin
+    .from('role_assignments')
+    .select('auth_user_id')
+    .eq('company_id', companyId)
+    .eq('role', 'admin_org');
+  const correos: string[] = [];
+  for (const fila of admins ?? []) {
+    const { data } = await admin.auth.admin.getUserById(fila.auth_user_id);
+    if (data.user?.email) correos.push(data.user.email);
+  }
+  if (correos.length === 0) {
+    return {
+      ok: false,
+      error:
+        'La organización no tiene administradores con correo: no hay a quién pedirle el consentimiento (y no existe camino de excepción).',
+    };
+  }
+
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const url = `${base}/panel/${companyId}/soporte?operador=${operador.operadorId}&horas=${horasValidas}&motivo=${encodeURIComponent(motivo.trim())}`;
+  await proveedorCorreo().enviar({
+    para: correos,
+    asunto: 'Constata solicita tu autorización para un acceso de soporte',
+    html: plantillaCorreo({
+      saludo: 'Hola:',
+      parrafos: [
+        `${operador.email}, del equipo de operación de Constata, solicita acceso de SOLO LECTURA a la información de ${empresa.legal_name} por ${horasValidas} horas. Motivo: ${motivo.trim()}.`,
+        'El acceso solo existe si tú lo otorgas desde tu panel, es exclusivo para esa persona, expira automáticamente y puedes revocarlo en cualquier momento. Cada página que consulte queda registrada en tu bitácora.',
+        'Este correo no otorga nada: la decisión se toma dentro de tu panel, con tu sesión.',
+      ],
+      cta: { url, etiqueta: 'Revisar la solicitud en mi panel' },
+    }),
+  });
   return { ok: true };
 }
 

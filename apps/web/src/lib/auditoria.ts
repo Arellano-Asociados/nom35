@@ -78,6 +78,10 @@ export const EVENTOS_AUDITORIA = {
   empresaBajaSolicitada: 'empresa_baja_solicitada',
   /** La plataforma cambió un feature flag de este tenant (valor anterior → nuevo). */
   flagActualizado: 'flag_actualizado',
+  /** Un admin del tenant otorgó acceso de soporte NOMINATIVO a un operador. */
+  soporteAccesoOtorgado: 'soporte_acceso_otorgado',
+  /** Se revocó un acceso de soporte (por el tenant o por el propio operador). */
+  soporteAccesoRevocado: 'soporte_acceso_revocado',
 } as const;
 
 export type EventoAuditoria = (typeof EVENTOS_AUDITORIA)[keyof typeof EVENTOS_AUDITORIA];

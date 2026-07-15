@@ -49,6 +49,10 @@ export default tseslint.config(
       'apps/web/src/app/panel/**/difusion/page.tsx',
       'apps/web/src/app/panel/**/buzon/page.tsx',
       'apps/web/src/app/panel/**/buzon/*/page.tsx',
+      // Fase 5 (spec §6.3): la página de soporte resuelve id→email del operador con una
+      // lectura puntual de platform_users (el tenant no puede leerla y el display JAMÁS
+      // confía en el query string). El grant en sí se INSERTA con la sesión (RLS).
+      'apps/web/src/app/panel/**/soporte/page.tsx',
     ],
     rules: {
       'no-restricted-imports': [

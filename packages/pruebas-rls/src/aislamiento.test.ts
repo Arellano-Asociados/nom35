@@ -1185,6 +1185,135 @@ describe('suspensión de tenant (Fase 5): solo lectura a nivel de BD (amenaza 11
   });
 });
 
+describe('grants de soporte nominativos (Fase 5): el consentimiento es del cliente', () => {
+  const OPERADOR_PU = 'dddddddd-0000-4000-8000-000000000001';
+  const GRANT_VIGENTE = 'aaaaaaaa-0000-4000-8000-000000000201';
+  const TENANT_C = 'cccccccc-0000-4000-8000-000000000001';
+  const ADMIN_C = '55555555-0000-4000-8000-000000000001';
+
+  it('el admin de A otorga un grant nominativo en SU tenant (acto de su sesión, vía RLS)', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const r = await q(
+        `insert into support_access_grants
+           (company_id, operator_user_id, operator_email, granted_by_user_id, reason, expires_at)
+         values ($1, $2, 'operador@fixture.constata.mx', $3, 'Depurar informe', now() + interval '24 hours')`,
+        [TENANT_A, OPERADOR_PU, ADMIN_A],
+      );
+      expect(r.rowCount).toBe(1);
+    });
+  });
+
+  it('amenaza 5: grant cross-tenant y granted_by suplantado → 42501', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into support_access_grants
+           (company_id, operator_user_id, operator_email, granted_by_user_id, reason, expires_at)
+         values ($1, $2, 'x@x.mx', $3, 'X', now() + interval '1 hour')`,
+        [TENANT_B, OPERADOR_PU, ADMIN_A],
+        'grant para tenant ajeno',
+      );
+      await esperarRechazo(
+        q,
+        `insert into support_access_grants
+           (company_id, operator_user_id, operator_email, granted_by_user_id, reason, expires_at)
+         values ($1, $2, 'x@x.mx', $3, 'X', now() + interval '1 hour')`,
+        [TENANT_A, OPERADOR_PU, DR_A],
+        'granted_by suplantado',
+      );
+      // SELECT de grants ajenos: 0 filas
+      expect(
+        await contar(q, 'select count(*) n from support_access_grants where company_id = $1', [
+          TENANT_B,
+        ]),
+      ).toBe(0);
+    });
+  });
+
+  it('amenaza 7: el rol miembro (DR) no otorga, pero SÍ ve los accesos (transparencia)', async () => {
+    await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into support_access_grants
+           (company_id, operator_user_id, operator_email, granted_by_user_id, reason, expires_at)
+         values ($1, $2, 'x@x.mx', $3, 'X', now() + interval '1 hour')`,
+        [TENANT_A, OPERADOR_PU, DR_A],
+      );
+      expect(
+        await contar(q, 'select count(*) n from support_access_grants where company_id = $1', [
+          TENANT_A,
+        ]),
+      ).toBe(3); // vigente + expirado + revocado del fixture
+    });
+  });
+
+  it('amenaza 6: extender expires_at o reasignar operador → exception; revocar → OK una sola vez', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const extension = await intento(
+        q,
+        `update support_access_grants set expires_at = expires_at + interval '100 hours' where id = $1`,
+        [GRANT_VIGENTE],
+      );
+      expect(extension.codigo).toBe('P0001');
+      const reasignacion = await intento(
+        q,
+        `update support_access_grants set operator_user_id = gen_random_uuid() where id = $1`,
+        [GRANT_VIGENTE],
+      );
+      expect(reasignacion.codigo).toBe('P0001');
+      const revocacion = await q(
+        `update support_access_grants set revoked_at = now(), revoked_by_user_id = $2 where id = $1`,
+        [GRANT_VIGENTE, ADMIN_A],
+      );
+      expect(revocacion.rowCount).toBe(1);
+      const rerevocacion = await intento(
+        q,
+        `update support_access_grants set revoked_at = now() where id = $1`,
+        [GRANT_VIGENTE],
+      );
+      expect(rerevocacion.codigo).toBe('P0001');
+    });
+  });
+
+  it('amenaza 11: un tenant SUSPENDIDO no otorga grants (para eso está /admin, no su panel)', async () => {
+    await como({ sub: ADMIN_C, company_id: TENANT_C }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into support_access_grants
+           (company_id, operator_user_id, operator_email, granted_by_user_id, reason, expires_at)
+         values ($1, $2, 'x@x.mx', $3, 'X', now() + interval '1 hour')`,
+        [TENANT_C, OPERADOR_PU, ADMIN_C],
+      );
+    });
+  });
+
+  it('amenaza 15 (capa BD): la FK exige que el operador exista en platform_users', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const r = await intento(
+        q,
+        `insert into support_access_grants
+           (company_id, operator_user_id, operator_email, granted_by_user_id, reason, expires_at)
+         values ($1, gen_random_uuid(), 'fantasma@x.mx', $2, 'X', now() + interval '1 hour')`,
+        [TENANT_A, ADMIN_A],
+      );
+      expect(r.codigo).toBe('23503'); // violación de FK
+    });
+  });
+
+  it('el CHECK rechaza duraciones mayores a 72 horas', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const r = await intento(
+        q,
+        `insert into support_access_grants
+           (company_id, operator_user_id, operator_email, granted_by_user_id, reason, expires_at)
+         values ($1, $2, 'x@x.mx', $3, 'X', now() + interval '73 hours')`,
+        [TENANT_A, OPERADOR_PU, ADMIN_A],
+      );
+      expect(r.codigo).toBe('23514'); // violación de CHECK
+    });
+  });
+});
+
 describe('identidad de plataforma (Fase 5): frontera operador↔tenant', () => {
   const OPERADOR = '44444444-0000-4000-8000-000000000001';
   const EMPLEADO_A2_ID = 'aaaaaaaa-0000-4000-8000-000000000022'; // sin cuenta (auth null)

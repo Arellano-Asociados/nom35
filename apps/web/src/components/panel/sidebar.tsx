@@ -20,6 +20,7 @@ const SECCIONES_EMPRESA = [
   ['configuracion', 'Configuración'],
   ['capacitacion', 'Capacitación'],
   ['equipo', 'Equipo'],
+  ['soporte', 'Soporte'],
 ] as const;
 
 const ETIQUETA_ROL: Record<string, string> = {

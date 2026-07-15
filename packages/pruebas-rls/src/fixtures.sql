@@ -274,6 +274,25 @@ insert into platform_users (id, auth_user_id, email, status, display_name) value
    'operador@fixture.constata.mx', 'active', 'Operadora Fixture')
 on conflict do nothing;
 
+-- Grants de soporte (Fase 5): vigente, expirado y revocado en el tenant A, todos
+-- nominativos a la operadora fixture y otorgados por el admin de A.
+insert into support_access_grants
+  (id, company_id, operator_user_id, operator_email, granted_by_user_id, reason,
+   created_at, expires_at, revoked_at, revoked_by_user_id) values
+  ('aaaaaaaa-0000-4000-8000-000000000201', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'dddddddd-0000-4000-8000-000000000001', 'operador@fixture.constata.mx',
+   '11111111-0000-4000-8000-000000000001', 'Soporte fixture vigente',
+   now(), now() + interval '24 hours', null, null),
+  ('aaaaaaaa-0000-4000-8000-000000000202', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'dddddddd-0000-4000-8000-000000000001', 'operador@fixture.constata.mx',
+   '11111111-0000-4000-8000-000000000001', 'Soporte fixture expirado',
+   now() - interval '3 days', now() - interval '2 days', null, null),
+  ('aaaaaaaa-0000-4000-8000-000000000203', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'dddddddd-0000-4000-8000-000000000001', 'operador@fixture.constata.mx',
+   '11111111-0000-4000-8000-000000000001', 'Soporte fixture revocado',
+   now(), now() + interval '24 hours', now(), '11111111-0000-4000-8000-000000000001')
+on conflict do nothing;
+
 insert into dissemination_receipts (id, company_id, dissemination_id, employee_id) values
   ('aaaaaaaa-0000-4000-8000-000000000131', 'aaaaaaaa-0000-4000-8000-000000000001',
    'aaaaaaaa-0000-4000-8000-000000000121', 'aaaaaaaa-0000-4000-8000-000000000021'),
