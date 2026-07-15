@@ -37,6 +37,9 @@ async function contextoActivo(token: string): Promise<Contexto | { error: string
     await permitido(`token-miss:${ip}`, { ventanaSegundos: 600, maximo: 30 });
     return { error: 'Enlace inválido' };
   }
+  // ANTES que todo (Fase 5): un tenant suspendido o en baja no acumula ni una respuesta
+  // más — el contrato está en disputa y los datos son de salud.
+  if (!ctx.empresaActiva) return { error: 'Cuestionario no disponible temporalmente' };
   if (ctx.completado) return { error: 'Este cuestionario ya fue enviado' };
   if (ctx.expirado) return { error: 'Este enlace ha expirado' };
   return ctx;

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { registrarAuditoria } from '@/lib/auditoria';
-import { autorizarEmpresa, puedeGestionar } from '@/lib/autorizacion';
+import { autorizarEmpresa, empresaOperable, puedeGestionar } from '@/lib/autorizacion';
 import { plantillaCorreo, proveedorCorreo } from '@/lib/correo';
 import { validarDefinicion, type DefinicionCuestionario } from '@/lib/cuestionarios';
 import { sha256DeDefinicion } from '@/lib/cuestionarios-sello';
@@ -219,6 +219,9 @@ export async function accionDistribuirCuestionario(
 ): Promise<ResultadoCuestionario> {
   const acceso = await autorizarEmpresa(companyId);
   if (!puedeGestionar(acceso.membresia)) return { ok: false, error: SIN_PERMISO };
+  // Fase 5: distribución con service_role — guardia de suspensión en capa app.
+  const operable = empresaOperable(acceso.membresia);
+  if (!operable.ok) return { ok: false, error: operable.error };
 
   if (!(await permitido(`distribuir-cp:${id}`, { ventanaSegundos: 600, maximo: 1 }))) {
     return {

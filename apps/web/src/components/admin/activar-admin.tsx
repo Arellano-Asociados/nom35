@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { accionActivarOperador } from '@/acciones/plataforma';
 import { Button } from '@/components/ui/button';
 import { CampoTexto } from '@/components/ui/input';
@@ -10,11 +10,19 @@ import { clienteNavegador } from '@/lib/supabase-navegador';
 /**
  * Alta de un operador invitado (spec §1.2): fijar contraseña → enrolar y verificar TOTP
  * → transición a 'active'. El enrolamiento es PARTE del alta: sin factor verificado no
- * hay operador activo.
+ * hay operador activo. La sesión llega en el fragmento de la URL del enlace de
+ * invitación: se procesa aquí, en el cliente (el servidor no ve fragmentos).
  */
 export function ActivarAdmin() {
   const router = useRouter();
+  const [sesion, setSesion] = useState<'cargando' | 'con-sesion' | 'sin-sesion'>('cargando');
   const [paso, setPaso] = useState<'password' | 'enrolar' | 'codigo'>('password');
+
+  useEffect(() => {
+    void clienteNavegador()
+      .auth.getSession()
+      .then(({ data }) => setSesion(data.session ? 'con-sesion' : 'sin-sesion'));
+  }, []);
   const [password, setPassword] = useState('');
   const [inscripcion, setInscripcion] = useState<{
     factorId: string;
@@ -89,6 +97,18 @@ export function ActivarAdmin() {
     router.push('/admin');
     router.refresh();
   };
+
+  if (sesion === 'cargando') {
+    return <p className="text-sm text-texto-secundario">Verificando tu invitación…</p>;
+  }
+  if (sesion === 'sin-sesion') {
+    return (
+      <p className="text-sm text-texto-secundario" role="alert">
+        Tu enlace de invitación no es válido o ya venció. Pide que te reenvíen la invitación desde
+        el portal.
+      </p>
+    );
+  }
 
   if (paso === 'password') {
     return (

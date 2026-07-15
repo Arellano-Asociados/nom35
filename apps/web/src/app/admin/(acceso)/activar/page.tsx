@@ -1,17 +1,14 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import { ActivarAdmin } from '@/components/admin/activar-admin';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { usuarioActual } from '@/lib/supabase-servidor';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Activar cuenta de operación' };
 
-/** Destino del enlace de invitación (inviteUserByEmail): el enlace ya trae sesión. */
-export default async function PaginaActivarOperador() {
-  const usuario = await usuarioActual();
-  if (!usuario) redirect('/admin/ingresar');
-
+// Destino del enlace de invitación (inviteUserByEmail). Sin chequeo de sesión del lado
+// servidor A PROPÓSITO: la sesión del enlace llega en el fragmento de la URL, que el
+// servidor jamás ve; el componente cliente la procesa y decide.
+export default function PaginaActivarOperador() {
   return (
     <Card>
       <CardHeader>

@@ -46,6 +46,17 @@ export async function enviarRecordatoriosDeCiclo({
   actorUserId: string;
 }): Promise<number> {
   const supabase = clienteAdmin();
+
+  // Fase 5: el cron de recordatorios JAMÁS toca tenants no activos (invariante del spec
+  // §2.2.3) — y la acción manual del panel tampoco: rotar tokens y enviar correos
+  // induciría respuestas que el flujo del empleado rechazaría.
+  const { data: empresa } = await supabase
+    .from('companies')
+    .select('status')
+    .eq('id', companyId)
+    .maybeSingle();
+  if (empresa?.status !== 'active') return 0;
+
   const { data: pendientes } = await supabase
     .from('questionnaire_assignments')
     .select('id, employee_id, employees (email, full_name)')

@@ -68,6 +68,14 @@ export const EVENTOS_AUDITORIA = {
   registro58aGenerado: 'registro_58a_generado',
   /** El RD generó el registro de trabajadores examinados del 5.8 c). */
   registro58cGenerado: 'registro_58c_generado',
+  // Actos de PLATAFORMA sobre este tenant (Fase 5, doble bitácora: el cliente tiene
+  // derecho a ver en SU bitácora que la plataforma actuó sobre él; actor = operador).
+  /** La plataforma suspendió la organización (solo lectura hasta reactivar). */
+  empresaSuspendida: 'empresa_suspendida',
+  /** La plataforma reactivó la organización. */
+  empresaReactivada: 'empresa_reactivada',
+  /** Inició la baja: 90 días de retención en solo lectura antes de la purga. */
+  empresaBajaSolicitada: 'empresa_baja_solicitada',
 } as const;
 
 export type EventoAuditoria = (typeof EVENTOS_AUDITORIA)[keyof typeof EVENTOS_AUDITORIA];
