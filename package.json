@@ -12,6 +12,7 @@
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
     "demo:seed": "pnpm --filter @nom35/motor-nom035 run build && node scripts/demo-seed.mjs",
+    "operador:crear": "node scripts/crear-operador.mjs",
     "verificar:textos": "node scripts/verificar-textos-items.mjs"
   },
   "pnpm": {

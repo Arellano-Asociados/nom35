@@ -1214,10 +1214,7 @@ describe('identidad de plataforma (Fase 5): frontera operador↔tenant', () => {
   it('platform_audit_log: ilegible e inescribible para authenticated y anon (amenaza 4)', async () => {
     await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
       await esperarRechazo(q, 'select count(*) n from platform_audit_log');
-      await esperarRechazo(
-        q,
-        `insert into platform_audit_log (event_type) values ('forjado')`,
-      );
+      await esperarRechazo(q, `insert into platform_audit_log (event_type) values ('forjado')`);
     });
     await como(
       { sub: '00000000-0000-4000-8000-000000000000' },
@@ -1232,7 +1229,9 @@ describe('identidad de plataforma (Fase 5): frontera operador↔tenant', () => {
     await comoPostgres(async (q) => {
       await q(`insert into platform_audit_log (event_type) values ('fixture_prueba')`);
       await expect(
-        q(`update platform_audit_log set event_type = 'alterado' where event_type = 'fixture_prueba'`),
+        q(
+          `update platform_audit_log set event_type = 'alterado' where event_type = 'fixture_prueba'`,
+        ),
       ).rejects.toThrow(/append-only/);
     });
     await comoPostgres(async (q) => {
