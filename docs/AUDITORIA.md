@@ -219,6 +219,29 @@ mitigación es el camino pavimentado angosto (allow-list + lint + vistas + doble
 El endurecimiento futuro barato (rol Postgres `plataforma_lector`) queda preparado por las
 vistas de §5 del spec.
 
+## Remediación — Fase 6 «inteligencia y experiencia ejecutiva» (2026-07-15, rama `fase-6-implementacion`)
+
+Añade valor de PRODUCTO (dashboard ejecutivo + asistencia por IA) sin abrir ninguna frontera
+de datos. Spec con 7 decisiones selladas y modelo de amenazas de 9 vectores en
+`docs/superpowers/specs/2026-07-14-fase-6-inteligencia-design.md`. Validación al cierre:
+motor 59/59, web 202/202 (creció de 179), **RLS 91/91** (creció de 85), **E2E 29/29** (spec
+nuevo `inteligencia.spec.ts`).
+
+| Frente                                                                              | Estado                                                                                                                                                                                                                                        |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard ejecutivo al entrar al panel (avance, semáforo, pendientes, vencimientos) | ✅ Sobre las vistas agregadas existentes con supresión de fila completa; `lib/tablero-datos.ts` unifica el criterio de vigencia y supresión con el dashboard de ciclo                                                                         |
+| Frontera de datos hacia el proveedor de IA (reglas 2/3/4/5 aplican a la IA)         | ✅ Allow-list `lib/ia/ia-datos.ts` (todo pasa por `agregados.ts` antes del insumo) + guardias de lint bidireccionales + test de frontera. La IA jamás recibe responses, resultados individuales, registros 5.8, buzón ni nombres de empleados |
+| Prompt-injection desde textos del tenant                                            | ✅ JSON canónico delimitado como bloque de datos + system prompt fijo + strings del tenant truncados como valores + validación estructural de la salida                                                                                       |
+| El texto generado por IA es evidencia trazable, no verdad                           | ✅ `ai_drafts` append-only con la terna reproducible (insumo_sha256/prompt_version/modelo); adopción humana explícita (trigger `solo_adopcion`); borrador no adoptado inconfundible y no exportable; leyenda en UI y PDF                      |
+| Costo por tenant                                                                    | ✅ Flag `ia_asistida` default OFF + limitador de generación **fail-closed** por ciclo + persistencia (1 llamada por generación, no por vista)                                                                                                 |
+
+**Riesgo residual declarado (se añade a las dependencias legales abiertas):** los agregados
+YA suprimidos del insumo salen de la infraestructura propia hacia la API de Anthropic bajo sus
+términos (sin entrenamiento con datos de API). Es el mismo agregado que un admin ve en
+pantalla — no hay datos personales sensibles en el insumo por construcción — pero el DPA/aviso
+con el cliente debe mencionar el subencargo del proveedor de IA, junto al aviso de privacidad y
+el DPA general ya pendientes.
+
 ## Los 9 hallazgos críticos
 
 ### C-01 · Los cuestionarios no contienen las preguntas oficiales (NOM-035 · Código)
