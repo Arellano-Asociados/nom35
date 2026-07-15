@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   accionActualizarFlag,
@@ -15,7 +16,7 @@ import {
   TransicionSimple,
 } from '@/components/admin/organizaciones-admin';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { autorizarPlataforma } from '@/lib/autorizacion-plataforma';
+import { autorizarPlataforma, grantSoporteVigente } from '@/lib/autorizacion-plataforma';
 import { ETIQUETA_ESTADO } from '@/lib/estados-empresa';
 import { fechaEsMx } from '@/lib/fechas';
 import { FLAGS } from '@/lib/flags';
@@ -30,8 +31,9 @@ export default async function PaginaFichaOrganizacion({
 }: {
   params: Promise<{ companyId: string }>;
 }) {
-  await autorizarPlataforma();
+  const operador = await autorizarPlataforma();
   const { companyId } = await params;
+  const grantVigente = await grantSoporteVigente(companyId, operador.operadorId);
 
   // service_role justificado: superficie exclusiva del portal (ficha cross-tenant de
   // METADATOS de la organización — nada derivado de salud, regla 4 aplicada al operador).
@@ -184,6 +186,19 @@ export default async function PaginaFichaOrganizacion({
             <CardTitle>Acceso de soporte</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
+            {grantVigente && (
+              <p className="text-sm">
+                Tienes un acceso vigente:{' '}
+                <Link
+                  href={`/admin/soporte/${companyId}`}
+                  className="font-medium text-marca-700 underline"
+                  data-testid="entrar-vista-soporte"
+                >
+                  entrar a la vista de soporte
+                </Link>
+                .
+              </p>
+            )}
             {empresa.status === 'active' ? (
               <>
                 <SolicitarAccesoSoporte solicitar={solicitarAcceso} />

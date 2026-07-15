@@ -6,7 +6,7 @@ import {
   registrarAuditoriaPlataformaEstricta,
   type EventoPlataforma,
 } from '@/lib/auditoria-plataforma';
-import { autorizarPlataforma } from '@/lib/autorizacion-plataforma';
+import { autorizarPlataforma, grantSoporteVigente } from '@/lib/autorizacion-plataforma';
 import { plantillaCorreo, proveedorCorreo } from '@/lib/correo';
 import { FLAGS } from '@/lib/flags';
 import { puedeDeshabilitarOperador, transicionOperadorValida } from '@/lib/operadores';
@@ -446,6 +446,33 @@ export async function accionSolicitarAcceso(
       cta: { url, etiqueta: 'Revisar la solicitud en mi panel' },
     }),
   });
+  return { ok: true };
+}
+
+/**
+ * "Terminar acceso" (spec §6.6): el operador revoca SU PROPIO grant vigente. La
+ * revocación es la única mutación permitida del grant y queda en la bitácora del tenant.
+ */
+export async function accionTerminarAccesoSoporte(companyId: string): Promise<ResultadoPlataforma> {
+  const operador = await autorizarPlataforma();
+  const grant = await grantSoporteVigente(companyId, operador.operadorId);
+  if (!grant) return { ok: false, error: 'No tienes un acceso vigente en esta organización.' };
+
+  const admin = clienteAdmin();
+  const { error } = await admin
+    .from('support_access_grants')
+    .update({ revoked_at: new Date().toISOString(), revoked_by_user_id: operador.authUserId })
+    .eq('id', grant.id);
+  if (error) return { ok: false, error: 'No se pudo terminar el acceso.' };
+
+  await registrarAuditoria(
+    companyId,
+    operador.authUserId,
+    EVENTOS_AUDITORIA.soporteAccesoRevocado,
+    'support_access_grants',
+    grant.id,
+    { operador_email: operador.email, terminado_por_el_operador: true },
+  );
   return { ok: true };
 }
 

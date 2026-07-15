@@ -82,6 +82,8 @@ export const EVENTOS_AUDITORIA = {
   soporteAccesoOtorgado: 'soporte_acceso_otorgado',
   /** Se revocó un acceso de soporte (por el tenant o por el propio operador). */
   soporteAccesoRevocado: 'soporte_acceso_revocado',
+  /** Regla 5 aplicada a la plataforma: cada página de la vista de soporte queda aquí. */
+  soporteVistaConsultada: 'soporte_vista_consultada',
 } as const;
 
 export type EventoAuditoria = (typeof EVENTOS_AUDITORIA)[keyof typeof EVENTOS_AUDITORIA];
