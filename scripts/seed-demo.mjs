@@ -358,17 +358,15 @@ async function sembrarResultadoLikert(ctx) {
   const objetivo = (ctx.guia === 'GR-III' ? OBJETIVO_CFINAL_GR3 : OBJETIVO_CFINAL_GR2)[ctx.nivel];
   const { entrada, filas } = construirRespuestasLikert(ctx.guiaDef, ctx.filtros, objetivo);
   const resultado = calificarCuestionario(entrada, ctx.guiaDef);
-  const { error } = await supabase
-    .from('responses')
-    .insert(
-      filas.map((f) => ({
-        company_id: ctx.companyId,
-        assignment_id: ctx.assignmentId,
-        section: null,
-        item_number: f.item_number,
-        answer: f.answer,
-      })),
-    );
+  const { error } = await supabase.from('responses').insert(
+    filas.map((f) => ({
+      company_id: ctx.companyId,
+      assignment_id: ctx.assignmentId,
+      section: null,
+      item_number: f.item_number,
+      answer: f.answer,
+    })),
+  );
   if (error) throw new Error(`responses (${ctx.guia}): ${error.message}`);
   if ((await contarFilas('risk_results', { assignment_id: ctx.assignmentId })) === 0) {
     const { error: e2 } = await supabase.from('risk_results').insert({
@@ -390,17 +388,15 @@ async function sembrarResultadoGR1(ctx) {
   if ((await contarFilas('responses', { assignment_id: ctx.assignmentId })) > 0) return null;
   const { entrada, filas } = construirRespuestasGR1(ctx.perfil);
   const resultado = evaluarGR1(entrada);
-  const { error } = await supabase
-    .from('responses')
-    .insert(
-      filas.map((f) => ({
-        company_id: ctx.companyId,
-        assignment_id: ctx.assignmentId,
-        section: f.section,
-        item_number: f.item_number,
-        answer: f.answer,
-      })),
-    );
+  const { error } = await supabase.from('responses').insert(
+    filas.map((f) => ({
+      company_id: ctx.companyId,
+      assignment_id: ctx.assignmentId,
+      section: f.section,
+      item_number: f.item_number,
+      answer: f.answer,
+    })),
+  );
   if (error) throw new Error(`responses (GR-I): ${error.message}`);
   if ((await contarFilas('gr1_results', { assignment_id: ctx.assignmentId })) === 0) {
     const creado = await crearUno('gr1_results', {

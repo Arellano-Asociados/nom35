@@ -147,8 +147,16 @@ Bitácora detallada de lo construido en cada uno: **`docs/historia-milestones.md
 | F4.5      | Remates normativos (eventos ATS, informe 7.7, registros 5.8) | ✅ (2026-07-14) — deuda normativa VACÍA                  |
 | F5        | Portal super-admin de plataforma (/admin)                    | ✅ (2026-07-14) — v0.7.0                                 |
 | F6        | Inteligencia y experiencia ejecutiva (dashboard + IA)        | ✅ (2026-07-15) — v0.8.0                                 |
+| F7        | Empaque de demo y QA manual (`seed:demo`, MANUAL_QA)         | ✅ (2026-07-15) — v0.9.0                                 |
 
-Estado de validación tras F6: motor 59/59, web 202/202, RLS 91/91, E2E 29/29.
+Estado de validación tras F7: motor 59/59, web 202/202, RLS 91/91, E2E 29/29.
+
+**Empaque de demo (F7):** `pnpm seed:demo` (`scripts/seed-demo.mjs`) siembra el dataset
+comercial "Constata Demo" (2 organizaciones, 3 centros de los tres tamaños normativos,
+62 empleados, ciclo completado con los 5 niveles del semáforo, ciclo en curso, evento
+ATS, programa, quejas, difusión, cuestionario propio y borradores de IA) — idempotente y
+con guard anti-producción. `docs/MANUAL_QA.md` es el guion de QA manual; sus filas "Auto"
+se corren con `node scripts/qa-verificacion.mjs` contra el seed.
 
 **Frontera plataforma/tenant (F5, no reabrir):** la identidad de plataforma es una FILA en
 `platform_users` consultada por `auth.uid()` (sin claim JWT, sin `app.es_plataforma()` en
