@@ -17,6 +17,7 @@ const SECCIONES = [
   ['flags', 'Flags'],
   ['difusion', 'Difusión'],
   ['programa', 'Programa'],
+  ['ia', 'IA'],
   ['bitacora', 'Bitácora'],
 ] as const;
 

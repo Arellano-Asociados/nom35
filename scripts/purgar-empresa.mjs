@@ -122,6 +122,7 @@ const inventario = {
   eventos_ats: await contar('traumatic_events'),
   constancias_difusion: await contar('dissemination_records'),
   programas: await contar('intervention_programs'),
+  borradores_ia: await contar('ai_drafts'),
 };
 
 const { data: reportes } = await supabase

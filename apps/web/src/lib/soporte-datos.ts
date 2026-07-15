@@ -254,3 +254,31 @@ export async function bitacoraTenantSoporte(
     total: count ?? 0,
   };
 }
+
+export interface IaDraftMetadataSoporte {
+  tipo: string;
+  modelo: string;
+  promptVersion: string;
+  createdAt: string;
+  adoptadoEl: string | null;
+}
+
+/** Fase 6 §8: borradores de IA para SOPORTE — SOLO metadata. Jamás `texto` ni `insumo`
+ * (contienen la interpretación de resultados del tenant y sus nombres de centros: la
+ * frontera de soporte no se relaja). Columnas explícitas, como toda la allow-list. */
+export async function iaDraftsMetadataSoporte(
+  companyId: string,
+): Promise<IaDraftMetadataSoporte[]> {
+  const { data } = await clienteAdmin()
+    .from('ai_drafts')
+    .select('tipo, modelo, prompt_version, created_at, adopted_at')
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false });
+  return (data ?? []).map((d) => ({
+    tipo: d.tipo,
+    modelo: d.modelo,
+    promptVersion: d.prompt_version,
+    createdAt: d.created_at,
+    adoptadoEl: d.adopted_at,
+  }));
+}

@@ -52,6 +52,7 @@ export function armarActaPurga({ empresa, avisos, inventario, huellas }) {
     'eventos_ats',
     'constancias_difusion',
     'programas',
+    'borradores_ia', // Fase 6: ai_drafts es dato del tenant y se purga con él
   ];
   const faltantes = ENTIDADES.filter((e) => !(e in inventario));
   if (faltantes.length > 0) {

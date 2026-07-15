@@ -73,6 +73,9 @@ export interface EntradaAvancePrograma {
   fechaCompletado: string | null;
   /** Huella de la evidencia adjunta (el archivo en sí no se embebe: se referencia). */
   evidenciaSha256: string | null;
+  /** Fase 6: la acción se originó en un borrador asistido por IA, adoptado por el
+   * responsable. El origen del texto es parte de la evidencia (spec §7). */
+  aiAssisted?: boolean;
 }
 
 export interface EntradaProgramaExpediente {

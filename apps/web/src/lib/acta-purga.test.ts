@@ -29,6 +29,7 @@ const INVENTARIO_OK = {
   eventos_ats: 1,
   constancias_difusion: 2,
   programas: 1,
+  borradores_ia: 4,
 };
 
 const HUELLAS_OK = {
