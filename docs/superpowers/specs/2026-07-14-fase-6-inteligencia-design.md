@@ -50,8 +50,8 @@ origen del texto es parte de la evidencia.
      allow-list de soporte.
 6. **Prompts versionados en código** (`lib/ia/prompts.ts`, constantes numeradas —
    `PROMPT_RESUMEN_V1`, `PROMPT_PLAN_V1` — jamás strings inline). La respuesta reproducible
-   a "¿por qué el resumen de marzo dice X?" es la terna `insumo_sha256` + `prompt_version`
-   - `modelo`; sin el prompt versionado en código, la tercera pata coja.
+   a "¿por qué el resumen de marzo dice X?" es la terna de `insumo_sha256`,
+   `prompt_version` y `modelo`; sin el prompt versionado en código, la tercera pata coja.
 7. **Un borrador NO adoptado es visualmente inconfundible y no exportable.** Marca visual
    de borrador (estilo distinto + leyenda "BORRADOR — sin revisar"; el tratamiento exacto
    se decide en implementación) y **ninguna** affordance de exportación, copia a documento

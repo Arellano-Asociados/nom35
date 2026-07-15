@@ -66,9 +66,10 @@ cycle_id)`); trigger `app.solo_adopcion()` (UPDATE solo `adopted_by/adopted_at`,
   (≥1 ciclo con asignaciones → tablero; si no, checklist).
 - Create: `apps/web/src/lib/tablero-datos.ts` — armado del semáforo global y por centro:
   factoriza el criterio de vigencia (`resultadosVigentesPorAsignacion` de `lib/informe.ts`)
-  - `distribucionNiveles`/`distribucionPorNombre` de `agregados.ts`, compartido con la
-    página de dashboard del ciclo (que se modifica para consumirlo — un solo lugar decide
-    vigencia y supresión). service_role justificado y comentado (risk_results sin GRANT).
+  junto con `distribucionNiveles`/`distribucionPorNombre` de `agregados.ts`, compartido
+  con la página de dashboard del ciclo (que se modifica para consumirlo — un solo lugar
+  decide vigencia y supresión). service_role justificado y comentado (risk_results sin
+  GRANT).
 - Modify: `apps/web/src/app/panel/[empresa]/page.tsx` — checklist si
   `!mostrarTablero(...)`; si no, las 4 franjas del spec §1 (avance por centro con sesión;
   semáforo con `tablero-datos`; pendientes: asignaciones sin responder, conteo de
