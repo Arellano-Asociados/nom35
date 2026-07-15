@@ -419,7 +419,7 @@ async function piezasCicloNormativoDesdeBd(
     const { data: accionesFilas } = await supabase
       .from('action_items')
       .select(
-        'description, action_level, target_areas, responsible, due_date, status, completed_at, evidence_sha256',
+        'description, action_level, target_areas, responsible, due_date, status, completed_at, evidence_sha256, ai_assisted',
       )
       .eq('company_id', companyId)
       .eq('cycle_id', cycleId)
@@ -433,6 +433,7 @@ async function piezasCicloNormativoDesdeBd(
       estatus: a.status,
       fechaCompletado: a.completed_at,
       evidenciaSha256: a.evidence_sha256,
+      aiAssisted: a.ai_assisted ?? false,
     }));
     const pdfPrograma = await generarPdfPrograma({
       empresa: contexto.empresa,

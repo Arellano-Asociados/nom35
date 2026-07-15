@@ -30,6 +30,8 @@ export default tseslint.config(
     // de soporte y NO se consume fuera de app/admin/**/soporte/** — que la frontera no
     // se cruce ni por accidente. (Los bloques posteriores que redefinen
     // no-restricted-imports para archivos específicos repiten esta ruta.)
+    // Fase 6 añade a esta guardia general las fronteras de IA: la allow-list ia-datos y
+    // el SDK de Anthropic solo se consumen en sus lugares (overrides más abajo).
     files: ['apps/web/src/**/*.{ts,tsx}'],
     ignores: ['apps/web/src/app/admin/**/soporte/**', 'apps/web/src/lib/soporte-datos.ts'],
     rules: {
@@ -42,6 +44,16 @@ export default tseslint.config(
               message:
                 'La allow-list de soporte solo se consume desde app/admin/**/soporte/** (spec Fase 5 §8).',
             },
+            {
+              name: '@/lib/ia/ia-datos',
+              message:
+                'La allow-list de IA solo se consume desde acciones/ia.ts (spec Fase 6 §2): la IA jamás recibe datos fuera de este módulo.',
+            },
+            {
+              name: '@anthropic-ai/sdk',
+              message:
+                'El SDK de Anthropic solo se importa en lib/ia/proveedor.ts (spec Fase 6 §3): la llamada sale del servidor tras la interfaz ProveedorIA.',
+            },
           ],
         },
       ],
@@ -50,7 +62,8 @@ export default tseslint.config(
   {
     // Fase 5, guardia (a): las páginas de la vista de soporte consumen EXCLUSIVAMENTE
     // lib/soporte-datos (columnas explícitas, jamás select('*')). service_role directo
-    // queda prohibido ahí — el camino pavimentado es angosto a propósito (§7.1).
+    // queda prohibido ahí — el camino pavimentado es angosto a propósito (§7.1). Fase 6:
+    // tampoco cruzan hacia la allow-list de IA ni al SDK.
     files: ['apps/web/src/app/admin/**/soporte/**/*.tsx'],
     rules: {
       'no-restricted-imports': [
@@ -61,6 +74,60 @@ export default tseslint.config(
               name: '@/lib/supabase-admin',
               message:
                 'Las páginas de soporte consumen SOLO lib/soporte-datos (allow-list de columnas explícitas).',
+            },
+            {
+              name: '@/lib/ia/ia-datos',
+              message: 'La allow-list de IA solo se consume desde acciones/ia.ts (spec Fase 6 §2).',
+            },
+            {
+              name: '@anthropic-ai/sdk',
+              message:
+                'El SDK de Anthropic solo se importa en lib/ia/proveedor.ts (spec Fase 6 §3).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Fase 6, override: lib/ia/proveedor.ts es el ÚNICO que puede importar el SDK de
+    // Anthropic. Conserva la prohibición de soporte-datos e ia-datos (no los importa).
+    files: ['apps/web/src/lib/ia/proveedor.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/lib/soporte-datos',
+              message: 'La allow-list de soporte no se consume aquí (spec Fase 5 §8).',
+            },
+            {
+              name: '@/lib/ia/ia-datos',
+              message: 'ia-datos solo se consume desde acciones/ia.ts (spec Fase 6 §2).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Fase 6, override: acciones/ia.ts es el ÚNICO que consume la allow-list ia-datos.
+    // Sigue sin poder importar el SDK directo (usa la interfaz ProveedorIA).
+    files: ['apps/web/src/acciones/ia.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/lib/soporte-datos',
+              message: 'La allow-list de soporte no se consume aquí (spec Fase 5 §8).',
+            },
+            {
+              name: '@anthropic-ai/sdk',
+              message:
+                'El SDK de Anthropic solo se importa en lib/ia/proveedor.ts (spec Fase 6 §3).',
             },
           ],
         },
@@ -122,6 +189,15 @@ export default tseslint.config(
               message:
                 'La allow-list de soporte solo se consume desde app/admin/**/soporte/** (spec Fase 5 §8).',
             },
+            {
+              name: '@/lib/ia/ia-datos',
+              message: 'La allow-list de IA solo se consume desde acciones/ia.ts (spec Fase 6 §2).',
+            },
+            {
+              name: '@anthropic-ai/sdk',
+              message:
+                'El SDK de Anthropic solo se importa en lib/ia/proveedor.ts (spec Fase 6 §3).',
+            },
           ],
         },
       ],
@@ -159,6 +235,15 @@ export default tseslint.config(
               name: '@/lib/soporte-datos',
               message:
                 'La allow-list de soporte solo se consume desde app/admin/**/soporte/** (spec Fase 5 §8).',
+            },
+            {
+              name: '@/lib/ia/ia-datos',
+              message: 'La allow-list de IA solo se consume desde acciones/ia.ts (spec Fase 6 §2).',
+            },
+            {
+              name: '@anthropic-ai/sdk',
+              message:
+                'El SDK de Anthropic solo se importa en lib/ia/proveedor.ts (spec Fase 6 §3).',
             },
           ],
         },

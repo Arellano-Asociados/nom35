@@ -19,5 +19,8 @@ export default defineConfig({
     url: 'http://127.0.0.1:3100',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // Fase 6: el proveedor de IA simulado (texto determinista, sin red) permite el E2E
+    // del flujo completo generar → adoptar sin llamar a la API real.
+    env: { ...process.env, IA_SIMULADA: '1' },
   },
 });

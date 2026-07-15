@@ -84,6 +84,11 @@ export const EVENTOS_AUDITORIA = {
   soporteAccesoRevocado: 'soporte_acceso_revocado',
   /** Regla 5 aplicada a la plataforma: cada página de la vista de soporte queda aquí. */
   soporteVistaConsultada: 'soporte_vista_consultada',
+  // Asistencia por IA (Fase 6): el origen del texto es parte de la evidencia.
+  /** Se generó un borrador asistido por IA (resumen o plan); details sin el texto. */
+  iaBorradorGenerado: 'ia_borrador_generado',
+  /** Un usuario adoptó (revisó e hizo suyo) un borrador de IA. */
+  iaBorradorAdoptado: 'ia_borrador_adoptado',
 } as const;
 
 export type EventoAuditoria = (typeof EVENTOS_AUDITORIA)[keyof typeof EVENTOS_AUDITORIA];

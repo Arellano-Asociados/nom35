@@ -1,6 +1,6 @@
 {
   "name": "@nom35/web",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -11,6 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
     "@nom35/motor-nom035": "workspace:*",
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.12.0",

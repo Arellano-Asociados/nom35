@@ -16,7 +16,8 @@ el cuestionario. No requiere conocimientos técnicos.
 4. [Guía del empleado](#4-guía-del-empleado)
 5. [Prueba end-to-end en local](#5-prueba-end-to-end-en-local)
 6. [Portal de operación de plataforma (equipo Constata)](#6-portal-de-operación-de-plataforma-equipo-constata)
-7. [Preguntas frecuentes](#7-preguntas-frecuentes)
+7. [Dashboard ejecutivo y asistencia por IA](#7-dashboard-ejecutivo-y-asistencia-por-ia)
+8. [Preguntas frecuentes](#8-preguntas-frecuentes)
 
 ## 1. Qué es y cómo funciona
 
@@ -510,7 +511,54 @@ siguientes por invitación desde `/admin/operadores`. Reglas de la casa:
   (`/admin/bitacora`, filtrable) y, si afecta a una organización, también en la bitácora de
   esa organización.
 
-## 7. Preguntas frecuentes
+## 7. Dashboard ejecutivo y asistencia por IA
+
+### 7.1 Dashboard ejecutivo
+
+En cuanto tu organización tiene un ciclo con cuestionarios distribuidos, la página de inicio
+del panel deja de mostrar la lista de "primeros pasos" y muestra el **dashboard ejecutivo**
+del ciclo activo, pensado para dirección:
+
+- **Avance por centro**: cuántos cuestionarios se completaron de los asignados.
+- **Semáforo global y por centro**: la distribución de niveles de riesgo, con la misma regla
+  de anonimato del resto de la plataforma — un centro con menos de 3 respuestas aparece
+  enmascarado ("—"): grupo pequeño, no reportable. Nunca verás resultados individuales.
+- **Pendientes normativos**: cuestionarios sin responder, canalizaciones GR-I abiertas (solo
+  el número; el detalle es del Responsable Designado), si falta el Programa de intervención
+  cuando los resultados lo exigen, y si falta publicar la política.
+- **Próximos vencimientos**: centros que ya deben reevaluarse (bienal, numeral 7.9) y las
+  acciones del programa con fecha compromiso vencida o próxima.
+
+### 7.2 Asistencia por IA — qué hace y qué NO hace
+
+La asistencia por IA es **opcional** (se activa por organización) y su regla de oro es simple:
+**la IA propone borradores; tú los revisas, los editas y decides si los haces tuyos.** Un
+texto de IA nunca se convierte en evidencia por sí solo.
+
+**Qué ve la IA (y qué no):** la IA recibe ÚNICAMENTE los mismos datos agregados que tú ves en
+tu dashboard —participación y distribuciones ya anonimizadas (con la supresión de grupos
+menores a 3)— más el catálogo de acciones que la norma sugiere. **Nunca** recibe respuestas de
+cuestionarios, resultados individuales, los registros del 5.8 ni el contenido del buzón de
+quejas. Los grupos pequeños le llegan marcados como "no reportables": no puede inferir el nivel
+de nadie.
+
+**Resumen ejecutivo** (en el dashboard): genera un texto en lenguaje de dirección sobre el
+panorama del ciclo. Mientras no lo adoptes, se muestra como **BORRADOR sin revisar**, con un
+recuadro distinto, y no puede exportarse ni copiarse a ningún documento. Al pulsar "Revisé y
+adopto este texto", queda marcado como revisado por ti, con tu nombre y la fecha.
+
+**Plan de acción** (en la pestaña de acciones del ciclo, cuando los resultados exigen
+programa): propone medidas concretas, cada una anclada a una acción de la Tabla 4/7 de la
+norma (las que se salgan del catálogo se marcan para que las revises con cuidado). Editas cada
+medida, marcas cuáles adoptar, y al adoptarlas se agregan a tu Programa de intervención como
+acciones tuyas, señaladas como "asistidas por IA". El programa sigue siendo tuyo: editable,
+firmado por ti, con la evidencia de siempre.
+
+**Trazabilidad:** cada generación y cada adopción quedan en tu bitácora, y todo texto adoptado
+lleva la leyenda de quién lo revisó y cuándo. En un producto de evidencia, el origen del texto
+es parte de la evidencia.
+
+## 8. Preguntas frecuentes
 
 **¿Por qué no puedo ver las respuestas individuales de un empleado?**
 Porque la norma trata esas respuestas como datos personales sensibles de salud, y la

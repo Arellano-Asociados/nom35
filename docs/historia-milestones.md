@@ -215,3 +215,30 @@ idempotente por bitácora) y purga física SOLO por `scripts/purgar-empresa.mjs`
 plazo + 4 avisos, acta CON INVENTARIO y huellas sha256 verificada ANTES de borrar; sin acta
 no hay purga). Suite RLS 64→85, E2E 22/22 (spec `portal-plataforma` con TOTP real), web
 178/178, motor 59/59. Versión 0.7.0.
+
+## F6 — Inteligencia y experiencia ejecutiva
+
+✅ Cerrado (2026-07-15): dashboard ejecutivo como inicio del panel (avance del ciclo activo,
+semáforo global y por centro sobre `agregados.ts` con supresión de fila completa, pendientes
+normativos y vencimientos bienal/programa; el checklist de onboarding se conserva para el
+arranque) sobre `lib/tablero-datos.ts` compartido con el dashboard de ciclo (un solo criterio
+de vigencia y supresión). **Frontera IA con el rigor de la vista de soporte de F5:** la IA
+solo recibe lo que arma la allow-list `lib/ia/ia-datos.ts` — agregados YA suprimidos + el
+catálogo Tabla 4/7, jamás responses/resultados individuales/registros 5.8/buzón/nombres de
+empleados; anti prompt-injection estructural (JSON canónico delimitado, strings del tenant
+truncados a 120 como valores, system prompt fijo, salida validada) + guardias de lint
+bidireccionales + test de frontera que serializa el insumo y afirma ausencia de campos
+prohibidos. Proveedor tras interfaz propia `ProveedorIA` (Anthropic Haiku 4.5 vía
+`IA_MODELO`; Simulado para E2E; Nulo sin key), la llamada siempre del servidor. Resumen
+ejecutivo y plan de acción persistidos en `ai_drafts` append-only con `insumo` +
+`insumo_sha256` + `prompt_version` + modelo (la terna reproducible de qué vio la IA); adopción
+humana explícita y de una sola vía (trigger `app.solo_adopcion`), con la sesión del usuario —
+la IA propone, el humano firma y JAMÁS escribe en el programa (adoptar el plan pre-puebla el
+flujo existente y el INSERT de las `action_items` con `ai_assisted` es del usuario vía RLS).
+Trazabilidad: borrador no adoptado visualmente inconfundible y no exportable; texto adoptado
+con leyenda permanente (modelo, usuario, fecha); leyenda en el PDF del programa; eventos
+`ia_borrador_generado`/`ia_borrador_adoptado`. Flag `ia_asistida` (default OFF) + limitador de
+generación FAIL-CLOSED (el límite ES la protección de costo). `ai_drafts` es dato del tenant:
+entra al inventario del acta de purga (`borradores_ia`) y soporte ve SOLO metadata. Suite RLS
+85→91, E2E 25→29 (spec `inteligencia` con `IA_SIMULADA`), web 179→202, motor 59/59. Versión
+0.8.0.

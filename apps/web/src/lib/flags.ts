@@ -8,6 +8,9 @@ import { clienteSesion } from './supabase-servidor';
  */
 export const FLAGS = {
   cuestionariosPersonalizados: 'cuestionarios_personalizados',
+  /** Fase 6: resumen ejecutivo y plan de acción asistidos por IA (default OFF; el costo
+   * por tenant lo gobierna este flag y un limitador fail-closed por ciclo). */
+  iaAsistida: 'ia_asistida',
 } as const;
 
 export async function flagActiva(

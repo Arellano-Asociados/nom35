@@ -1,14 +1,16 @@
 import Link from 'next/link';
+import { DashboardEjecutivo } from '@/components/panel/dashboard-ejecutivo';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { autorizarEmpresa } from '@/lib/autorizacion';
 import { clienteSesion } from '@/lib/supabase-servidor';
+import { mostrarTablero } from '@/lib/tablero';
 
 export const dynamic = 'force-dynamic';
 
-// Checklist de primer uso (auditoría v0, dimensión 4 [Alto]: "cero onboarding" — el
-// admin aterrizaba en Centros vacío sin que nada explicara la secuencia obligada, y
-// varios pasos dependen de otros). Cada paso dice qué es, por qué lo pide la norma y
-// lleva directo a resolverlo.
+// Inicio del panel (Fase 6): dashboard ejecutivo cuando la empresa ya opera (≥1 ciclo con
+// asignaciones distribuidas); mientras tanto, el checklist de primer uso (auditoría v0,
+// dimensión 4 [Alto]: "cero onboarding"). Cada paso del checklist dice qué es, por qué lo
+// pide la norma y lleva directo a resolverlo.
 export default async function PaginaInicioEmpresa({
   params,
 }: {
@@ -32,6 +34,10 @@ export default async function PaginaInicioEmpresa({
     contar('compliance_cycles'),
     contar('questionnaire_assignments'),
   ]);
+
+  if (mostrarTablero({ ciclos, asignaciones })) {
+    return <DashboardEjecutivo empresa={empresa} />;
+  }
 
   const PASOS = [
     {

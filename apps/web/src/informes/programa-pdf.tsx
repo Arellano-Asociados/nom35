@@ -120,6 +120,12 @@ export function ProgramaPdf({ datos }: { datos: DatosProgramaPdf }) {
                   Responsable: {a.responsable}
                   {a.fechaCompromiso ? ` · Fecha programada: ${a.fechaCompromiso}` : ''}
                 </Text>
+                {a.aiAssisted && (
+                  <Text style={styles.meta}>
+                    Acción originada en un borrador asistido por IA, revisada y adoptada por el
+                    responsable del programa.
+                  </Text>
+                )}
               </View>
             ))
           )}

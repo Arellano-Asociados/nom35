@@ -146,8 +146,9 @@ Bitácora detallada de lo construido en cada uno: **`docs/historia-milestones.md
 | F4        | Ciclo normativo completo (difusión, buzón, programa 8.3–8.5) | ✅ (2026-07-14)                                          |
 | F4.5      | Remates normativos (eventos ATS, informe 7.7, registros 5.8) | ✅ (2026-07-14) — deuda normativa VACÍA                  |
 | F5        | Portal super-admin de plataforma (/admin)                    | ✅ (2026-07-14) — v0.7.0                                 |
+| F6        | Inteligencia y experiencia ejecutiva (dashboard + IA)        | ✅ (2026-07-15) — v0.8.0                                 |
 
-Estado de validación tras F5: motor 59/59, web 178/178, RLS 85/85, E2E 22/22.
+Estado de validación tras F6: motor 59/59, web 202/202, RLS 91/91, E2E 29/29.
 
 **Frontera plataforma/tenant (F5, no reabrir):** la identidad de plataforma es una FILA en
 `platform_users` consultada por `auth.uid()` (sin claim JWT, sin `app.es_plataforma()` en
@@ -157,6 +158,17 @@ políticas RESTRICTIVE por comando de escritura (toda tabla de tenant NUEVA debe
 suyas en su migración). El soporte exige grant NOMINATIVO del cliente, SIN break-glass
 (decisión sellada). La purga física es solo por `scripts/purgar-empresa.mjs`: sin acta con
 inventario escrita y verificada no hay purga.
+
+**Frontera IA (F6, no reabrir):** la IA solo recibe lo que arma la allow-list
+`lib/ia/ia-datos.ts` — agregados YA suprimidos por `agregados.ts` + el catálogo Tabla 4/7,
+jamás responses/resultados individuales/registros 5.8/buzón/nombres de empleados. La
+llamada sale del servidor tras la interfaz `ProveedorIA` (`@anthropic-ai/sdk` solo en
+`lib/ia/proveedor.ts`; guardias de lint bidireccionales). Todo texto vive en `ai_drafts`
+append-only con `insumo` + `insumo_sha256` + `prompt_version` + modelo (la terna
+reproducible de qué vio la IA); la adopción es un acto del usuario con su sesión (trigger
+`app.solo_adopcion`, una sola vía) y la IA JAMÁS escribe en el programa. Un borrador no
+adoptado es visualmente inconfundible y no exportable. Flag `ia_asistida` (default OFF) +
+limitador de generación **fail-closed** (el límite ES la protección de costo).
 
 **El informe de resultados es del numeral 7.7.** El 7.9 es la PERIODICIDAD bienal: se usa
 solo en la alerta de reevaluación y en la conclusión de repetir cada dos años.

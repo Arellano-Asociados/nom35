@@ -69,6 +69,11 @@ export default async function PaginaFichaOrganizacion({
       etiqueta: 'Cuestionarios personalizados (encuestas propias de la organización)',
       defecto: false,
     },
+    {
+      flag: FLAGS.iaAsistida,
+      etiqueta: 'Asistencia por IA (resumen ejecutivo y plan de acción — costo por uso)',
+      defecto: false,
+    },
   ] as const;
 
   const actualizarFlag = accionActualizarFlag.bind(null, companyId);

@@ -6,16 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { distribucionNiveles, distribucionPorNombre, NIVELES } from '@/lib/agregados';
 import { autorizarEmpresa } from '@/lib/autorizacion';
-import { resultadosVigentesPorAsignacion } from '@/lib/informe';
-import { clienteAdmin } from '@/lib/supabase-admin';
+import { clienteSesion } from '@/lib/supabase-servidor';
+import { vigentesDeCiclo } from '@/lib/tablero-datos';
 import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
-
-interface PuntuadoJson {
-  nombre: string;
-  nivel: string;
-}
 
 /** Tile de resumen: metadata + valor grande. Presentación pura, sin datos nuevos. */
 function TileResumen({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
@@ -40,60 +35,28 @@ export default async function PaginaDashboard({
   const { area } = await searchParams;
   await autorizarEmpresa(empresa);
 
-  // Agregación en el servidor (el rol patronal no tiene SELECT sobre risk_results):
-  // solo distribuciones y conteos llegan a la UI, jamás resultados individuales.
-  const supabase = clienteAdmin();
-  const [{ data: resultados }, { count: totalAsignaciones }] = await Promise.all([
-    supabase
-      .from('risk_results')
-      .select(
-        'id, assignment_id, supersedes_id, created_at, nivel_final, categorias, dominios, employees (area)',
-      )
-      .eq('company_id', empresa)
-      .eq('cycle_id', ciclo),
-    supabase
-      .from('questionnaire_assignments')
-      .select('id', { count: 'exact', head: true })
-      .eq('company_id', empresa)
-      .eq('cycle_id', ciclo),
-  ]);
+  // Vigencia + agregación en un solo lugar (lib/tablero-datos, service_role): el rol
+  // patronal no tiene SELECT sobre risk_results; solo distribuciones y conteos llegan a
+  // la UI, jamás resultados individuales. El dashboard ejecutivo usa la misma fuente.
+  const { count: totalAsignaciones } = await (
+    await clienteSesion()
+  )
+    .from('questionnaire_assignments')
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', empresa)
+    .eq('cycle_id', ciclo);
 
-  // Mismo criterio que el informe de resultados (regla inviolable 1): con cualquier recálculo,
-  // el dashboard y el informe deben coincidir en la distribución del mismo ciclo.
-  const vigentes = resultadosVigentesPorAsignacion(
-    (resultados ?? []).map((r) => ({
-      id: r.id,
-      assignmentId: r.assignment_id,
-      supersedesId: r.supersedes_id,
-      createdAt: r.created_at,
-      nivel_final: r.nivel_final,
-      categorias: r.categorias,
-      dominios: r.dominios,
-      employees: r.employees,
-    })),
-  );
+  const vigentes = await vigentesDeCiclo(empresa, ciclo);
 
-  const areas = [
-    ...new Set(
-      vigentes.map((r) => (r.employees as unknown as { area: string | null }).area ?? 'Sin área'),
-    ),
-  ].sort();
+  const areas = [...new Set(vigentes.map((r) => r.area))].sort();
+  const filtrados = vigentes.filter((r) => !area || r.area === area);
 
-  const filtrados = vigentes.filter(
-    (r) =>
-      !area || ((r.employees as unknown as { area: string | null }).area ?? 'Sin área') === area,
-  );
-
-  const cfinal = distribucionNiveles(filtrados.map((r) => r.nivel_final));
+  const cfinal = distribucionNiveles(filtrados.map((r) => r.nivelFinal));
   const categorias = distribucionPorNombre(
-    filtrados.flatMap((r) =>
-      (r.categorias as PuntuadoJson[]).map((c) => ({ nombre: c.nombre, nivel: c.nivel })),
-    ),
+    filtrados.flatMap((r) => r.categorias.map((c) => ({ nombre: c.nombre, nivel: c.nivel }))),
   );
   const dominios = distribucionPorNombre(
-    filtrados.flatMap((r) =>
-      (r.dominios as PuntuadoJson[]).map((d) => ({ nombre: d.nombre, nivel: d.nivel })),
-    ),
+    filtrados.flatMap((r) => r.dominios.map((d) => ({ nombre: d.nombre, nivel: d.nivel }))),
   );
 
   // Tiles de resumen: derivados de los objetos que esta página ya calculó arriba (ningún
@@ -139,13 +102,7 @@ export default async function PaginaDashboard({
         <TileResumen etiqueta="Completados" valor={filtrados.length} />
         <TileResumen
           etiqueta="Áreas cubiertas"
-          valor={
-            new Set(
-              filtrados.map(
-                (r) => (r.employees as unknown as { area: string | null }).area ?? 'Sin área',
-              ),
-            ).size
-          }
+          valor={new Set(filtrados.map((r) => r.area)).size}
         />
         <TileResumen
           etiqueta="Nivel predominante"

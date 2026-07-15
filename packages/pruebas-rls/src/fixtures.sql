@@ -293,6 +293,17 @@ insert into support_access_grants
    now(), now() + interval '24 hours', now(), '11111111-0000-4000-8000-000000000001')
 on conflict do nothing;
 
+-- Borrador de IA (Fase 6): un resumen del tenant A, generado por su admin, SIN adoptar.
+insert into ai_drafts
+  (id, company_id, cycle_id, tipo, texto, modelo, prompt_version, insumo, insumo_sha256,
+   generated_by) values
+  ('aaaaaaaa-0000-4000-8000-000000000211', 'aaaaaaaa-0000-4000-8000-000000000001',
+   'aaaaaaaa-0000-4000-8000-000000000051', 'resumen_ejecutivo',
+   'Borrador de resumen ejecutivo (fixture).', 'claude-haiku-4-5-fixture', 'resumen_v1',
+   '{"participacion":{"asignados":2,"completados":1}}', 'sha-insumo-fixture-a',
+   '11111111-0000-4000-8000-000000000001')
+on conflict do nothing;
+
 insert into dissemination_receipts (id, company_id, dissemination_id, employee_id) values
   ('aaaaaaaa-0000-4000-8000-000000000131', 'aaaaaaaa-0000-4000-8000-000000000001',
    'aaaaaaaa-0000-4000-8000-000000000121', 'aaaaaaaa-0000-4000-8000-000000000021'),

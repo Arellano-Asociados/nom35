@@ -1314,6 +1314,110 @@ describe('grants de soporte nominativos (Fase 5): el consentimiento es del clien
   });
 });
 
+describe('borradores de IA (Fase 6): dato del tenant, append-only, adopción de una vía', () => {
+  const CICLO_A = 'aaaaaaaa-0000-4000-8000-000000000051';
+  const DRAFT_A = 'aaaaaaaa-0000-4000-8000-000000000211';
+  const TENANT_C = 'cccccccc-0000-4000-8000-000000000001';
+  const CICLO_C = 'cccccccc-0000-4000-8000-000000000051';
+  const ADMIN_C = '55555555-0000-4000-8000-000000000001';
+
+  it('gestión de A genera un borrador propio; con generated_by ajeno → 42501', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const propio = await q(
+        `insert into ai_drafts
+           (company_id, cycle_id, tipo, texto, modelo, prompt_version, insumo, insumo_sha256, generated_by)
+         values ($1, $2, 'resumen_ejecutivo', 'x', 'm', 'resumen_v1', '{}', 'sha', $3)`,
+        [TENANT_A, CICLO_A, ADMIN_A],
+      );
+      expect(propio.rowCount).toBe(1);
+      await esperarRechazo(
+        q,
+        `insert into ai_drafts
+           (company_id, cycle_id, tipo, texto, modelo, prompt_version, insumo, insumo_sha256, generated_by)
+         values ($1, $2, 'resumen_ejecutivo', 'x', 'm', 'resumen_v1', '{}', 'sha', $3)`,
+        [TENANT_A, CICLO_A, ADMIN_B],
+        'generated_by ajeno debe rechazarse',
+      );
+    });
+  });
+
+  it('el borrador de A es invisible e ininsertable para el tenant B (cross-tenant)', async () => {
+    await como({ sub: ADMIN_B, company_id: TENANT_B }, async (q) => {
+      expect(
+        await contar(q, 'select count(*) n from ai_drafts where company_id = $1', [TENANT_A]),
+      ).toBe(0);
+      await esperarRechazo(
+        q,
+        `insert into ai_drafts
+           (company_id, cycle_id, tipo, texto, modelo, prompt_version, insumo, insumo_sha256, generated_by)
+         values ($1, $2, 'resumen_ejecutivo', 'x', 'm', 'resumen_v1', '{}', 'sha', $3)`,
+        [TENANT_A, CICLO_A, ADMIN_B],
+        'insertar en tenant ajeno debe rechazarse',
+      );
+    });
+  });
+
+  it('adopción de una sola vía: null→valor con el uid propio OK; reescribir texto o re-adoptar → exception', async () => {
+    await como({ sub: ADMIN_A, company_id: TENANT_A }, async (q) => {
+      const adoptado = await q(
+        `update ai_drafts set adopted_by = $2, adopted_at = now() where id = $1`,
+        [DRAFT_A, ADMIN_A],
+      );
+      expect(adoptado.rowCount).toBe(1);
+      // El texto es inmutable incluso al adoptar
+      const reescritura = await intento(
+        q,
+        `update ai_drafts set texto = 'reescrito' where id = $1`,
+        [DRAFT_A],
+      );
+      expect(reescritura.codigo).toBe('P0001');
+      // Re-adopción rechazada
+      const readopcion = await intento(
+        q,
+        `update ai_drafts set adopted_by = $2, adopted_at = now() where id = $1`,
+        [DRAFT_A, ADMIN_A],
+      );
+      expect(readopcion.codigo).toBe('P0001');
+    });
+  });
+
+  it('append-only: DELETE del borrador rechazado incluso para el dueño de la tabla', async () => {
+    await comoPostgres(async (q) => {
+      await expect(q(`delete from ai_drafts where id = $1`, [DRAFT_A])).rejects.toThrow(
+        /append-only/,
+      );
+    });
+  });
+
+  it('el rol miembro (RD sin gestión) no genera borradores', async () => {
+    await como({ sub: DR_A, company_id: TENANT_A }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into ai_drafts
+           (company_id, cycle_id, tipo, texto, modelo, prompt_version, insumo, insumo_sha256, generated_by)
+         values ($1, $2, 'resumen_ejecutivo', 'x', 'm', 'resumen_v1', '{}', 'sha', $3)`,
+        [TENANT_A, CICLO_A, DR_A],
+      );
+    });
+  });
+
+  it('tenant SUSPENDIDO: generar y adoptar mueren en BD (RESTRICTIVE), leer sobrevive', async () => {
+    await como({ sub: ADMIN_C, company_id: TENANT_C }, async (q) => {
+      await esperarRechazo(
+        q,
+        `insert into ai_drafts
+           (company_id, cycle_id, tipo, texto, modelo, prompt_version, insumo, insumo_sha256, generated_by)
+         values ($1, $2, 'resumen_ejecutivo', 'x', 'm', 'resumen_v1', '{}', 'sha', $3)`,
+        [TENANT_C, CICLO_C, ADMIN_C],
+      );
+      // Lectura sobrevive (no hay borradores en C, pero el SELECT no revienta)
+      expect(
+        await contar(q, 'select count(*) n from ai_drafts where company_id = $1', [TENANT_C]),
+      ).toBe(0);
+    });
+  });
+});
+
 describe('identidad de plataforma (Fase 5): frontera operador↔tenant', () => {
   const OPERADOR = '44444444-0000-4000-8000-000000000001';
   const EMPLEADO_A2_ID = 'aaaaaaaa-0000-4000-8000-000000000022'; // sin cuenta (auth null)
